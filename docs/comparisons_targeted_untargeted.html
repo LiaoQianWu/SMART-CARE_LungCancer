@@ -1,0 +1,2370 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Qian-Wu Liao" />
+
+
+<title>Comparisons between targeted and untargeted datasets</title>
+
+<script src="site_libs/header-attrs-2.21/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.2.1/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.2.1/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">SMART-CARE: Lung Cancer Method Development Cohort</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Comparisons between targeted and untargeted
+datasets</h1>
+<h4 class="author">Qian-Wu Liao</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2023-04-25
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>SMART-CARE_LungCancer_MethodDev/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.0). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20230425code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20230425)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20230425code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20230425)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
+</p>
+</div>
+<div id="strongFilepathsstrongabsolute" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Using absolute paths to the files within your workflowr project makes it
+difficult for you and others to run your code on a different machine.
+Change the absolute path(s) below to the suggested relative path(s) to
+make your code more reproducible.
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+absolute
+</th>
+<th style="text-align:left;">
+relative
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev
+</td>
+<td style="text-align:left;">
+.
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongdc86335">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong> dc86335
+</a>
+</p>
+</div>
+<div id="strongRepositoryversionstrongdc86335"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version dc86335.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    data/.DS_Store
+
+Untracked files:
+    Untracked:  code/feature_selection.Rmd
+    Untracked:  code/misc.R
+    Untracked:  code/mofa_downstream_analysis.Rmd
+    Untracked:  code/mofa_factors_investigation.Rmd
+    Untracked:  code/workflowr_commands.R
+    Untracked:  data/AG_Hell/
+    Untracked:  data/AG_Hopf/
+    Untracked:  data/AG_Krijgsveld/
+    Untracked:  data/corrMetaPlasmaRes_Hopf_Hell.rds
+    Untracked:  data/corrMetaTissueRes_Hopf_Hell.rds
+    Untracked:  data/mofa/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/comparisons_targeted_untargeted.Rmd</code>) and HTML
+(<code>docs/comparisons_targeted_untargeted.html</code>) files. If
+you’ve configured a remote Git repository (see
+<code>?wflow_git_remote</code>), click on the hyperlinks in the table
+below to view the files as they were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+e54886f
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-25
+</td>
+<td>
+Finalize scripts about data preprocessing, preliminary analysis,
+comparisons between targeted and untargeted
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<p><font size='4'> Description: Compare Targeted and Untargeted Plasma
+and Tissue Metabolomics generated by AG Hell and AG Hopf, respectively.
+This report mainly looks into if Targeted and Untargeted data can
+provide complementary information or more or less same information. To
+this purpose, we computed correlations between Recurrence-related PCs
+learned from paired datasets (e.g., Targeted Plasma Metabolomics vs
+Untargeted Plasma Metabolomics) and between Targeted and Untargeted
+features. Furthermore, we leveraged MOFA model to see if there are same
+sources of variation in paired datasets. Note that only results of
+Baseline samples are discussed since predicting cancer recurrence is of
+most interest. </font></p>
+<p>Load libraries</p>
+<pre class="r"><code>library(MOFA2)
+library(reticulate)
+use_python(&#39;/Users/qianwu/opt/anaconda3/bin/python&#39;)
+library(SummarizedExperiment)
+library(ggrepel)
+library(ggfortify)
+library(igraph)
+library(ggraph)
+library(ggVennDiagram)
+library(tidyverse)
+# Load user-defined functions
+source(&#39;./code/misc.R&#39;)</code></pre>
+<div id="pc-correlations" class="section level1">
+<h1>PC correlations</h1>
+<p>Display associations between learned PCs (Var1) and patient cancer
+recurrence (Var2). Basically t-test was performed to test significance
+of difference between recurrence and non-recurrence patient
+groups.<br />
+<br/> <font size='4'> Targeted Metabolomics from AG Hell </font><br />
+<strong>Baseline Plasma Metabolomics</strong></p>
+<pre class="r"><code># Baseline Plasma Metabolomics
+# Load normalized data
+metaPlasma_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaPlasmaNorm.rds&#39;)
+# Subset baseline samples
+smpBaseIdx &lt;- which(colData(metaPlasma_Hell)$Condition == &#39;Baseline&#39;)
+metaBase_Hell &lt;- metaPlasma_Hell[, smpBaseIdx]
+
+# Perform analysis
+metaBaseRes_Hell &lt;- SOA(metaBase_Hell, fac = &#39;Recurrence&#39;, num_feats = 42)
+tPCASigRes &lt;- metaBaseRes_Hell$tPCASigRes
+
+# Display PCs that can significantly separate recurrence and non-recurrence
+# patients
+tPCASigRes</code></pre>
+<pre><code>  Var1       Var2       pVal    tStats   pValAdj
+1 PC11 Recurrence 0.01306487 -2.753839 0.2612974
+2 PC15 Recurrence 0.02757487  2.397378 0.2757487</code></pre>
+<p><strong>Tumor Tissue Metabolomics</strong></p>
+<pre class="r"><code># Tumor Tissue Metabolomics
+# Load normalized data
+metaTissue_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;)
+# Subset baseline samples
+smpTumorIdx &lt;- which(colData(metaTissue_Hell)$Condition == &#39;Tumor&#39;)
+metaTumor_Hell &lt;- metaTissue_Hell[, smpTumorIdx]
+
+# Perform analysis
+metaTumorRes_Hell &lt;- SOA(metaTumor_Hell, fac = &#39;Recurrence&#39;, num_feats = 30)
+tPCASigRes &lt;- metaTumorRes_Hell$tPCASigRes
+
+# Display PCs that can significantly separate recurrence and non-recurrence
+# patients
+tPCASigRes</code></pre>
+<pre><code>  Var1       Var2        pVal   tStats    pValAdj
+1 PC16 Recurrence 0.003636829 3.340968 0.07273658</code></pre>
+<p><strong>Normal Tissue Metabolomics</strong></p>
+<pre class="r"><code># Normal Tissue Metabolomics
+# Subset baseline samples
+smpNormalIdx &lt;- which(colData(metaTissue_Hell)$Condition == &#39;Normal&#39;)
+metaNormal_Hell &lt;- metaTissue_Hell[, smpNormalIdx]
+
+# Perform analysis
+metaNormalRes_Hell &lt;- SOA(metaNormal_Hell, fac = &#39;Recurrence&#39;, num_feats = 30)
+tPCASigRes &lt;- metaNormalRes_Hell$tPCASigRes
+
+# Display PCs that can significantly separate recurrence and non-recurrence
+# patients
+tPCASigRes</code></pre>
+<pre><code>  Var1       Var2       pVal    tStats pValAdj
+1  PC6 Recurrence 0.02632357  2.419978 0.32828
+2 PC17 Recurrence 0.04835676 -2.117951 0.32828
+3  PC9 Recurrence 0.04924200  2.108713 0.32828</code></pre>
+<p><br/> <br/></p>
+<p><font size='4'> Untargeted Metabolomics from AG Hopf </font><br />
+<br/> <strong>Baseline Plasma Metabolomics</strong><br />
+PC19 explains no variation in data.</p>
+<pre class="r"><code># Baseline Plasma Metabolomics
+# Load normalized data
+metaPlasma_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)
+# Retrieve sample information for matching sample names
+smpAnno &lt;- tibble::as_tibble(colData(metaPlasma_Hell), rownames = &#39;Sample&#39;) %&gt;%
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, &#39;_3$&#39;)) %&gt;%
+  dplyr::select(Sample, Identifier)
+colnames(metaPlasma_Hopf) &lt;- plyr::mapvalues(colnames(metaPlasma_Hopf),
+                                             from = smpAnno$Identifier,
+                                             to = smpAnno$Sample)
+# Subset baseline samples
+smpBaseIdx &lt;- which(colData(metaPlasma_Hopf)$Condition == &#39;Baseline&#39;)
+metaBase_Hopf &lt;- metaPlasma_Hopf[, smpBaseIdx]
+
+# Perform analysis
+metaBaseRes_Hopf &lt;- SOA(metaBase_Hopf, fac = &#39;Recurrence&#39;, num_feats = 90)
+tPCASigRes &lt;- metaBaseRes_Hopf$tPCASigRes
+pcaRes &lt;- metaBaseRes_Hopf$pcaRes
+datMat &lt;- metaBaseRes_Hopf$data
+smpAnno &lt;- metaBaseRes_Hopf$smpMetadata
+
+# Display PCs that can significantly separate recurrence and non-recurrence
+# patients
+tPCASigRes</code></pre>
+<pre><code>  Var1       Var2       pVal    tStats  pValAdj
+1  PC5 Recurrence 0.03600889  2.266117 0.470386
+2 PC19 Recurrence 0.04896661 -2.111571 0.470386</code></pre>
+<pre class="r"><code># Use probabilistic dropout model to account for missing values and identify
+# differentially abundant entities
+# Fit linear probabilistic dropout model to normalized data
+fit &lt;- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
+# Identify significant differentially abundant entities
+proDAMetaBaseSigFeats &lt;- proDA::test_diff(fit,
+                                          contrast = Intercept + `smpAnno$RecurrenceYes` - Intercept,
+                                          sort_by = &#39;pval&#39;) %&gt;%
+  dplyr::select(-c(diff, se, df, avg_abundance, n_approx)) %&gt;%
+  dplyr::filter(pval &lt; 0.05)</code></pre>
+<p><strong>Tumor Tissue Metabolomics</strong></p>
+<pre class="r"><code># Tumor Tissue Metabolomics
+# Load normalized data
+metaTissue_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)
+# Subset baseline samples
+smpTumorIdx &lt;- which(colData(metaTissue_Hopf)$Condition == &#39;Tumor&#39;)
+metaTumor_Hopf &lt;- metaTissue_Hopf[, smpTumorIdx]
+
+# Perform analysis
+metaTumorRes_Hopf &lt;- SOA(metaTumor_Hopf, fac = &#39;Recurrence&#39;, num_feats = 30)
+tPCASigRes &lt;- metaTumorRes_Hopf$tPCASigRes
+datMat &lt;- metaTumorRes_Hopf$data
+smpAnno &lt;- metaTumorRes_Hopf$smpMetadata
+
+# Display PCs that can significantly separate recurrence and non-recurrence
+# patients
+tPCASigRes</code></pre>
+<pre><code>  Var1       Var2       pVal    tStats  pValAdj
+1  PC6 Recurrence 0.01851625 -2.589162 0.370325</code></pre>
+<pre class="r"><code># Use probabilistic dropout model to account for missing values and identify
+# differentially abundant entities
+# Fit linear probabilistic dropout model to normalized data
+fit &lt;- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
+# Identify significant differentially abundant entities
+proDAMetaTumorSigFeats &lt;- proDA::test_diff(fit,
+                                           contrast = Intercept + `smpAnno$RecurrenceYes` - Intercept,
+                                           sort_by = &#39;pval&#39;) %&gt;%
+  dplyr::select(-c(diff, se, df, avg_abundance, n_approx)) %&gt;%
+  dplyr::filter(pval &lt; 0.05)</code></pre>
+<p><strong>Normal Tissue Metabolomics</strong></p>
+<pre class="r"><code># Normal Tissue Metabolomics
+# Subset baseline samples
+smpNormalIdx &lt;- which(colData(metaTissue_Hopf)$Condition == &#39;Normal&#39;)
+metaNormal_Hopf &lt;- metaTissue_Hopf[, smpNormalIdx]
+
+# Perform analysis
+metaNormalRes_Hopf &lt;- SOA(metaNormal_Hopf, fac = &#39;Recurrence&#39;, num_feats = 30)
+tPCASigRes &lt;- metaNormalRes_Hopf$tPCASigRes
+datMat &lt;- metaNormalRes_Hopf$data
+smpAnno &lt;- metaNormalRes_Hopf$smpMetadata
+
+# Display PCs that can significantly separate recurrence and non-recurrence
+# patients
+tPCASigRes</code></pre>
+<pre><code>[1] Var1    Var2    pVal    tStats  pValAdj
+&lt;0 rows&gt; (or 0-length row.names)</code></pre>
+<pre class="r"><code># Use probabilistic dropout model to account for missing values and identify
+# differentially abundant entities
+# Fit linear probabilistic dropout model to normalized data
+fit &lt;- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
+# Identify significant differentially abundant entities
+proDAMetaNormalSigFeats &lt;- proDA::test_diff(fit,
+                                            contrast = Intercept + `smpAnno$RecurrenceYes` - Intercept,
+                                            sort_by = &#39;pval&#39;) %&gt;%
+  dplyr::select(-c(diff, se, df, avg_abundance, n_approx)) %&gt;%
+  dplyr::filter(pval &lt; 0.05)</code></pre>
+<p><br/> <br/></p>
+<p>Visualize correlations of Recurrence-related PCs learned from
+Targeted and Untargeted data to see if same sources of variation are
+captured by different methods<br />
+<br/> <font size='4'> Original Untargeted data with missing values
+</font><br />
+<strong>Targeted Baseline Plasma Metabolomics vs Untargeted
+BPM</strong></p>
+<pre class="r"><code># BPM_Hell vs BPM_Hopf
+# Extract significant PCs from different datasets and combine needed information
+# into a table
+metaBaseSigPC_Hell &lt;- dplyr::select(metaBaseRes_Hell$pcTab, c(Sample, PC11, PC15))
+metaBaseSigPC_Hopf &lt;- dplyr::select(metaBaseRes_Hopf$pcTab, c(Sample, PC5, Recurrence))
+metaBaseSigPC &lt;- dplyr::left_join(metaBaseSigPC_Hell, metaBaseSigPC_Hopf, by = &#39;Sample&#39;)
+# Compute correlations between significant PCs
+cat(&#39;Correlation between Targeted BPM PC11 and Untargeted BPM PC5 is&#39;,
+    stats::cor.test(metaBaseSigPC$PC11, metaBaseSigPC$PC5,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Targeted BPM PC11 and Untargeted BPM PC5 is -0.3331772</code></pre>
+<pre class="r"><code>cat(&#39;Correlation between Targeted BPM PC15 and Untargeted BPM PC5 is&#39;,
+    stats::cor.test(metaBaseSigPC$PC15, metaBaseSigPC$PC5,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Targeted BPM PC15 and Untargeted BPM PC5 is 0.5072442</code></pre>
+<pre class="r"><code># cat(&#39;Correlation between Targeted BPM PC11 and Targeted BPM PC15 is&#39;,
+#     stats::cor.test(metaBaseSigPC$PC11, metaBaseSigPC$PC15,
+#                     method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)
+
+# Display relationship between significant PCs
+ggplot(metaBaseSigPC, aes(x=PC15, PC5, col=Recurrence)) +
+  geom_point(size = 4) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)),
+                   method = &#39;pearson&#39;, size = 5, color = &#39;black&#39;) +
+  stat_smooth(formula = y ~ x, method = &quot;lm&quot;, color = &quot;grey&quot;, alpha = 0.2) +
+  labs(x = &#39;PC15 (Targeted BPM)&#39;, y = &#39;PC5 (Untargeted BPM)&#39;) +
+  scale_color_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Targeted Tumor Tissue Metabolomics vs Untargeted
+TTM</strong></p>
+<pre class="r"><code># TTM_Hell vs TTM_Hopf
+# Extract significant PCs from different datasets and combine needed information
+# into a table
+metaTumorSigPC_Hell &lt;- dplyr::select(metaTumorRes_Hell$pcTab, c(Sample, PC16))
+metaTumorSigPC_Hopf &lt;- dplyr::select(metaTumorRes_Hopf$pcTab, c(Sample, PC6, Recurrence))
+metaTumorSigPC &lt;- dplyr::left_join(metaTumorSigPC_Hell, metaTumorSigPC_Hopf, by = &#39;Sample&#39;)
+# Compute correlations between significant PCs
+cat(&#39;Correlation between Targeted TTM PC16 and Untargeted TTM PC6 is&#39;,
+    stats::cor.test(metaTumorSigPC$PC16, metaTumorSigPC$PC6,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Targeted TTM PC16 and Untargeted TTM PC6 is -0.2196444</code></pre>
+<p><br/> <br/></p>
+<p><font size='4'> Imputed Untargeted data using MissForest algorithm
+</font><br />
+<br/> <strong>Targeted TTM vs Imputed Untargeted TTM</strong><br />
+Display Recurrence-related PC learned from imputed Untargeted TTM
+dataset</p>
+<pre class="r"><code># Load imputed data
+impuMetaTumor_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/impuByMF/impuTTM_Hopf.rds&#39;)
+# Conduct PCA
+impuMetaTumorRes_Hopf &lt;- SOA(impuMetaTumor_Hopf, factor = &#39;Recurrence&#39;)
+impuMetaTumorRes_Hopf$tPCASigRes</code></pre>
+<pre><code>  Var1       Var2      pVal   tStats   pValAdj
+1  PC6 Recurrence 0.0385144 2.232625 0.6281249</code></pre>
+<pre class="r"><code># TTM_Hell vs imputed TTM_Hopf
+# Extract significant PCs and combine needed information into a table
+metaTumorSigPC_Hell &lt;- dplyr::select(metaTumorRes_Hell$pcTab, c(Sample, PC16)) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove(Sample, &#39;_.*&#39;))
+impuMetaTumorSigPC_Hopf &lt;- dplyr::select(impuMetaTumorRes_Hopf$pcTab,
+                                         c(Sample, PC6, Recurrence)) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove(Sample, &#39;_.*&#39;))
+metaTumorSigPC &lt;- dplyr::left_join(metaTumorSigPC_Hell, impuMetaTumorSigPC_Hopf,
+                                   by = &#39;Sample&#39;)
+# Compute correlations between significant PCs
+cat(&#39;Correlation between Targeted TTM PC16 and Imputed Untargeted TTM PC6 is&#39;,
+    stats::cor.test(metaTumorSigPC$PC16, metaTumorSigPC$PC6,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Targeted TTM PC16 and Imputed Untargeted TTM PC6 is 0.2729389</code></pre>
+<p><strong>Untargeted TTM vs Imputed Untargeted TTM</strong></p>
+<pre class="r"><code># TTM_Hopf vs imputed TTM_Hopf
+# Extract significant PCs and combine needed information into a table
+metaTumorSigPC_Hopf &lt;- dplyr::select(metaTumorRes_Hopf$pcTab, c(Sample, PC6)) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove(Sample, &#39;_.*&#39;))
+impuMetaTumorSigPC_Hopf &lt;- dplyr::select(impuMetaTumorRes_Hopf$pcTab,
+                                         c(Sample, PC6, Recurrence)) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove(Sample, &#39;_.*&#39;)) %&gt;%
+  dplyr::rename(impuPC6 = PC6)
+metaTumorSigPC &lt;- dplyr::left_join(metaTumorSigPC_Hopf, impuMetaTumorSigPC_Hopf,
+                                   by = &#39;Sample&#39;)
+# Compute correlations between significant PCs
+cat(&#39;Correlation between Untargeted TTM PC6 and Imputed Untargeted TTM PC6 is&#39;,
+    stats::cor.test(metaTumorSigPC$PC6, metaTumorSigPC$impuPC6,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Untargeted TTM PC6 and Imputed Untargeted TTM PC6 is -0.5198117</code></pre>
+<pre class="r"><code># Display relationship between significant PCs
+ggplot(metaTumorSigPC, aes(x=PC6, impuPC6, col=Recurrence)) +
+  geom_point(size = 4) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)),
+                   method = &#39;pearson&#39;, size = 5, color = &#39;black&#39;) +
+  stat_smooth(formula = y ~ x, method = &quot;lm&quot;, color = &quot;grey&quot;, alpha = 0.2) +
+  labs(x = &#39;PC6 (Untargeted TTM)&#39;, y = &#39;PC6 (Untargeted &amp; Imputed TTM)&#39;) +
+  scale_color_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-10-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Targeted Normal Tissue Metabolomics vs Imputed Untargeted
+NTM</strong><br />
+Display Recurrence-related PCs learned from imputed Untargeted NTM
+dataset</p>
+<pre class="r"><code># NTM_Hell
+# Extract significant PCs
+metaNormalSigPC_Hell &lt;- dplyr::select(metaNormalRes_Hell$pcTab,
+                                      c(Sample, PC6, PC17, PC9))
+# Computed correlations between significant PCs
+# stats::cor.test(metaNormalSigPC_Hell$PC6, metaNormalSigPC_Hell$PC17,
+#                 method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate
+# stats::cor.test(metaNormalSigPC_Hell$PC6, metaNormalSigPC_Hell$PC9,
+#                 method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate
+
+# Load imputed data
+impuMetaNormal_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/impuByMF/impuNTM_Hopf.rds&#39;)
+# Conduct PCA
+impuMetaNormalRes_Hopf &lt;- SOA(impuMetaNormal_Hopf, factor = &#39;Recurrence&#39;)
+impuMetaNormalRes_Hopf$tPCASigRes</code></pre>
+<pre><code>  Var1       Var2       pVal    tStats   pValAdj
+1 PC10 Recurrence 0.01878822 -2.582216 0.3392681
+2 PC14 Recurrence 0.03392681  2.295630 0.3392681</code></pre>
+<pre class="r"><code># NTM_Hell vs imputed NTM_Hopf
+# Extract significant PCs and combine needed information into a table
+metaNormalSigPC_Hell &lt;- dplyr::mutate(metaNormalSigPC_Hell,
+                                      Sample = stringr::str_remove(Sample, &#39;_.*&#39;))
+impuMetaNormalSigPC_Hopf &lt;- dplyr::select(impuMetaNormalRes_Hopf$pcTab,
+                                          c(Sample, PC10, PC14)) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove(Sample, &#39;_.*&#39;))
+metaNormalSigPC &lt;- dplyr::left_join(metaNormalSigPC_Hell, impuMetaNormalSigPC_Hopf,
+                                    by = &#39;Sample&#39;)
+# Computed correlations between significant PCs
+cat(&#39;Correlation between Targeted PC6 and Imputed Untargeted PC10 is&#39;,
+    stats::cor.test(metaNormalSigPC_Hell$PC6, impuMetaNormalSigPC_Hopf$PC10,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Targeted PC6 and Imputed Untargeted PC10 is -0.07162908</code></pre>
+<pre class="r"><code>cat(&#39;Correlation between Targeted PC6 and Imputed Untargeted PC14 is&#39;,
+    stats::cor.test(metaNormalSigPC_Hell$PC6, impuMetaNormalSigPC_Hopf$PC14,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Targeted PC6 and Imputed Untargeted PC14 is 0.07499574</code></pre>
+<pre class="r"><code>cat(&#39;Correlation between Targeted PC17 and Imputed Untargeted PC10 is&#39;,
+    stats::cor.test(metaNormalSigPC_Hell$PC17, impuMetaNormalSigPC_Hopf$PC10,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Targeted PC17 and Imputed Untargeted PC10 is 0.08523423</code></pre>
+<pre class="r"><code>cat(&#39;Correlation between Targeted PC17 and Imputed Untargeted PC14 is&#39;,
+    stats::cor.test(metaNormalSigPC_Hell$PC17, impuMetaNormalSigPC_Hopf$PC14,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Targeted PC17 and Imputed Untargeted PC14 is -0.3294128</code></pre>
+<pre class="r"><code>cat(&#39;Correlation between Targeted PC9 and Imputed Untargeted PC10 is&#39;,
+    stats::cor.test(metaNormalSigPC_Hell$PC9, impuMetaNormalSigPC_Hopf$PC10,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Targeted PC9 and Imputed Untargeted PC10 is 0.05301909</code></pre>
+<pre class="r"><code>cat(&#39;Correlation between Targeted PC9 and Imputed Untargeted PC14 is&#39;,
+    stats::cor.test(metaNormalSigPC_Hell$PC9, impuMetaNormalSigPC_Hopf$PC14,
+                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<pre><code>Correlation between Targeted PC9 and Imputed Untargeted PC14 is -0.02838791</code></pre>
+<pre class="r"><code># cat(&#39;Correlation between Imputed Targeted PC10 and Imputed Untargeted PC14 is&#39;,
+#     stats::cor.test(impuMetaNormalSigPC_Hopf$PC10, impuMetaNormalSigPC_Hopf$PC14,
+#                     method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
+<p>=&gt; Generally, correlations of Recurrence-related PCs between
+Targeted and (Imputed) Untargeted datasets are low, indicating that
+Targeted and Untargeted data may carry different information in terms of
+predicting cancer recurrence. However, cannot say if MissForest
+algorithm is reliable for imputing missing values. Theoretically,
+MissForest should be good at handling MAR (missing at random), yet we
+assume much of missingness in our data is due to extremely small values
+(MNAR, missing not at random) that machine fails to detect. Therefore,
+it might also be that too much information is removed from Untargeted
+datasets when conducting PCA and imputated values are not biologically
+accurate, leading to uncorrelated results between Targeted and
+Untargeted datasets.</p>
+</div>
+<div id="feature-correlations" class="section level1">
+<h1>Feature correlations</h1>
+<p>One purpose is to see if Untargeted features defined by m/z and
+retention time can be identified by Targeted features.</p>
+<div id="plasma-metabolites" class="section level2">
+<h2>Plasma Metabolites</h2>
+<p><font size='5'> <strong>Untargeted vs Targeted Plasma
+Metabolites</strong> </font><br />
+Systematically compute correlations of all feature pairs where two
+features are from paired datasets, i.e., Targeted and Untargeted Plasma
+Metabolomics. Note that both Baseline and Follow-up samples were used.
+<br/> <br/></p>
+<p>Show correlations between features through heatmap</p>
+<pre class="r"><code># Load normalized data
+metaPlasma_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)
+metaPlasma_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaPlasmaNorm.rds&#39;)
+# Retrieve sample information for matching sample names for two datasets
+smpAnno &lt;- tibble::as_tibble(colData(metaPlasma_Hell), rownames = &#39;Sample&#39;) %&gt;%
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, &#39;_3$&#39;)) %&gt;%
+  dplyr::select(Sample, Identifier)
+# Extract data matrix
+datMat_Hopf &lt;- SummarizedExperiment::assay(metaPlasma_Hopf)
+datMat_Hell &lt;- SummarizedExperiment::assay(metaPlasma_Hell)
+# Transpose data for systematically computing correlations between features
+featTab_Hopf &lt;- t(datMat_Hopf) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
+  dplyr::mutate(Sample = plyr::mapvalues(Sample, from = smpAnno$Identifier,
+                                         to = smpAnno$Sample))
+featTab_Hell &lt;- t(datMat_Hell) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Systematically compute correlations between untargeted feature pairs
+# corrMetaPlasmaRes_Hopf_Hell &lt;- corrIter(featTab_Hopf, featTab_Hell, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaPlasmaRes_Hopf_Hell, paste0(result_path,
+#                                             &#39;corrMetaPlasmaRes_Hopf_Hell.rds&#39;))
+corrMetaPlasmaRes_Hopf_Hell &lt;- readRDS(&#39;./data/corrMetaPlasmaRes_Hopf_Hell.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaPlasmaRes_Hopf_Hell, Var1, Var2, Corr) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+                   color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
+                   breaks = seq(-1, 1, by = 0.02))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;metaPlasma_heatmap_feat_corr_Hopf_Hell.png&#39;), a,
+#        device = &#39;png&#39;, dpi = 400)</code></pre>
+<p>Show only highly positively correlated feature pairs through network
+plot. Cutoff is (1) correlations greater than 0.7 and (2) p-values less
+than 0.05.</p>
+<pre class="r"><code># Prepare edge table
+edges &lt;- dplyr::filter(corrMetaPlasmaRes_Hopf_Hell, Corr &gt; 0.7, pVal &lt; 0.05) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+
+# Prepare node table
+feats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- data.frame(id = seq_len(length(feats)), Feature = feats,
+                    From = c(rep(&#39;AG Hopf&#39;, length(unique(edges$Var1))),
+                             rep(&#39;AG Hell&#39;, length(unique(edges$Var2)))))
+
+# Map features in edge table to corresponding IDs
+edges$Var1 &lt;- plyr::mapvalues(edges$Var1, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+edges$Var2 &lt;- plyr::mapvalues(edges$Var2, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+# Map Feature_ID from AG Hopf to m/z_RT
+featAnno &lt;- tibble::as_tibble(rowData(metaPlasma_Hopf), rownames = &#39;Feature_ID&#39;)
+nodes &lt;- dplyr::mutate(nodes, Feature = plyr::mapvalues(Feature,
+                                                        from = featAnno$Feature_ID,
+                                                        to = featAnno$m.z_RT,
+                                                        warn_missing = F))
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(size = 3) +
+  geom_node_text(aes(label=Feature, color=From), repel = T, size = 3.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;firebrick&#39;, &#39;steelblue&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-14-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;metaPlasma_feat_corr_network_Hopf_Hell.png&#39;),
+#        height = 10, width = 10, device = &#39;png&#39;, dpi = 400)</code></pre>
+<p><font size='5'><strong>Untargeted Plasma Metabolites</strong>
+</font><br />
+Systematically compute correlations of all feature pairs in Untargeted
+(Baseline) Plasma Metabolomics. There are 62 out of 1406 Baseline
+features that can potentially predict patient cancer recurrences. Since
+features (defined by m/z and retention time) in this dataset have not
+yet been identified through database search, there might be a large
+number of highly correlated features. <br/> <br/></p>
+<p><strong>Use only Baseline samples to compute feature
+correlations</strong><br />
+</p>
+<pre class="r"><code># Load normalized data
+metaPlasma_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)
+# Subset Baseline plasma samples
+baseSmp &lt;- colData(metaPlasma_Hopf)[[&#39;Condition&#39;]] == &#39;Baseline&#39;
+metaBase_Hopf &lt;- metaPlasma_Hopf[, baseSmp]
+# Extract data matrix
+datMat_Hopf &lt;- SummarizedExperiment::assay(metaBase_Hopf)
+# Transpose data for systematically computing correlations between features
+featTab &lt;- t(datMat_Hopf) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Systematically compute correlations between untargeted feature pairs
+# corrMetaBaseRes_Hopf &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaBaseRes_Hopf, paste0(result_path,
+#                                        &#39;AG_Hopf/corrMetaBaseRes_Hopf.rds&#39;))
+corrMetaBaseRes_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/corrMetaBaseRes_Hopf.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaBaseRes_Hopf, Var1, Var2, Corr) %&gt;%
+  dplyr::mutate(Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+# pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+#                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
+<p>Show highly positively correlated feature pairs through network plot.
+Cutoff is (1) correlations greater than 0.9 and (2) adjusted p-values
+less than 0.05. Red dots indicate Recurrence-related features captured
+in Baseline samples. There are 29 (out of 62) significant features
+here.</p>
+<pre class="r"><code># Prepare node table
+nodes &lt;- data.frame(id = seq_len(nrow(datMat_Hopf)),
+                    Feature_ID = paste0(&#39;Feature&#39;, seq_len(nrow(datMat_Hopf)))) %&gt;%
+  dplyr::mutate(Sig = dplyr::case_when(
+    Feature_ID %in% proDAMetaBaseSigFeats$name ~ &#39;Yes&#39;,
+    !Feature_ID %in% proDAMetaBaseSigFeats$name ~ &#39;No&#39;))
+# Append m/z_RT information
+featAnno &lt;- tibble::as_tibble(rowData(metaBase_Hopf), rownames = &#39;Feature_ID&#39;)
+nodes &lt;- dplyr::left_join(nodes, featAnno, by = &#39;Feature_ID&#39;)
+
+# Prepare edge table
+edges &lt;- dplyr::mutate(corrMetaBaseRes_Hopf,
+                       Var1 = stringr::str_remove_all(Var1, &#39;[Feature\\.x]&#39;),
+                       Var2 = stringr::str_remove_all(Var2, &#39;[Feature\\.y]&#39;)) %&gt;%
+  dplyr::filter(Corr &gt; 0.9, pValAdj &lt; 0.05, Var1 != Var2) %&gt;%
+  # Remove duplicated variable pairs
+  dplyr::rowwise() %&gt;%
+  dplyr::mutate(varPair = paste(sort(c(Var1, Var2)), collapse = &#39;&#39;)) %&gt;%
+  dplyr::distinct(varPair, .keep_all = T) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+# Remove nodes without any connection
+incluFeats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- nodes[nodes$id %in% incluFeats,]
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(aes(color=Sig), size = 3, show.legend = F) +
+  geom_node_text(aes(label=m.z_RT), repel = T, size = 1.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-16-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hopf/metaBase_network_feat_corr.png&#39;),
+#        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
+<p><strong>Use both Baseline and Follow-up samples to compute feature
+correlations</strong><br />
+Show correlations between features through heatmap</p>
+<pre class="r"><code># Load normalized data
+metaPlasma_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)
+# Extract data matrix
+datMat_Hopf &lt;- SummarizedExperiment::assay(metaPlasma_Hopf)
+# Transpose data for systematically computing correlations between features
+featTab &lt;- t(datMat_Hopf) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+# Retrieve feature information for annotating those duplicated features
+# featAnno &lt;- tibble::as_tibble(rowData(metaPlasma_Hopf), rownames = &#39;Feature_ID&#39;)
+# featAnno[&#39;Dup_feat&#39;] &lt;- &#39;The others&#39;
+# featAnno$Dup_feat[featAnno$m.z_RT == &#39;226.95134/0.21&#39;] &lt;- &#39;226.95134/0.21&#39;
+# featAnno$Dup_feat[featAnno$m.z_RT == &#39;362.92618/0.79&#39;] &lt;- &#39;362.92618/0.79&#39;
+# featAnno$Dup_feat[featAnno$m.z_RT == &#39;182.06326/6.18&#39;] &lt;- &#39;182.06326/6.18&#39;
+# featAnno &lt;- dplyr::select(featAnno, -m.z_RT) %&gt;%
+#   tibble::column_to_rownames(&#39;Feature_ID&#39;)
+
+# Systematically compute correlations between untargeted feature pairs
+# corrMetaPlasmaRes_Hopf &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaPlasmaRes_Hopf, paste0(result_path,
+#                                        &#39;AG_Hopf/corrMetaPlasmaRes_Hopf.rds&#39;))
+corrMetaPlasmaRes_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/corrMetaPlasmaRes_Hopf.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaPlasmaRes_Hopf, Var1, Var2, Corr) %&gt;%
+  dplyr::mutate(Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+                   color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-17-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hopf/metaPlasma_heatmap_feat_corr.png&#39;), a,
+#        device = &#39;png&#39;, dpi = 400)
+
+# Show heatmap where features are ordered according to m/z ratio and retention time
+# Order features
+# featOrder &lt;- factor(colnames(featTab),
+#                     levels = paste0(&#39;Feature&#39;, seq_len(ncol(featTab)))) %&gt;%
+#   sort() %&gt;%
+#   as.character()
+# corrMat &lt;- corrMat[featOrder, featOrder]
+
+# Make heatmap
+# a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+#                    cluster_rows = F, cluster_cols = F,
+#                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))
+# ggsave(paste0(result_path, &#39;AG_Hopf/metaPlasma_heatmap_feat_corr2.png&#39;), a,
+#        device = &#39;png&#39;, dpi = 400)</code></pre>
+<p>Show only highly positively correlated feature pairs through network
+plot. Cutoff is (1) correlations greater than 0.9 and (2) adjusted
+p-values less than 0.05.</p>
+<pre class="r"><code># Prepare node table
+nodes &lt;- data.frame(id = seq_len(nrow(datMat_Hopf)),
+                    Feature_ID = paste0(&#39;Feature&#39;, seq_len(nrow(datMat_Hopf))))
+# Append m/z_RT information
+featAnno &lt;- tibble::as_tibble(rowData(metaPlasma_Hopf), rownames = &#39;Feature_ID&#39;)
+nodes &lt;- dplyr::left_join(nodes, featAnno, by = &#39;Feature_ID&#39;)
+
+# Prepare edge table
+edges &lt;- dplyr::mutate(corrMetaPlasmaRes_Hopf,
+                       Var1 = stringr::str_remove_all(Var1, &#39;[Feature\\.x]&#39;),
+                       Var2 = stringr::str_remove_all(Var2, &#39;[Feature\\.y]&#39;)) %&gt;%
+  dplyr::filter(Corr &gt; 0.9, pValAdj &lt; 0.05, Var1 != Var2) %&gt;%
+  # Remove duplicated variable pairs
+  dplyr::rowwise() %&gt;%
+  dplyr::mutate(varPair = paste(sort(c(Var1, Var2)), collapse = &#39;&#39;)) %&gt;%
+  dplyr::distinct(varPair, .keep_all = T) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+# Remove nodes without any connection
+incluFeats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- nodes[nodes$id %in% incluFeats,]
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(size = 3, show.legend = F) +
+  geom_node_text(aes(label=m.z_RT), repel = T, size = 1.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-18-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hopf/metaPlasma_network_feat_corr.png&#39;),
+#        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
+<p><font size='5'> <strong>Targeted Plasma Metabolites</strong>
+</font><br />
+Systematically compute correlations of all feature pairs in Targeted
+(Baseline) Plasma Metabolomics <br/> <br/></p>
+<p><strong>Use only Baseline samples to compute feature
+correlations</strong><br />
+</p>
+<pre class="r"><code># Load normalized data
+metaPlasma_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaPlasmaNorm.rds&#39;)
+# Subset Baseline plasma samples
+baseSmp &lt;- colData(metaPlasma_Hell)[[&#39;Condition&#39;]] == &#39;Baseline&#39;
+metaBase_Hell &lt;- metaPlasma_Hell[, baseSmp]
+# Extract data matrix
+datMat_Hell &lt;- SummarizedExperiment::assay(metaBase_Hell)
+# Transpose data for systematically computing correlations between features
+featTab &lt;- t(datMat_Hell) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Compute correlations
+# corrMetaBaseRes_Hell &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaBaseRes_Hell, paste0(result_path, &#39;AG_Hell/corrMetaBaseRes_Hell.rds&#39;))
+corrMetaBaseRes_Hell &lt;- readRDS(&#39;./data/AG_Hell/corrMetaBaseRes_Hell.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaBaseRes_Hell, Var1, Var2, Corr) %&gt;%
+  dplyr::mutate(Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+# pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+#                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
+<p>Show highly positively correlated feature pairs through network plot.
+Cutoff is (1) correlations greater than 0.9 and (2) adjusted p-values
+less than 0.05. Red dots indicate significant features that can predict
+patient cancer recurrences found in Baseline samples. There are 18 (out
+of 42) significant features here.</p>
+<pre class="r"><code># Prepare edge table
+edges &lt;- dplyr::mutate(corrMetaBaseRes_Hell,
+                       Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                       Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  dplyr::filter(Corr &gt; 0.9, pValAdj &lt; 0.05, Var1 != Var2) %&gt;%
+  # Remove duplicated variable pairs
+  dplyr::rowwise() %&gt;%
+  dplyr::mutate(varPair = paste(sort(c(Var1, Var2)), collapse = &#39;&#39;)) %&gt;%
+  dplyr::distinct(varPair, .keep_all = T) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+
+# Prepare node table
+# Conduct univariate analysis to obtain significant features that can potentially
+# predict patient cancer recurrences
+metaBaseRes_Hell &lt;- SOA(metaBase_Hell, factor = &#39;Recurrence&#39;)
+feats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- data.frame(id = seq_len(length(feats)), Feature = feats) %&gt;%
+  dplyr::mutate(Sig = dplyr::case_when(
+    Feature %in% metaBaseRes_Hell$tFeatSigRes$Var1 ~ &#39;Yes&#39;,
+    !Feature %in% metaBaseRes_Hell$tFeatSigRes$Var1 ~ &#39;No&#39;))
+
+# Map features to corresponding IDs
+edges$Var1 &lt;- plyr::mapvalues(edges$Var1, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+edges$Var2 &lt;- plyr::mapvalues(edges$Var2, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(aes(color=Sig), size = 3, show.legend = F) +
+  geom_node_text(aes(label=Feature), repel = T, size = 1.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-20-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hell/metaBase_network_feat_corr.png&#39;),
+#        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
+<p><strong>Use both Baseline and Follow-up samples to compute feature
+correlations</strong><br />
+Show correlations between features through heatmap</p>
+<pre class="r"><code># Load normalized data
+metaPlasma_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaPlasmaNorm.rds&#39;)
+# Extract data matrix
+datMat_Hell &lt;- SummarizedExperiment::assay(metaPlasma_Hell)
+# Transpose data for systematically computing correlations between features
+featTab &lt;- t(datMat_Hell) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Compute correlations
+# corrMetaPlasmaRes_Hell &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaPlasmaRes_Hell, paste0(result_path, &#39;AG_Hell/corrMetaPlasmaRes_Hell.rds&#39;))
+corrMetaPlasmaRes_Hell &lt;- readRDS(&#39;./data/AG_Hell/corrMetaPlasmaRes_Hell.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaPlasmaRes_Hell, Var1, Var2, Corr) %&gt;%
+  dplyr::mutate(Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+                   color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-21-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hell/metaPlasma_heatmap_feat_corr.png&#39;), a,
+#        device = &#39;png&#39;, dpi = 400)</code></pre>
+<p>Show only highly positively correlated feature pairs through network
+plot. Cutoff is (1) correlations greater than 0.9 and (2) adjusted
+p-values less than 0.05.</p>
+<pre class="r"><code># Prepare edge table
+edges &lt;- dplyr::mutate(corrMetaPlasmaRes_Hell,
+                       Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                       Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  dplyr::filter(Corr &gt; 0.9, pValAdj &lt; 0.05, Var1 != Var2) %&gt;%
+  # Remove duplicated variable pairs
+  dplyr::rowwise() %&gt;%
+  dplyr::mutate(varPair = paste(sort(c(Var1, Var2)), collapse = &#39;&#39;)) %&gt;%
+  dplyr::distinct(varPair, .keep_all = T) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+
+# Prepare node table
+feats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- data.frame(id = seq_len(length(feats)), Feature = feats)
+
+# Map features to corresponding IDs
+edges$Var1 &lt;- plyr::mapvalues(edges$Var1, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+edges$Var2 &lt;- plyr::mapvalues(edges$Var2, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(size = 3, show.legend = F) +
+  geom_node_text(aes(label=Feature), repel = T, size = 1.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-22-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hell/metaPlasma_network_feat_corr.png&#39;),
+#        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
+</div>
+<div id="tissue-metabolites" class="section level2">
+<h2>Tissue Metabolites</h2>
+<p><font size='5'> <strong>Untargeted vs Targeted Tissue
+Metabolites</strong> </font><br />
+Systematically compute correlations of all feature pairs where two
+features are from paired datasets, i.e., Targeted and Untargeted Tissue
+Metabolomics. Note that both Tumor and Normal samples were used. <br/>
+<br/></p>
+<p>Show correlations between features through heatmap</p>
+<pre class="r"><code># Load normalized data
+metaTissue_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)
+metaTissue_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;)
+# Extract data matrix
+datMat_Hopf &lt;- SummarizedExperiment::assay(metaTissue_Hopf)
+datMat_Hell &lt;- SummarizedExperiment::assay(metaTissue_Hell)
+# Transpose data for systematically computing correlations between features
+featTab_Hopf &lt;- t(datMat_Hopf) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+featTab_Hell &lt;- t(datMat_Hell) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Systematically compute correlations between untargeted feature pairs
+# corrMetaTissueRes_Hopf_Hell &lt;- corrIter(featTab_Hopf, featTab_Hell, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaTissueRes_Hopf_Hell, paste0(result_path,
+#                                             &#39;corrMetaTissueRes_Hopf_Hell.rds&#39;))
+corrMetaTissueRes_Hopf_Hell &lt;- readRDS(&#39;./data/corrMetaTissueRes_Hopf_Hell.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaTissueRes_Hopf_Hell, Var1, Var2, Corr) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+                   color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
+                   breaks = seq(-1, 1, by = 0.02))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-23-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;diffMethod_metaTissue_featCorr_heatmap.png&#39;), a,
+#        device = &#39;png&#39;, dpi = 400, height = 8, width = 10)</code></pre>
+<p>Show only highly positively correlated feature pairs through network
+plot. Cutoff is (1) correlations greater than 0.9 and (2) p-values less
+than 0.05.</p>
+<pre class="r"><code># Prepare edge table
+edges &lt;- dplyr::filter(corrMetaTissueRes_Hopf_Hell, Corr &gt; 0.9, pVal &lt; 0.05) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+
+# Prepare node table
+feats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- data.frame(id = seq_len(length(feats)), Feature = feats,
+                    From = c(rep(&#39;AG Hopf&#39;, length(unique(edges$Var1))),
+                             rep(&#39;AG Hell&#39;, length(unique(edges$Var2)))))
+
+# Map features in edge table to corresponding IDs
+edges$Var1 &lt;- plyr::mapvalues(edges$Var1, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+edges$Var2 &lt;- plyr::mapvalues(edges$Var2, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+# Map Feature_ID from AG Hopf to m/z_RT
+featAnno &lt;- tibble::as_tibble(rowData(metaTissue_Hopf), rownames = &#39;Feature_ID&#39;)
+nodes &lt;- dplyr::mutate(nodes, Feature = plyr::mapvalues(Feature,
+                                                        from = featAnno$Feature_ID,
+                                                        to = featAnno$MZ.RT,
+                                                        warn_missing = F))
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(size = 3) +
+  geom_node_text(aes(label=Feature, color=From), repel = T, size = 3.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;firebrick&#39;, &#39;steelblue&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-24-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;diffMethod_metaTissue_featCorr_network.png&#39;),
+#        height = 9, width = 9, device = &#39;png&#39;, dpi = 400)</code></pre>
+<p><font size='5'> <strong>Untargeted Tissue Metabolites</strong>
+</font><br />
+Systematically compute correlations of all feature pairs in Untargeted
+Tissue Metabolomics <br/> <br/></p>
+<p><strong>Use only Tumor samples to compute feature
+correlations</strong><br />
+</p>
+<pre class="r"><code># Load normalized data
+metaTissue_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)
+# Subset Tumor samples
+tumorSmp &lt;- colData(metaTissue_Hopf)[[&#39;Condition&#39;]] == &#39;Tumor&#39;
+metaTumor_Hopf &lt;-metaTissue_Hopf[, tumorSmp]
+# Extract data matrix
+datMat &lt;- SummarizedExperiment::assay(metaTumor_Hopf)
+# Transpose data for systematically computing correlations between features
+featTab &lt;- t(datMat) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Systematically compute correlations between untargeted feature pairs
+# corrMetaTumorRes_Hopf &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaTumorRes_Hopf, paste0(result_path,
+#                                        &#39;AG_Hopf/corrMetaTumorRes_Hopf.rds&#39;))
+corrMetaTumorRes_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/corrMetaTumorRes_Hopf.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaTumorRes_Hopf, Var1, Var2, Corr) %&gt;%
+  dplyr::mutate(Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+# pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+#                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
+<p>Show highly positively correlated feature pairs through network plot.
+Cutoff is (1) correlations greater than 0.99 and (2) adjusted p-values
+less than 0.05. Red dots indicate significant features that can predict
+patient cancer recurrences found in Tumor samples.</p>
+<pre class="r"><code># Prepare node table
+nodes &lt;- data.frame(id = seq_len(nrow(datMat)),
+                    Feature_ID = paste0(&#39;Feature&#39;, seq_len(nrow(datMat)))) %&gt;%
+  dplyr::mutate(Sig = dplyr::case_when(
+    Feature_ID %in% proDAMetaTumorSigFeats$name ~ &#39;Yes&#39;,
+    !Feature_ID %in% proDAMetaTumorSigFeats$name ~ &#39;No&#39;))
+# Append m/z_RT information
+featAnno &lt;- tibble::as_tibble(rowData(metaTumor_Hopf), rownames = &#39;Feature_ID&#39;)
+nodes &lt;- dplyr::left_join(nodes, featAnno, by = &#39;Feature_ID&#39;)
+
+# Prepare edge table
+edges &lt;- dplyr::mutate(corrMetaTumorRes_Hopf,
+                       Var1 = stringr::str_remove_all(Var1, &#39;[Feature\\.x]&#39;),
+                       Var2 = stringr::str_remove_all(Var2, &#39;[Feature\\.y]&#39;)) %&gt;%
+  dplyr::filter(Corr &gt; 0.99, pValAdj &lt; 0.05, Var1 != Var2) %&gt;%
+  # Remove duplicated variable pairs
+  dplyr::rowwise() %&gt;%
+  dplyr::mutate(varPair = paste(sort(c(Var1, Var2)), collapse = &#39;&#39;)) %&gt;%
+  dplyr::distinct(varPair, .keep_all = T) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+# Remove nodes without any connection
+incluFeats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- nodes[nodes$id %in% incluFeats,]
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(aes(color=Sig), size = 3, show.legend = F) +
+  geom_node_text(aes(label=MZ.RT), repel = T, size = 1.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-26-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hopf/metaTumor_network_feat_corr.png&#39;),
+#        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
+<p><strong>Use only Normal samples to compute feature
+correlations</strong><br />
+</p>
+<pre class="r"><code># Load normalized data
+metaTissue_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)
+# Subset Normal samples
+normalSmp &lt;- colData(metaTissue_Hopf)[[&#39;Condition&#39;]] == &#39;Normal&#39;
+metaNormal_Hopf &lt;-metaTissue_Hopf[, normalSmp]
+# Extract data matrix
+datMat &lt;- SummarizedExperiment::assay(metaNormal_Hopf)
+# Transpose data for systematically computing correlations between features
+featTab &lt;- t(datMat) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Systematically compute correlations between untargeted feature pairs
+# corrMetaNormalRes_Hopf &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaNormalRes_Hopf, paste0(result_path,
+#                                        &#39;AG_Hopf/corrMetaNormalRes_Hopf.rds&#39;))
+corrMetaNormalRes_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/corrMetaNormalRes_Hopf.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaNormalRes_Hopf, Var1, Var2, Corr) %&gt;%
+  dplyr::mutate(Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+# pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+#                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
+<p>Show highly positively correlated feature pairs through network plot.
+Cutoff is (1) correlations greater than 0.99 and (2) adjusted p-values
+less than 0.05. Red dot indicates significant features that can predict
+patient cancer recurrences found in Normal samples.</p>
+<pre class="r"><code># Prepare node table
+nodes &lt;- data.frame(id = seq_len(nrow(datMat)),
+                    Feature_ID = paste0(&#39;Feature&#39;, seq_len(nrow(datMat)))) %&gt;%
+  dplyr::mutate(Sig = dplyr::case_when(
+    Feature_ID %in% proDAMetaNormalSigFeats$name ~ &#39;Yes&#39;,
+    !Feature_ID %in% proDAMetaNormalSigFeats$name ~ &#39;No&#39;))
+# Append m/z_RT information
+featAnno &lt;- tibble::as_tibble(rowData(metaNormal_Hopf), rownames = &#39;Feature_ID&#39;)
+nodes &lt;- dplyr::left_join(nodes, featAnno, by = &#39;Feature_ID&#39;)
+
+# Prepare edge table
+edges &lt;- dplyr::mutate(corrMetaNormalRes_Hopf,
+                       Var1 = stringr::str_remove_all(Var1, &#39;[Feature\\.x]&#39;),
+                       Var2 = stringr::str_remove_all(Var2, &#39;[Feature\\.y]&#39;)) %&gt;%
+  dplyr::filter(Corr &gt; 0.99, pValAdj &lt; 0.05, Var1 != Var2) %&gt;%
+  # Remove duplicated variable pairs
+  dplyr::rowwise() %&gt;%
+  dplyr::mutate(varPair = paste(sort(c(Var1, Var2)), collapse = &#39;&#39;)) %&gt;%
+  dplyr::distinct(varPair, .keep_all = T) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+# Remove nodes without any connection
+incluFeats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- nodes[nodes$id %in% incluFeats,]
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(aes(color=Sig), size = 3, show.legend = F) +
+  geom_node_text(aes(label=MZ.RT), repel = T, size = 1.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-28-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hopf/metaNormal_network_feat_corr.png&#39;),
+#        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
+<p><strong>Use both Tumor and Normal Tissue samples to compute feature
+correlations</strong><br />
+Show correlations between features through heatmap</p>
+<pre class="r"><code># Load normalized data
+metaTissue_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)
+# Extract data matrix
+datMat &lt;- SummarizedExperiment::assay(metaTissue_Hopf)
+# Transpose data for systematically computing correlations between features
+featTab &lt;- t(datMat) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Systematically compute correlations between untargeted feature pairs
+# corrMetaTissueRes_Hopf &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaTissueRes_Hopf, paste0(result_path,
+#                                        &#39;AG_Hopf/corrMetaTissueRes_Hopf.rds&#39;))
+corrMetaTissueRes_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/corrMetaTissueRes_Hopf.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaTissueRes_Hopf, Var1, Var2, Corr) %&gt;%
+  dplyr::mutate(Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+                   color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-29-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hopf/metaTissue_heatmap_feat_corr.png&#39;), a,
+#        device = &#39;png&#39;, dpi = 400)</code></pre>
+<p>Show only highly positively correlated feature pairs through network
+plot. Cutoff is (1) correlations greater than 0.99 and (2) adjusted
+p-values less than 0.05.</p>
+<pre class="r"><code># Prepare node table
+nodes &lt;- data.frame(id = seq_len(nrow(datMat)),
+                    Feature_ID = paste0(&#39;Feature&#39;, seq_len(nrow(datMat))))
+# Append m/z_RT information
+featAnno &lt;- tibble::as_tibble(rowData(metaTissue_Hopf), rownames = &#39;Feature_ID&#39;)
+nodes &lt;- dplyr::left_join(nodes, featAnno, by = &#39;Feature_ID&#39;)
+
+# Prepare edge table
+edges &lt;- dplyr::mutate(corrMetaTissueRes_Hopf,
+                       Var1 = stringr::str_remove_all(Var1, &#39;[Feature\\.x]&#39;),
+                       Var2 = stringr::str_remove_all(Var2, &#39;[Feature\\.y]&#39;)) %&gt;%
+  dplyr::filter(Corr &gt; 0.99, pValAdj &lt; 0.05, Var1 != Var2) %&gt;%
+  # Remove duplicated variable pairs
+  dplyr::rowwise() %&gt;%
+  dplyr::mutate(varPair = paste(sort(c(Var1, Var2)), collapse = &#39;&#39;)) %&gt;%
+  dplyr::distinct(varPair, .keep_all = T) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+# Remove nodes without any connection
+incluFeats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- nodes[nodes$id %in% incluFeats,]
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(size = 3, show.legend = F) +
+  geom_node_text(aes(label=MZ.RT), repel = T, size = 1.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-30-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hopf/metaTissue_network_feat_corr.png&#39;),
+#        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
+<p><font size='5'> <strong>Targeted Tissue Metabolites</strong>
+</font><br />
+Systematically compute correlations of all feature pairs in Targeted
+Tissue Metabolomics <br/> <br/></p>
+<p><strong>Use only Tumor samples to compute feature
+correlations</strong><br />
+</p>
+<pre class="r"><code># Load normalized data
+metaTissue_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;)
+# Subset Tumor samples
+tumorSmp &lt;- colData(metaTissue_Hell)[[&#39;Condition&#39;]] == &#39;Tumor&#39;
+metaTumor_Hell &lt;- metaTissue_Hell[, tumorSmp]
+# Extract data matrix
+datMat &lt;- SummarizedExperiment::assay(metaTumor_Hell)
+# Transpose data for systematically computing correlations between features
+featTab &lt;- t(datMat) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Compute correlations
+# corrMetaTumorRes_Hell &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaTumorRes_Hell, paste0(result_path,
+#                                       &#39;AG_Hell/corrMetaTumorRes_Hell.rds&#39;))
+corrMetaTumorRes_Hell &lt;- readRDS(&#39;./data/AG_Hell/corrMetaTumorRes_Hell.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaTumorRes_Hell, Var1, Var2, Corr) %&gt;%
+  dplyr::mutate(Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+# pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+#                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
+<p>Show highly positively correlated feature pairs through network plot.
+Cutoff is (1) correlations greater than 0.9 and (2) adjusted p-values
+less than 0.05. Red dot indicates significant features that can predict
+patient cancer recurrences found in Tumor samples.</p>
+<pre class="r"><code># Prepare edge table
+edges &lt;- dplyr::mutate(corrMetaTumorRes_Hell,
+                       Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                       Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  dplyr::filter(Corr &gt; 0.9, pValAdj &lt; 0.05, Var1 != Var2) %&gt;%
+  # Remove duplicated variable pairs
+  dplyr::rowwise() %&gt;%
+  dplyr::mutate(varPair = paste(sort(c(Var1, Var2)), collapse = &#39;&#39;)) %&gt;%
+  dplyr::distinct(varPair, .keep_all = T) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+
+# Prepare node table
+# Conduct univariate analysis to obtain significant features that can potentially
+# predict patient cancer recurrences
+metaTumorRes_Hell &lt;- SOA(metaTumor_Hell, factor = &#39;Recurrence&#39;)
+feats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- data.frame(id = seq_len(length(feats)), Feature = feats) %&gt;%
+  dplyr::mutate(Sig = dplyr::case_when(
+    Feature %in% metaTumorRes_Hell$tFeatSigRes$Var1 ~ &#39;Yes&#39;,
+    !Feature %in% metaTumorRes_Hell$tFeatSigRes$Var1 ~ &#39;No&#39;))
+
+# Map features to corresponding IDs
+edges$Var1 &lt;- plyr::mapvalues(edges$Var1, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+edges$Var2 &lt;- plyr::mapvalues(edges$Var2, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(aes(color=Sig), size = 3, show.legend = F) +
+  geom_node_text(aes(label=Feature), repel = T, size = 1.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-32-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hell/metaTumor_network_feat_corr.png&#39;),
+#        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
+<p><strong>Use only Normal samples to compute feature
+correlations</strong><br />
+</p>
+<pre class="r"><code># Load normalized data
+metaTissue_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;)
+# Subset Normal samples
+normalSmp &lt;- colData(metaTissue_Hell)[[&#39;Condition&#39;]] == &#39;Normal&#39;
+metaNormal_Hell &lt;- metaTissue_Hell[, normalSmp]
+# Extract data matrix
+datMat &lt;- SummarizedExperiment::assay(metaNormal_Hell)
+# Transpose data for systematically computing correlations between features
+featTab &lt;- t(datMat) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Compute correlations
+# corrMetaNormalRes_Hell &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaNormalRes_Hell, paste0(result_path,
+#                                       &#39;AG_Hell/corrMetaNormalRes_Hell.rds&#39;))
+corrMetaNormalRes_Hell &lt;- readRDS(&#39;./data/AG_Hell/corrMetaNormalRes_Hell.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaNormalRes_Hell, Var1, Var2, Corr) %&gt;%
+  dplyr::mutate(Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+# pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+#                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
+<p>Show highly positively correlated feature pairs through network plot.
+Cutoff is (1) correlations greater than 0.9 and (2) adjusted p-values
+less than 0.05. Red dot indicates significant features that can predict
+patient cancer recurrences found in Normal samples.</p>
+<pre class="r"><code># Prepare edge table
+edges &lt;- dplyr::mutate(corrMetaNormalRes_Hell,
+                       Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                       Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  dplyr::filter(Corr &gt; 0.9, pValAdj &lt; 0.05, Var1 != Var2) %&gt;%
+  # Remove duplicated variable pairs
+  dplyr::rowwise() %&gt;%
+  dplyr::mutate(varPair = paste(sort(c(Var1, Var2)), collapse = &#39;&#39;)) %&gt;%
+  dplyr::distinct(varPair, .keep_all = T) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+
+# Prepare node table
+# Conduct univariate analysis to obtain significant features that can potentially
+# predict patient cancer recurrences
+metaNormalRes_Hell &lt;- SOA(metaNormal_Hell, factor = &#39;Recurrence&#39;)
+feats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- data.frame(id = seq_len(length(feats)), Feature = feats) %&gt;%
+  dplyr::mutate(Sig = dplyr::case_when(
+    Feature %in% metaNormalRes_Hell$tFeatSigRes$Var1 ~ &#39;Yes&#39;,
+    !Feature %in% metaNormalRes_Hell$tFeatSigRes$Var1 ~ &#39;No&#39;))
+
+# Map features to corresponding IDs
+edges$Var1 &lt;- plyr::mapvalues(edges$Var1, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+edges$Var2 &lt;- plyr::mapvalues(edges$Var2, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(aes(color=Sig), size = 3, show.legend = F) +
+  geom_node_text(aes(label=Feature), repel = T, size = 1.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-34-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hell/metaNormal_network_feat_corr.png&#39;),
+#        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
+<p><strong>Use both Tumor and Normal Tissue samples to compute feature
+correlations</strong><br />
+Show correlations between features through heatmap</p>
+<pre class="r"><code># Load normalized data
+metaTissue_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;)
+# Extract data matrix
+datMat &lt;- SummarizedExperiment::assay(metaTissue_Hell)
+# Transpose data for systematically computing correlations between features
+featTab &lt;- t(datMat) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;)
+
+# Compute correlations
+# corrMetaTissueRes_Hell &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
+# saveRDS(corrMetaTissueRes_Hell, paste0(result_path, &#39;AG_Hell/corrMetaTissueRes_Hell.rds&#39;))
+corrMetaTissueRes_Hell &lt;- readRDS(&#39;./data/AG_Hell/corrMetaTissueRes_Hell.rds&#39;)
+
+# Convert long data to wide data
+corrMat &lt;- dplyr::select(corrMetaTissueRes_Hell, Var1, Var2, Corr) %&gt;%
+  dplyr::mutate(Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Var2&#39;, values_from = &#39;Corr&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Var1&#39;)
+
+# Make heatmap
+a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
+                   color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-35-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hell/metaTissue_heatmap_feat_corr.png&#39;), a,
+#        device = &#39;png&#39;, dpi = 400)</code></pre>
+<p>Show only highly positively correlated feature pairs through network
+plot. Cutoff is (1) correlations greater than 0.9 and (2) adjusted
+p-values less than 0.05.</p>
+<pre class="r"><code># Prepare edge table
+edges &lt;- dplyr::mutate(corrMetaTissueRes_Hell,
+                       Var1 = stringr::str_remove(Var1, &#39;\\.x&#39;),
+                       Var2 = stringr::str_remove(Var2, &#39;\\.y&#39;)) %&gt;%
+  dplyr::filter(Corr &gt; 0.9, pValAdj &lt; 0.05, Var1 != Var2) %&gt;%
+  # Remove duplicated variable pairs
+  dplyr::rowwise() %&gt;%
+  dplyr::mutate(varPair = paste(sort(c(Var1, Var2)), collapse = &#39;&#39;)) %&gt;%
+  dplyr::distinct(varPair, .keep_all = T) %&gt;%
+  dplyr::select(Var1, Var2, Corr)
+
+# Prepare node table
+feats &lt;- unique(c(edges$Var1, edges$Var2))
+nodes &lt;- data.frame(id = seq_len(length(feats)), Feature = feats)
+
+# Map features to corresponding IDs
+edges$Var1 &lt;- plyr::mapvalues(edges$Var1, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+edges$Var2 &lt;- plyr::mapvalues(edges$Var2, from = nodes$Feature, to = nodes$id,
+                              warn_missing = F)
+
+# Create igraph object for plotting
+g &lt;- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Make network plot
+ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
+  geom_edge_link(aes(alpha=Corr), edge_width = 1) +
+  geom_node_point(size = 3, show.legend = F) +
+  geom_node_text(aes(label=Feature), repel = T, size = 1.5) +
+  theme_void() +
+  scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
+  scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-36-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hell/metaTissue_network_feat_corr.png&#39;),
+#        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
+<ol style="list-style-type: decimal">
+<li>The overall correlation between Targeted and Untargeted features is
+not that high. Two possibilities: (1) two methods capture different
+information from the samples, which means they can be complementary to
+each other, or (2) there are some inherent biological or technical
+noises, which leads to inaccurate data.</li>
+<li>There are much more highly correlated feature clusters in the
+Targeted Metabolomics, maybe because a large number of the Targeted
+features are derivatives of Triglycerides, Diglycerides, etc.</li>
+<li>Tissue Metabolomics, both Targeted and Untargeted, has much more
+highly correlated (correlation &gt; 0.9) feature clusters than Plasma
+Metabolomics.</li>
+</ol>
+</div>
+</div>
+<div id="sth-else" class="section level1">
+<h1>Sth else</h1>
+<div id="recurrence-related-features" class="section level2">
+<h2>Recurrence-related features</h2>
+<p>Display proportion of significant features that can potentially
+predict patient cancer recurrences from the following datasets.
+Associations between features and cancer recurrence are tested by
+t-test, comparing feature means of recurrence and non-recurrence patient
+groups.</p>
+<pre class="r"><code>cat(paste(nrow(metaBaseRes_Hell$tFeatSigRes), &#39;out of&#39;, nrow(metaBaseRes_Hell$data),
+          &#39;features in Targeted Plasma Metabolomics, and\n&#39;,
+          nrow(proDAMetaBaseSigFeats), &#39;out of&#39;, nrow(metaBaseRes_Hopf$data),
+          &#39;features in Untargeted Plasma Metabolomics, and\n&#39;,
+          nrow(metaTumorRes_Hell$tFeatSigRes), &#39;out of&#39;, nrow(metaTumorRes_Hell$data),
+          &#39;features in Targeted Tumor Metabolomics, and\n&#39;,
+          nrow(proDAMetaTumorSigFeats), &#39;out of&#39;, nrow(metaTumorRes_Hopf$data),
+          &#39;features in Untargeted Tumor Metabolomics, and\n&#39;,
+          nrow(metaNormalRes_Hell$tFeatSigRes), &#39;out of&#39;, nrow(metaNormalRes_Hell$data),
+          &#39;features in Targeted Normal Metabolomics, and\n&#39;,
+          nrow(proDAMetaNormalSigFeats), &#39;out of&#39;, nrow(metaNormalRes_Hopf$data),
+          &#39;features in Untargeted Normal Metabolomics can significantly predict&#39;,
+          &#39;patient cancer recurrences.&#39;))</code></pre>
+<pre><code>42 out of 630 features in Targeted Plasma Metabolomics, and
+ 62 out of 1406 features in Untargeted Plasma Metabolomics, and
+ 8 out of 630 features in Targeted Tumor Metabolomics, and
+ 12 out of 1387 features in Untargeted Tumor Metabolomics, and
+ 5 out of 630 features in Targeted Normal Metabolomics, and
+ 9 out of 1387 features in Untargeted Normal Metabolomics can significantly predict patient cancer recurrences.</code></pre>
+<pre class="r"><code># Make barplot
+# Compute proportion of significant features
+# Compute proportion of significant features
+metaBaseSigFeats_Hell &lt;- nrow(metaBaseRes_Hell$tFeatSigRes) / nrow(metaBaseRes_Hell$data) * 100
+metaBaseSigFeats_Hopf &lt;- nrow(proDAMetaBaseSigFeats) / nrow(metaBaseRes_Hopf$data) * 100
+metaTumorSigFeats_Hell &lt;- nrow(metaTumorRes_Hell$tFeatSigRes) / nrow(metaTumorRes_Hell$data) * 100
+metaTumorSigFeats_Hopf &lt;- nrow(proDAMetaTumorSigFeats) / nrow(metaTumorRes_Hopf$data) * 100
+metaNormalSigFeats_Hell &lt;- nrow(metaNormalRes_Hell$tFeatSigRes) / nrow(metaNormalRes_Hell$data) * 100
+metaNormalSigFeats_Hopf &lt;- nrow(proDAMetaNormalSigFeats) / nrow(metaNormalRes_Hopf$data) * 100
+
+dat &lt;- rev(c(rep(&#39;Baseline Plasma Metabolomics&#39;, 2),
+             rep(&#39;Tumor Tissue Metabolomics&#39;, 2),
+             rep(&#39;Normal Tissue Metabolomics&#39;, 2)))
+method &lt;- rev(rep(c(&#39;Targeted&#39;, &#39;Untargeted&#39;), 3))
+proportion &lt;- rev(c(metaBaseSigFeats_Hell, metaBaseSigFeats_Hopf,
+                    metaTumorSigFeats_Hell, metaTumorSigFeats_Hopf,
+                    metaNormalSigFeats_Hell, metaNormalSigFeats_Hopf))
+sigFeatPropTab &lt;- data.frame(Data = factor(dat, levels = unique(dat)),
+                             Method = method,
+                             Proportion = proportion)
+
+ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill=Method)) +
+  geom_bar(stat = &#39;identity&#39;, position = position_dodge()) +
+  labs(y = &#39;Percentage (%)&#39;,
+       title = &#39;Proportion of Cancer Recurrence-Related Features&#39;) +
+  coord_flip() +
+  scale_fill_discrete(name = &#39;Method&#39;) +
+  theme(axis.title = element_text(size = 16), axis.text = element_text(size = 12),
+        legend.title = element_text(size = 14), legend.text = element_text(size = 12))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-37-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;diffMethod_proporSigFeats.png&#39;), device = &#39;png&#39;, dpi = 400,
+#        height = 8, width = 10)</code></pre>
+</div>
+<div id="mofa" class="section level2">
+<h2>MOFA</h2>
+<p>Leverage MOFA model to observe if there are same sources of variation
+across data of same modality but generated by different methods (e.g.,
+Targeted Plasma Metabolomics vs Untargeted Plasma Metabolomics). If
+there exist, it means that two methods partially capture similar
+information from samples.</p>
+<pre class="r"><code># Plasma metabolomics (Hell)
+metaPlasma_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaPlasmaNorm.rds&#39;)
+# Plasma metabolomics (Hopf)
+metaPlasma_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)
+# Tissue metabolomics (Hell)
+metaTissue_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;)
+# Tissue metabolomics (Hopf)
+metaTissue_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)
+
+# Convert SE objects to long data for creating MOFA object through
+# &#39;create_mofa_from_df&#39; to include metadata
+# Plasma metabolomics (Hell)
+metaPlasmaTab_Hell &lt;- summExp2df(metaPlasma_Hell, row_id = &#39;feature&#39;, col_id = &#39;sample&#39;) %&gt;%
+  dplyr::select(-Identifier) %&gt;%
+  dplyr::rename(value = Value) %&gt;%
+  dplyr::mutate(view = &#39;Targeted Metabolomics&#39;,
+                group = dplyr::case_when(Condition == &#39;Baseline&#39; ~ &#39;Baseline Plasma&#39;,
+                                         Condition != &#39;Baseline&#39; ~ &#39;Follow-up Plasma&#39;))
+# Plasma metabolomics (Hopf)
+metaPlasmaTab_Hopf &lt;- summExp2df(metaPlasma_Hopf, row_id = &#39;feature&#39;, col_id = &#39;sample&#39;) %&gt;%
+  dplyr::select(-m.z_RT) %&gt;%
+  dplyr::rename(value = Value) %&gt;%
+  dplyr::mutate(sample = dplyr::case_when(Condition == &#39;Baseline&#39; ~ paste0(Patient, &#39;_P_B&#39;),
+                                          Condition != &#39;Baseline&#39; ~ paste0(Patient, &#39;_P_R&#39;)),
+    view = &#39;Untargeted Metabolomics&#39;,
+    group = dplyr::case_when(Condition == &#39;Baseline&#39; ~ &#39;Baseline Plasma&#39;,
+                             Condition != &#39;Baseline&#39; ~ &#39;Follow-up Plasma&#39;))
+# Tissue metabolomics (Hell)
+metaTissueTab_Hell &lt;- summExp2df(metaTissue_Hell, row_id = &#39;feature&#39;, col_id = &#39;sample&#39;) %&gt;%
+  dplyr::select(-Identifier) %&gt;%
+  dplyr::rename(value = Value) %&gt;%
+  dplyr::mutate(view = &#39;Targeted Metabolomics&#39;,
+                group = dplyr::case_when(Condition == &#39;Tumor&#39; ~ &#39;Tumor Tissue&#39;,
+                                         Condition == &#39;Normal&#39; ~ &#39;Normal Tissue&#39;))
+# Tissue metabolomics (Hopf)
+metaTissueTab_Hopf &lt;- summExp2df(metaTissue_Hopf, row_id = &#39;feature&#39;, col_id = &#39;sample&#39;) %&gt;%
+  dplyr::select(-MZ.RT) %&gt;%
+  dplyr::rename(value = Value) %&gt;%
+  dplyr::mutate(view = &#39;Untargeted Metabolomics&#39;,
+                group = dplyr::case_when(Condition == &#39;Tumor&#39; ~ &#39;Tumor Tissue&#39;,
+                                         Condition == &#39;Normal&#39; ~ &#39;Normal Tissue&#39;))</code></pre>
+<p><font size='5'> <strong>Plasma Metabolomics</strong> </font><br />
+Training data: Targeted and Untargeted Plasma Metabolomics</p>
+<pre class="r"><code># Create MOFA object
+# Concatenate long data
+summPlasmaTab &lt;- dplyr::bind_rows(metaPlasmaTab_Hell, metaPlasmaTab_Hopf)
+mofaPlasmaObject &lt;- MOFA2::create_mofa_from_df(summPlasmaTab, extract_metadata = T)
+# Overview data in MOFA object
+plot_data_overview(mofaPlasmaObject)</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-39-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Train MOFA model
+# data_opts &lt;- get_default_data_options(mofaPlasmaObject)
+# model_opts &lt;- get_default_model_options(mofaPlasmaObject)
+# model_opts$num_factors &lt;- 10
+# train_opts &lt;- get_default_training_options(mofaPlasmaObject)
+# train_opts$convergence_mode &lt;- &#39;slow&#39;
+#
+# mofaPlasmaObject &lt;- prepare_mofa(mofaPlasmaObject,
+#                                  data_options = data_opts,
+#                                  model_options = model_opts,
+#                                  training_options = train_opts)
+#
+# mofaPlasmaObject &lt;- run_mofa(mofaPlasmaObject,
+#                              outfile = paste0(project_path,
+#                                               &#39;data/mofa_model/metaPlasma_mofa_10Fac.hdf5&#39;),
+#                              use_basilisk = F)
+# saveRDS(mofaPlasmaObject, paste0(project_path, &#39;data/mofa_model/metaPlasma_mofa_10Fac.rds&#39;))
+
+
+# Load trained MOFA model
+mofaPlasmaObject &lt;- readRDS(&#39;./data/mofa/co_metaPlasma_mofa_10Fac.rds&#39;)
+
+# Do sanity check for factor correlations
+MOFA2::plot_factor_cor(mofaPlasmaObject)</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-39-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaPlasmaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-39-3.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Conduct association test between learnt factors and cancer recurrence
+facTab &lt;- tibble::as_tibble(get_factors(mofaPlasmaObject)[[&#39;Baseline Plasma&#39;]],
+                            rownames = &#39;sample&#39;)
+metaTab &lt;- tibble::as_tibble(samples_metadata(mofaPlasmaObject)) %&gt;%
+  dplyr::filter(Condition == &#39;Baseline&#39;) %&gt;%
+  dplyr::select(sample, Recurrence)
+tBaseRes &lt;- tTestIter(facTab, metaTab, cmn_col = &#39;sample&#39;) %&gt;%
+  dplyr::filter(pVal &lt;= 0.05) %&gt;%
+  dplyr::select(-c(&#39;Group1&#39;, &#39;Group2&#39;, &#39;Mu1&#39;, &#39;Mu2&#39;))
+# tBaseRes</code></pre>
+<p><font size='5'> <strong>Tissue Metabolomics</strong> </font><br />
+Training data: Targeted and Untargeted Tissue Metabolomics</p>
+<pre class="r"><code># Create MOFA object
+# Concatenate long data
+summTissueTab &lt;- dplyr::bind_rows(metaTissueTab_Hell, metaTissueTab_Hopf)
+mofaTissueObject &lt;- MOFA2::create_mofa_from_df(summTissueTab, extract_metadata = T)
+# Overview data in MOFA object
+plot_data_overview(mofaTissueObject)</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-40-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Train MOFA model
+# data_opts &lt;- get_default_data_options(mofaTissueObject)
+# model_opts &lt;- get_default_model_options(mofaTissueObject)
+# model_opts$num_factors &lt;- 10
+# train_opts &lt;- get_default_training_options(mofaTissueObject)
+# train_opts$convergence_mode &lt;- &#39;slow&#39;
+#
+# mofaTissueObject &lt;- prepare_mofa(mofaTissueObject,
+#                                  data_options = data_opts,
+#                                  model_options = model_opts,
+#                                  training_options = train_opts)
+#
+# mofaTissueObject &lt;- run_mofa(mofaTissueObject,
+#                              outfile = paste0(project_path,
+#                                               &#39;data/mofa_model/metaTissue_mofa_10Fac.hdf5&#39;),
+#                              use_basilisk = F)
+# saveRDS(mofaTissueObject, paste0(project_path, &#39;data/mofa_model/metaTissue_mofa_10Fac.rds&#39;))
+
+
+# Load trained MOFA model
+mofaTissueObject &lt;- readRDS(&#39;./data/mofa/co_metaTissue_mofa_10Fac.rds&#39;)
+
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaTissueObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaTissueObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 11),
+        text = element_text(size = 14))</code></pre>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-40-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(paste0(result_path, &#39;diffMethod_metaTissue_varExplained_mofa.png&#39;),
+#        height = 8, width = 10, device = &#39;png&#39;, dpi = 400)
+
+# Conduct association test between learnt factors and cancer recurrence
+# Tumor Tissue Group
+facTab &lt;- tibble::as_tibble(get_factors(mofaTissueObject)[[&#39;Tumor Tissue&#39;]],
+                            rownames = &#39;sample&#39;)
+metaTab &lt;- tibble::as_tibble(samples_metadata(mofaTissueObject)) %&gt;%
+  dplyr::filter(Condition == &#39;Tumor&#39;) %&gt;%
+  dplyr::select(sample, Recurrence)
+tTumorRes &lt;- tTestIter(facTab, metaTab, cmn_col = &#39;sample&#39;) %&gt;%
+  dplyr::filter(pVal &lt;= 0.05) %&gt;%
+  dplyr::select(-c(&#39;Group1&#39;, &#39;Group2&#39;, &#39;Mu1&#39;, &#39;Mu2&#39;))
+# tTumorRes
+# Normal Tissue Group
+facTab &lt;- tibble::as_tibble(get_factors(mofaTissueObject)[[&#39;Normal Tissue&#39;]],
+                            rownames = &#39;sample&#39;)
+metaTab &lt;- tibble::as_tibble(samples_metadata(mofaTissueObject)) %&gt;%
+  dplyr::filter(Condition == &#39;Normal&#39;) %&gt;%
+  dplyr::select(sample, Recurrence)
+tNormalRes &lt;- tTestIter(facTab, metaTab, cmn_col = &#39;sample&#39;) %&gt;%
+  dplyr::filter(pVal &lt;= 0.05) %&gt;%
+  dplyr::select(-c(&#39;Group1&#39;, &#39;Group2&#39;, &#39;Mu1&#39;, &#39;Mu2&#39;))
+# tNormalRes</code></pre>
+<p>=&gt; The MOFA models capture few factors that slightly explain the
+same sources of variation across Targeted and Untargeted Plasma (e.g.,
+Factor6) or Tissue (e.g., Factor5) Metabolomics. To sum up, Targeted and
+Untargeted datasets have some similarities but not much.</p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.2.1 (2022-06-23)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Ventura 13.2.1
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] lubridate_1.9.2             forcats_1.0.0              
+ [3] stringr_1.5.0               dplyr_1.1.1                
+ [5] purrr_1.0.1                 readr_2.1.4                
+ [7] tidyr_1.3.0                 tibble_3.2.1               
+ [9] tidyverse_2.0.0             ggVennDiagram_1.2.2        
+[11] ggraph_2.1.0                igraph_1.4.1               
+[13] ggfortify_0.4.16            ggrepel_0.9.3              
+[15] ggplot2_3.4.1               SummarizedExperiment_1.26.1
+[17] Biobase_2.56.0              GenomicRanges_1.48.0       
+[19] GenomeInfoDb_1.32.4         IRanges_2.30.1             
+[21] S4Vectors_0.34.0            BiocGenerics_0.42.0        
+[23] MatrixGenerics_1.8.1        matrixStats_0.63.0         
+[25] reticulate_1.28             MOFA2_1.6.0                
+[27] workflowr_1.7.0            
+
+loaded via a namespace (and not attached):
+  [1] Rtsne_0.16             colorspace_2.1-0       ggsignif_0.6.4        
+  [4] rprojroot_2.0.3        XVector_0.36.0         fs_1.6.1              
+  [7] rstudioapi_0.14        ggpubr_0.6.0           farver_2.1.1          
+ [10] graphlayouts_0.8.4     fansi_1.0.4            splines_4.2.1         
+ [13] cachem_1.0.7           knitr_1.42             polyclip_1.10-4       
+ [16] jsonlite_1.8.4         broom_1.0.4            png_0.1-8             
+ [19] pheatmap_1.0.12        uwot_0.1.14            ggforce_0.4.1         
+ [22] HDF5Array_1.24.2       compiler_4.2.1         httr_1.4.5            
+ [25] backports_1.4.1        basilisk_1.8.1         Matrix_1.5-3          
+ [28] fastmap_1.1.1          cli_3.6.1              later_1.3.0           
+ [31] tweenr_2.0.2           htmltools_0.5.5        tools_4.2.1           
+ [34] gtable_0.3.3           glue_1.6.2             GenomeInfoDbData_1.2.8
+ [37] reshape2_1.4.4         Rcpp_1.0.10            carData_3.0-5         
+ [40] jquerylib_0.1.4        vctrs_0.6.1            rhdf5filters_1.8.0    
+ [43] nlme_3.1-162           proDA_1.10.0           xfun_0.38             
+ [46] ps_1.7.3               timechange_0.2.0       lifecycle_1.0.3       
+ [49] rstatix_0.7.2          getPass_0.2-2          zlibbioc_1.42.0       
+ [52] MASS_7.3-58.3          scales_1.2.1           basilisk.utils_1.8.0  
+ [55] tidygraph_1.2.3        hms_1.1.3              promises_1.2.0.1      
+ [58] parallel_4.2.1         rhdf5_2.40.0           RColorBrewer_1.1-3    
+ [61] yaml_2.3.7             gridExtra_2.3          sass_0.4.5            
+ [64] stringi_1.7.12         highr_0.10             corrplot_0.92         
+ [67] filelock_1.0.2         rlang_1.1.0            pkgconfig_2.0.3       
+ [70] bitops_1.0-7           evaluate_0.20          lattice_0.20-45       
+ [73] Rhdf5lib_1.18.2        labeling_0.4.2         cowplot_1.1.1         
+ [76] processx_3.8.0         tidyselect_1.2.0       plyr_1.8.8            
+ [79] magrittr_2.0.3         R6_2.5.1               generics_0.1.3        
+ [82] DelayedArray_0.22.0    DBI_1.1.3              mgcv_1.8-42           
+ [85] pillar_1.9.0           whisker_0.4.1          withr_2.5.0           
+ [88] abind_1.4-5            RCurl_1.98-1.10        dir.expiry_1.4.0      
+ [91] car_3.1-1              utf8_1.2.3             RVenn_1.1.0           
+ [94] tzdb_0.3.0             rmarkdown_2.21         viridis_0.6.2         
+ [97] grid_4.2.1             callr_3.7.3            git2r_0.31.0          
+[100] digest_0.6.31          httpuv_1.6.9           extraDistr_1.9.1      
+[103] munsell_0.5.0          viridisLite_0.4.1      bslib_0.4.2           </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
