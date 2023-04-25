@@ -8,4 +8,32 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+<font size='4'> 1. Data Preprocessing </font>\
+1.1 [Plasma and Tissue Targeted Metabolomics and DDA Proteomics](preprocessing_targeted_DDA.html) (data from AG Hell and Krijgsveld)\
+1.2 [Plasma and Tissue Untargeted Metabolomics and Lipidomics](preprocessing_untargeted.html) (data from AG Hopf)\
+
+<font size='4'> 2. Preliminary Analysis </font>\
+2.1 [Plasma and Tissue Targeted Metabolomics and DDA Proteomics](preliminary_analysis_targeted_DDA.html) (data from AG Hell and Krijgsveld)\
+2.2 [Plasma and Tissue Untargeted Metabolomics and Lipidomics](preliminary_analysis_untargeted.html) (data from AG Hopf)\
+
+<font size='4'> 3. </font> [Comparisons Between Targeted and Untargeted Metabolomics](comparisons_targeted_untargeted.html)\
+
+<font size='4'> 4. </font> [MOFA Models Trained on Varied Combinations of Omics Data](mofa_varied_omics_combinations.html)\
+
+<br/>
+<br/>
+Some findings:\
+a. Plasma samples can potentially provide more recurrence-related information and
+Tissue samples seem to be more noisy.\
+---> Please check more details in the 'Summary' section of the preliminary analysis.\
+<br/>
+b. The similarity between Targeted and Untargeted Plasma and Tissue Metabolomics
+is not that high.\
+---> Please check more details in the 'Comparisons Between Targeted and Untargeted
+Metabolomics' report.\
+<br/>
+c. Generally, the MOFA model trained on the omics data combination composed of
+Untargeted Plasma Metabolomics, Plasma Lipidomics, and Plasma Proteomics performs
+best in terms of predicting patient cancer recurrences.\
+---> Please check more details in the 'MOFA Models Trained on Varied Combinations
+of Omics Data' report.\
