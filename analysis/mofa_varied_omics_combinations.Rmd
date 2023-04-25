@@ -1,0 +1,3250 @@
+---
+title: 'MOFA: Training models using varied omics combinations'
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+<font size='4'> Description: Train MOFA models using varied omics data combinations
+and observe training results to gain some insights in terms of predicting patient
+cancer recurrences, thereby focusing on Baseline sample group. Criteria for comparisons
+among models are (1) filtering out trained models without any learned Recurrence-related
+factor, and then (2) comparing t-statistics (p-values) between those significant
+factors. Since all models share same sample space (Method Development cohort), it
+allows us to compare results directly by p-values. All omics datasets were generated
+from the following three research groups:\
+AG Hell: Targeted (1) Plasma Metabolomics and (2) Tissue Metabolomics\
+AG Krijgsveld: DDA (1) Plasma Proteomics and (2) Tissue Proteomics\
+AG Hopf: Untargeted (1) Plasma Metabolomics, (2) Plasma Lipidomics, (3) Tissue
+Metabolomics, and (4) Tissue Lipidomics\
+Among them, Plasma (and Tissue) Metabolomics from AG Hell and AG Hopf was generated
+using different methods (Targeted vs Untargeted). Therefore, comparisons are mainly
+between models trained with combinations containing either of these two datasets
+to see if Untargeted datasets can potentially provide more information. However,
+later, we found that correlations between Targeted and Untargeted metabolite features
+are overall not that high. Therefore, we also trained models with omics data including
+both Targeted and Untargeted datasets. Lastly, we observed that there exists this
+outlier Patient 'H03Y07RT' in most of trained models, otherwise without this patient,
+many models can be quite comparable. Hence, we excluded this patient and redid
+association tests between Recurrence-related factors and cancer recurrence. Generally,
+model trained on Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics
+best performs on predicting patient cancer recurrences. This result is exciting! </font>\
+**Note that new datasets Untargeted Tissue Metabolomics and Lipidomics are not included in this script.**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+# knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+```
+
+Load libraries
+```{r library loading, message = F}
+library(MOFA2)
+library(reticulate)
+use_python('/Users/qianwu/opt/anaconda3/bin/python')
+library(ggrepel)
+library(SummarizedExperiment)
+library(tidyverse)
+# Load user-defined functions
+source('./code/misc.R')
+```
+
+```{r data loading}
+# Load normalized datasets
+# Tissue proteomics
+proTissue <- readRDS('./data/AG_Krijgsveld/proTissueNorm.rds')
+# Tissue metabolomics
+metaTissue <- readRDS('./data/AG_Hell/metaTissueNorm.rds')
+# Plasma proteomics
+proPlasma <- readRDS('./data/AG_Krijgsveld/proPlasmaNorm.rds')
+# Plasma metabolomics (Hell)
+metaPlasma_Hell <- readRDS('./data/AG_Hell/metaPlasmaNorm.rds')
+# Plasma metabolomics (Hopf)
+metaPlasma_Hopf <- readRDS('./data/AG_Hopf/metaPlasmaVsn.rds')
+# Plasma lipidomics
+lipPlasma <- readRDS('./data/AG_Hopf/lipPlasmaVsn.rds')
+
+# Change column names to interpretable ones and manually modify potential mislabeling
+# Tissue proteomics
+colnames(proTissue) <- colData(proTissue)$Sample
+colnames(proTissue)[22] <- 'F04ERF3M_TG'
+colData(proTissue)$Sample <- colnames(proTissue)
+colData(proTissue)$Patient[22] <- 'F04ERF3M'
+colData(proTissue)$Recurrence[22] <- 'Yes'
+# Plasma proteomics
+colnames(proPlasma) <- colData(proPlasma)$Sample
+
+# Retrieve recurrence annotations of Baseline samples for heatmap
+recurBaseAnno <- tibble::as_tibble(colData(proPlasma)) %>%
+  dplyr::filter(Condition == 'Baseline') %>%
+  dplyr::select(Sample, Recurrence) %>%
+  tibble::column_to_rownames('Sample')
+```
+
+Display dimensions of each dataset (Feature X Sample)
+```{r dimensions of datasets}
+# Overview dimensionality of each dataset
+lungCancerData <- list(Tissue_Proteomics = assay(proTissue),
+                       Tissue_Metabolomics = assay(metaTissue),
+                       Plasma_Proteomics = assay(proPlasma),
+                       Plasma_Metabolomics_Hell = assay(metaPlasma_Hell),
+                       Plasma_Metabolomics_Hopf = assay(metaPlasma_Hopf),
+                       Plasma_Lipidomics = assay(lipPlasma))
+lapply(lungCancerData, dim)
+# lapply(lungCancerData, colnames)
+```
+
+```{r differential tissue proteomics matrix, include = F, eval = F}
+# Create differential tissue proteomics matrix
+# Subset Tumor samples
+smpTumorIdx <- which(colData(proTissue)$Condition == 'Tumor')
+proTumor <- proTissue[, smpTumorIdx]
+# Subset Normal samples
+smpNormalIdx <- which(colData(proTissue)$Condition == 'Normal')
+proNormal <- proTissue[, smpNormalIdx]
+# Modify sample names for matching two datasets
+colnames(proTumor) <- stringr::str_remove(colnames(proTumor), '_TG')
+colnames(proNormal) <- stringr::str_remove(colnames(proNormal), '_NG')
+# Retrieve data matrix
+proTumorMat <- SummarizedExperiment::assay(proTumor)
+proNormalMat <- SummarizedExperiment::assay(proNormal)
+# Subtract follow-up matrix by baseline matrix
+# if (identical(colnames(proTumorMat), colnames(proNormalMat)) &
+#     identical(rownames(proTumorMat), rownames(proNormalMat))) {
+#   proDiffMat <- proTumorMat - proNormalMat
+#   } else {
+#     print('Align samples or features first.')
+#     }
+#### Manually align samples ####
+if (identical(sort(colnames(proTumorMat)), sort(colnames(proNormalMat)))) {
+  smpOrder <- sort(colnames(proTumorMat))
+  # For computing difference between Tumor and Normal samples
+  proTumorMat <- proTumorMat[, smpOrder]
+  proNormalMat <- proNormalMat[, smpOrder]
+  proDiffMat <- proTumorMat - proNormalMat
+  # For Creating SE object
+  proTumor <- proTumor[, smpOrder]
+  proNormal <- proNormal[, smpOrder]
+}
+# Retrieve samples metadata for creting SE object
+colAnno <- dplyr::select(as.data.frame(colData(proTumor)), Patient, Recurrence)
+rowAnno <- as.data.frame(rowData(proTumor))
+proTissueDiff <- SummarizedExperiment(assays = proDiffMat,
+                                      colData = colAnno, rowData = rowAnno)
+```
+
+```{r tidy long data preparation}
+# Convert SE objects to long data for creating MOFA object through
+# 'create_mofa_from_df' to include metadata
+# Tissue proteomics
+proTissueTab <- summExp2df(proTissue, row_id = 'feature', col_id = 'sample') %>%
+  dplyr::select(-c(PG.Genes, Sample_IDs, Sample)) %>%
+  dplyr::rename(value = Value) %>%
+  dplyr::mutate(group = 'Tissue', view = 'Proteomics')
+# Tissue metabolomics
+metaTissueTab <- summExp2df(metaTissue, row_id = 'feature', col_id = 'sample') %>%
+  dplyr::rename(value = Value) %>%
+  dplyr::mutate(group = 'Tissue', view = 'Metabolomics')
+# Plasma proteomics
+proPlasmaTab <- summExp2df(proPlasma, row_id = 'feature', col_id = 'sample') %>%
+  dplyr::select(-c(PG.Genes, Sample_IDs, Sample)) %>%
+  dplyr::rename(value = Value) %>%
+  dplyr::mutate(group = 'Plasma', view = 'Proteomics')
+# Plasma metabolomics (Hell)
+metaPlasmaTab_Hell <- summExp2df(metaPlasma_Hell, row_id = 'feature',
+                                 col_id = 'sample') %>%
+  dplyr::rename(value = Value) %>%
+  dplyr::mutate(group = 'Plasma', view = 'Metabolomics')
+# Plasma metabolomics (Hopf)
+metaPlasmaTab_Hopf <- summExp2df(metaPlasma_Hopf, row_id = 'feature',
+                                 col_id = 'sample') %>%
+  dplyr::select(-m.z_RT) %>%
+  dplyr::rename(value = Value) %>%
+  dplyr::mutate(group = 'Plasma', view = 'Metabolomics')
+# Plasma lipidomics
+lipPlasmaTab <- summExp2df(lipPlasma, row_id = 'feature', col_id = 'sample') %>%
+  dplyr::select(-m.z_RT) %>%
+  dplyr::rename(value = Value) %>%
+  dplyr::mutate(group = 'Plasma', view = 'Lipidomics')
+
+# Differential tissue proteomics
+# proTissueDiffTab <- summExp2df(proTissueDiff, row_id = 'feature',
+#                                col_id = 'sample') %>%
+#   dplyr::select(-PG.Genes) %>%
+#   dplyr::rename(value = Value) %>%
+#   dplyr::mutate(group = 'Tissue', view = 'Proteomics Diff')
+```
+
+
+
+
+# PM (Hell) + PL + PP
+**Targeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics**\
+In clinical situations, it would be much easier to obtain Plasma samples compared
+to obtaining Tissue samples, so firstly only and all Plasma omics was used to see
+model performance.\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject3V2G <- readRDS('./data/mofa/Hell_mofa_3V2G_10Fac.rds')
+
+# Redefine model setup
+# proPlasmaTab3V2G <- proPlasmaTab %>%
+#   dplyr::mutate(group = dplyr::case_when(
+#     Condition == 'Baseline' ~ paste('Baseline', group),
+#     Condition != 'Baseline' ~ paste('Follow-up', group)
+#     ))
+# 
+# metaPlasmaTab3V2G <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(group = dplyr::case_when(
+#     Condition == 'Baseline' ~ paste('Baseline', group),
+#     Condition != 'Baseline' ~ paste('Follow-up', group)
+#     ))
+# 
+# lipPlasmaTab3V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(group = dplyr::case_when(
+#     Condition == 'Baseline' ~ paste('Baseline', group),
+#     Condition != 'Baseline' ~ paste('Follow-up', group)
+#     ),
+#     sample = dplyr::case_when(
+#       Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#       Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#     ))
+
+# Create MOFA object
+# Concatenate long data
+# summTab3V2G <- dplyr::bind_rows(proPlasmaTab3V2G,
+#                                 metaPlasmaTab3V2G,
+#                                 lipPlasmaTab3V2G)
+# mofaObject3V2G <- MOFA2::create_mofa_from_df(summTab3V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+MOFA2::plot_data_overview(mofaObject3V2G)
+
+# ggsave(paste0(result_path, '3V2G_data_overview.png'), device = 'png', dpi = 400)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject3V2G)
+# model_opts <- get_default_model_options(mofaObject3V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject3V2G)
+# 
+# mofaObject3V2G <- prepare_mofa(mofaObject3V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+# 
+# mofaObject3V2G <- run_mofa(mofaObject3V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hell_mofa_3V2G_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject3V2G, paste0(project_path, 'data/mofa_model/Hell_mofa_3V2G_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject3V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject3V2G, max_r2 = 15)
+# ggsave(paste0(result_path, 'AG_Hell/Hell_3V2G_var_explained.png'), device = 'png', dpi = 400)
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence
+(Var2). Basically t-test was performed to test significance of difference between
+recurrence and non-recurrence patient groups.\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject3V2G)[['Baseline Plasma']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject3V2G)) %>%
+  dplyr::filter(Condition == 'Baseline') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject3V2G)[['Follow-up Plasma']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject3V2G)) %>%
+  dplyr::filter(Condition != 'Baseline') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+MOFA2::plot_factor(mofaObject3V2G, factors = 2, color_by = 'Recurrence',
+                   add_violin = T, dodge = T) +
+  # geom_label_repel(aes(label=sample), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+# ggsave(paste0(result_path, 'Hell_3V2G_baseline_factor2.png'), device = 'png', dpi = 400)
+
+# Effect size was computed, yet, it provides same information as t-statistic, i.e.,
+# effect size has positive high correlation with t-value. Therefore, effect size is
+# not that valuable here.
+# cat('Effect size (Baseline):\n',
+#     effSize(mofaObject3V2G, gp = 'Baseline Plasma', fac = 2))
+```
+
+```{r eval = F}
+# Display molecular signatures captured by Factor 2 in data through heatmap
+
+# Molecular signatures in data
+data_heatmap(mofaObject3V2G, factor = 2, view = 'Proteomics',
+             group = 'Baseline Plasma', features = 30,
+             smp_anno = recurBaseAnno, smp_cluster = 'Recurrence',
+             cluster_rows = T, cluster_cols = T,
+             show_rownames = F, show_colnames = T,
+             color = colorRampPalette(c('navy', 'white', 'red'))(100),
+             scale = 'row', main = 'Baseline Plasma Proteomics - Fac2')
+data_heatmap(mofaObject3V2G, factor = 2, view = 'Lipidomics',
+             group = 'Baseline Plasma', features = 30,
+             smp_anno = recurBaseAnno, smp_cluster = 'Recurrence',
+             cluster_rows = T, cluster_cols = T,
+             show_rownames = T, show_colnames = T,
+             color = colorRampPalette(c('navy', 'white', 'red'))(100),
+             scale = 'row', main = 'Baseline Plasma Lipidomics - Fac2')
+```
+
+**Follow-up group**
+```{r}
+# Follow-up
+MOFA2::plot_factor(mofaObject3V2G, factors = 7, color_by = 'Recurrence',
+                   add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject3V2G, gp = 'Follow-up Plasma', fac = 7))
+
+MOFA2::plot_factor(mofaObject3V2G, factors = 1, color_by = 'Recurrence',
+                   add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject3V2G, gp = 'Follow-up Plasma', fac = 1))
+```
+
+# PM (Hopf) + PL + PP
+**Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject3V2G <- readRDS('./data/mofa/Hopf_mofa_3V2G_10Fac.rds')
+
+# Redefine model setup
+# metaPlasmaTab3V2G <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(group = dplyr::case_when(
+#     Condition == 'Baseline' ~ paste('Baseline', group),
+#     Condition != 'Baseline' ~ paste('Follow-up', group)
+#     ),
+#     sample = dplyr::case_when(
+#       Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#       Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#     ))
+
+# Create MOFA object
+# Concatenate long data
+# summTab3V2G <- dplyr::bind_rows(proPlasmaTab3V2G,
+#                                 metaPlasmaTab3V2G,
+#                                 lipPlasmaTab3V2G)
+# mofaObject3V2G <- create_mofa_from_df(summTab3V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject3V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject3V2G)
+# model_opts <- get_default_model_options(mofaObject3V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject3V2G)
+#
+# mofaObject3V2G <- prepare_mofa(mofaObject3V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject3V2G <- run_mofa(mofaObject3V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hopf_mofa_3V2G_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject3V2G, paste0(project_path, 'data/mofa_model/Hopf_mofa_3V2G_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject3V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject3V2G, max_r2 = 15)
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject3V2G)[['Baseline Plasma']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject3V2G)) %>%
+  dplyr::filter(Condition == 'Baseline') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject3V2G)[['Follow-up Plasma']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject3V2G)) %>%
+  dplyr::filter(Condition != 'Baseline') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+plot_factor(mofaObject3V2G, factors = 6, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  # geom_label_repel(aes(label=sample), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+# ggsave(paste0(result_path, 'Hopf_3V2G_baseline_factor6.png'), device = 'png', dpi = 400)
+
+# cat('Effect size (Baseline):\n',
+#     effSize(mofaObject3V2G, gp = 'Baseline Plasma', fac = 6))
+
+plot_factor(mofaObject3V2G, factors = 8, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+# ggsave(paste0(result_path, 'Hopf_3V2G_baseline_factor8.png'), device = 'png', dpi = 400)
+
+# cat('Effect size (Baseline):\n',
+#     effSize(mofaObject3V2G, gp = 'Baseline Plasma', fac = 8))
+```
+
+```{r eval = F}
+# Display molecular signatures captured by Factor 6 in data through heatmap
+
+# Molecular signatures in data
+data_heatmap(mofaObject3V2G, factor = 6, view = 'Proteomics',
+             group = 'Baseline Plasma', features = 30,
+             smp_anno = recurBaseAnno, smp_cluster = 'Recurrence',
+             cluster_rows = T, cluster_cols = T,
+             show_rownames = F, show_colnames = T,
+             color = colorRampPalette(c('navy', 'white', 'red'))(100),
+             scale = 'row', main = 'Baseline Plasma Proteomics - Fac6')
+data_heatmap(mofaObject3V2G, factor = 6, view = 'Lipidomics',
+             group = 'Baseline Plasma', features = 30,
+             smp_anno = recurBaseAnno, smp_cluster = 'Recurrence',
+             cluster_rows = T, cluster_cols = T,
+             show_rownames = T, show_colnames = T,
+             color = colorRampPalette(c('navy', 'white', 'red'))(100),
+             scale = 'row', main = 'Baseline Plasma Lipidomics - Fac6')
+```
+
+**Follow-up group**
+```{r}
+# Follow-up
+plot_factor(mofaObject3V2G, factors = 1, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject3V2G, gp = 'Follow-up Plasma', fac = 1))
+
+plot_factor(mofaObject3V2G, factors = 5, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject3V2G, gp = 'Follow-up Plasma', fac = 5))
+```
+
+
+
+
+# PM (Hell) + PL + PP + TTP + NTP
+**Targeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics + Tumor Tissue**
+**Proteomics + Normal Tissue Proteomics**\
+The idea is to see if adding Tissue Proteomics can improve model performance.\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject5V2G <- readRDS('./data/mofa/Hell_mofa_5V2G_10Fac.rds')
+
+# Redefine model setup
+# proTissueTab5V2G <- proTissueTab %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = dplyr::case_when(
+#                   Condition == 'Tumor' ~ paste('Tumor', view),
+#                   Condition == 'Normal' ~ paste('Normal', view)
+#                   ),
+#                 sample = stringr::str_replace(sample, '_TG|_NG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+#
+# proPlasmaTab5V2G <- proPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 view = 'Plasma Proteomics')%>%
+#   dplyr::select(-Condition)
+#
+# metaPlasmaTab5V2G <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   )) %>%
+#   dplyr::select(-Condition)
+#
+# lipPlasmaTab5V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab5V2G <- dplyr::bind_rows(proTissueTab5V2G,
+#                                 proPlasmaTab5V2G,
+#                                 metaPlasmaTab5V2G,
+#                                 lipPlasmaTab5V2G)
+# mofaObject5V2G <- create_mofa_from_df(summTab5V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject5V2G)
+
+# ggsave(paste0(result_path, '5V2G_data_overview.png'), device = 'png', dpi = 400)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject5V2G)
+# model_opts <- get_default_model_options(mofaObject5V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject5V2G)
+#
+# mofaObject5V2G <- prepare_mofa(mofaObject5V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject5V2G <- run_mofa(mofaObject5V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hell_mofa_5V2G_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject5V2G, paste0(project_path, 'data/mofa_model/Hell_mofa_5V2G_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject5V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject5V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence
+(Var2). Basically t-test was performed to test significance of difference between
+recurrence and non-recurrence patient groups.\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject5V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject5V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  # dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject5V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject5V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Follow-up group**
+```{r}
+# View factor values for samples
+# Follow-up
+plot_factor(mofaObject5V2G, factors = 9, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject5V2G, gp = 'Follow-up Group', fac = 9))
+```
+
+# PM (Hopf) + PL + PP + TTP + NTP
+**Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics + Tumor**
+**Tissue Proteomics + Normal Tissue Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject5V2G <- readRDS('./data/mofa/Hopf_mofa_5V2G_10Fac.rds')
+
+# Redefine model setup
+# metaPlasmaTab5V2G <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab5V2G <- dplyr::bind_rows(proTissueTab5V2G,
+#                                 proPlasmaTab5V2G,
+#                                 metaPlasmaTab5V2G,
+#                                 lipPlasmaTab5V2G)
+# mofaObject5V2G <- create_mofa_from_df(summTab5V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject5V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject5V2G)
+# model_opts <- get_default_model_options(mofaObject5V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject5V2G)
+#
+# mofaObject5V2G <- prepare_mofa(mofaObject5V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject5V2G <- run_mofa(mofaObject5V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hopf_mofa_5V2G_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject5V2G, paste0(project_path, 'data/mofa_model/Hopf_mofa_5V2G_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject5V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject5V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject5V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject5V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject5V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject5V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+plot_factor(mofaObject5V2G, factors = 10, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  # geom_label_repel(aes(label=sample), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+# ggsave(paste0(result_path, 'Hopf_5V2G_baseline_factor10.png'), device = 'png', dpi = 400)
+
+# cat('Effect size (Baseline):\n',
+#     effSize(mofaObject5V2G, gp = 'Baseline Group', fac = 10))
+```
+
+```{r eval = F}
+# Molecular signatures in data
+data_heatmap(mofaObject5V2G, factor = 10, view = 'Plasma Proteomics',
+             group = 'Baseline Group', features = 30,
+             smp_anno = recurBaseAnno, smp_cluster = 'Recurrence',
+             cluster_rows = T, cluster_cols = T,
+             show_rownames = F, show_colnames = T,
+             color = colorRampPalette(c('navy', 'white', 'red'))(100),
+             scale = 'row', main = 'Baseline Plasma Proteomics - Fac10')
+data_heatmap(mofaObject5V2G, factor = 10, view = 'Lipidomics',
+             group = 'Baseline Group', features = 30,
+             smp_anno = recurBaseAnno, smp_cluster = 'Recurrence',
+             cluster_rows = T, cluster_cols = T,
+             show_rownames = T, show_colnames = T,
+             color = colorRampPalette(c('navy', 'white', 'red'))(100),
+             scale = 'row', main = 'Baseline Plasma Lipidomics - Fac10')
+```
+
+**Follow-up group**
+```{r}
+# Follow-up
+plot_factor(mofaObject5V2G, factors = 9, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject5V2G, gp = 'Follow-up Group', fac = 9))
+
+plot_factor(mofaObject5V2G, factors = 2, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject5V2G, gp = 'Follow-up Group', fac = 2))
+```
+
+
+
+
+# PM (Hell) + PL + TTP + NTP
+**Targeted Plasma Metabolomics + Plasma Lipidomics + Tumor Tissue Proteomics + Normal**
+**Tissue Proteomics**\
+The idea is to observe changes in model performance if Plasma Proteomics (that might
+provide signal or introduce noise) is removed.\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject4V2G <- readRDS('./data/mofa/Hell_mofa_4V2G-PP_10Fac.rds')
+
+# Redefine model setup
+# proTissueTab4V2G <- proTissueTab %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = dplyr::case_when(
+#                   Condition == 'Tumor' ~ paste('Tumor', view),
+#                   Condition == 'Normal' ~ paste('Normal', view)
+#                   ),
+#                 sample = stringr::str_replace(sample, '_TG|_NG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+#
+# metaPlasmaTab4V2G <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   )) %>%
+#   dplyr::select(-Condition)
+#
+# lipPlasmaTab4V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab4V2G <- dplyr::bind_rows(proTissueTab4V2G,
+#                                 metaPlasmaTab4V2G,
+#                                 lipPlasmaTab4V2G)
+# mofaObject4V2G <- create_mofa_from_df(summTab4V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject4V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject4V2G)
+# model_opts <- get_default_model_options(mofaObject4V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject4V2G)
+#
+# mofaObject4V2G <- prepare_mofa(mofaObject4V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject4V2G <- run_mofa(mofaObject4V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hell_mofa_4V2G-PP_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject4V2G, paste0(project_path, 'data/mofa_model/Hell_mofa_4V2G-PP_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject4V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject4V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence
+(Var2). Basically t-test was performed to test significance of difference between
+recurrence and non-recurrence patient groups.\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  # dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Follow-up group**
+```{r}
+# View factor values for samples
+# Follow-up
+plot_factor(mofaObject4V2G, factors = 10, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 10))
+```
+
+# PM (Hopf) + PL + TTP + NTP
+**Untargeted Plasma Metabolomics + Plasma Lipidomics + Tumor Tissue Proteomics +**
+**Normal Tissue Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject4V2G <- readRDS('./data/mofa/Hopf_mofa_4V2G-PP_10Fac.rds')
+
+# Redefine model setup
+# metaPlasmaTab4V2G <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab4V2G <- dplyr::bind_rows(proTissueTab4V2G,
+#                                 metaPlasmaTab4V2G,
+#                                 lipPlasmaTab4V2G)
+# mofaObject4V2G <- create_mofa_from_df(summTab4V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject4V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject4V2G)
+# model_opts <- get_default_model_options(mofaObject4V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject4V2G)
+#
+# mofaObject4V2G <- prepare_mofa(mofaObject4V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject4V2G <- run_mofa(mofaObject4V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hopf_mofa_4V2G-PP_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject4V2G, paste0(project_path, 'data/mofa_model/Hopf_mofa_4V2G-PP_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject4V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject4V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+plot_factor(mofaObject4V2G, factors = 10, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Baseline):\n',
+#     effSize(mofaObject4V2G, gp = 'Baseline Group', fac = 10))
+```
+**Follow-up group**
+```{r}
+# Follow-up
+plot_factor(mofaObject4V2G, factors = 9, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 9))
+
+plot_factor(mofaObject4V2G, factors = 1, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 1))
+```
+
+
+
+
+# PM (Hell) + PL + PP + TTP
+**Targeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics + Tumor**
+**Tissue Proteomics**\
+The idea is to observe changes in model performance if Normal Tissue Proteomics
+is removed.\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject4V2G <- readRDS('./data/mofa/Hell_mofa_4V2G-NTP_10Fac.rds')
+
+# Redefine model setup
+# proTissueTab4V2G <- proTissueTab %>%
+#   dplyr::filter(Condition == 'Tumor') %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = paste('Tumor', view),
+#                 sample = stringr::str_replace(sample, '_TG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+#
+# proPlasmaTab4V2G <- proPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 view = 'Plasma Proteomics')%>%
+#   dplyr::select(-Condition)
+#
+# metaPlasmaTab4V2G <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   )) %>%
+#   dplyr::select(-Condition)
+#
+# lipPlasmaTab4V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab4V2G <- dplyr::bind_rows(proTissueTab4V2G,
+#                                 proPlasmaTab4V2G,
+#                                 metaPlasmaTab4V2G,
+#                                 lipPlasmaTab4V2G)
+# mofaObject4V2G <- create_mofa_from_df(summTab4V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject4V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject4V2G)
+# model_opts <- get_default_model_options(mofaObject4V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject4V2G)
+#
+# mofaObject4V2G <- prepare_mofa(mofaObject4V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject4V2G <- run_mofa(mofaObject4V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hell_mofa_4V2G-NTP_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject4V2G, paste0(project_path, 'data/mofa_model/Hell_mofa_4V2G-NTP_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject4V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject4V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  # dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Follow-up group**
+```{r}
+# View factor values for samples
+# Follow-up
+plot_factor(mofaObject4V2G, factors = 6, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 6))
+
+plot_factor(mofaObject4V2G, factors = 4, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 4))
+```
+
+# PM (Hopf) + PL + PP + TTP
+**Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics + Tumor**
+**Tissue Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject4V2G <- readRDS('./data/mofa/Hopf_mofa_4V2G-NTP_10Fac.rds')
+
+# Redefine model setup
+# proTissueTab4V2G <- proTissueTab %>%
+#   dplyr::filter(Condition == 'Tumor') %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = paste('Tumor', view),
+#                 sample = stringr::str_replace(sample, '_TG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+#
+# proPlasmaTab4V2G <- proPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 view = 'Plasma Proteomics')%>%
+#   dplyr::select(-Condition)
+#
+# metaPlasmaTab4V2G <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+#
+# lipPlasmaTab4V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab4V2G <- dplyr::bind_rows(proTissueTab4V2G,
+#                                 proPlasmaTab4V2G,
+#                                 metaPlasmaTab4V2G,
+#                                 lipPlasmaTab4V2G)
+# mofaObject4V2G <- create_mofa_from_df(summTab4V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject4V2G)
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject4V2G)
+# model_opts <- get_default_model_options(mofaObject4V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject4V2G)
+#
+# mofaObject4V2G <- prepare_mofa(mofaObject4V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject4V2G <- run_mofa(mofaObject4V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hopf_mofa_4V2G-NTP_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject4V2G, paste0(project_path, 'data/mofa_model/Hopf_mofa_4V2G-NTP_10Fac.rds'))
+
+# Iterate model training to see differences in results
+# n_inits <- 5
+# for (i in seq_len(n_inits)) {
+#   # Create MOFA object
+#   mofaObject4V2G <- create_mofa_from_df(summTab4V2G, extract_metadata = T)
+#
+#   # Train MOFA model
+#   data_opts <- get_default_data_options(mofaObject4V2G)
+#   model_opts <- get_default_model_options(mofaObject4V2G)
+#   model_opts$num_factors <- 10
+#   train_opts <- get_default_training_options(mofaObject4V2G)
+#   train_opts$seed <- sample(seq_len(1000), 1)
+#
+#   mofaObject4V2G <- prepare_mofa(mofaObject4V2G,
+#                                  data_options = data_opts,
+#                                  model_options = model_opts,
+#                                  training_options = train_opts)
+#
+#   mofaObject4V2G <- run_mofa(mofaObject4V2G,
+#                              outfile = paste0(project_path,
+#                                               'data/mofa_model/Hopf_mofa_4V2G-NTP_10Fac',
+#                                               '_', i, '.hdf5'),
+#                              use_basilisk = F)
+#   saveRDS(mofaObject4V2G, paste0(project_path,
+#                                  'data/mofa_model/Hopf_mofa_4V2G-NTP_10Fac',
+#                                  '_', i, '.rds'))
+# }
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject4V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject4V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+plot_factor(mofaObject4V2G, factors = 9, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+# ggsave(paste0(result_path, 'Hopf_4V2G_tumor_baseline_factor9.png'), device = 'png', dpi = 400)
+
+# cat('Effect size (Baseline):\n',
+#     effSize(mofaObject4V2G, gp = 'Baseline Group', fac = 9))
+```
+**Follow-up group**
+```{r}
+# Follow-up
+plot_factor(mofaObject4V2G, factors = 7, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12)) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65)
+# ggsave(paste0(project_path, 'results/Hopf_mofa_4V2G_fac7.png'), device = 'png', dpi = 400)
+
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 7))
+
+plot_factor(mofaObject4V2G, factors = 1, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12)) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65)
+# ggsave(paste0(project_path, 'results/Hopf_mofa_4V2G_fac1.png'), device = 'png', dpi = 400)
+
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 1))
+```
+
+
+
+
+
+# PM (Hell) + PL + TTP
+**Targeted Plasma Metabolomics + Plasma Lipidomics + Tumor Tissue Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject3V2G <- readRDS('./data/mofa/Hell_mofa_3V2G-NTP&-PP_10Fac.rds')
+
+# Redefine model setup
+# proTissueTab3V2G <- proTissueTab %>%
+#   dplyr::filter(Condition == 'Tumor') %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = paste('Tumor', view),
+#                 sample = stringr::str_replace(sample, '_TG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+#
+# metaPlasmaTab3V2G <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   )) %>%
+#   dplyr::select(-Condition)
+#
+# lipPlasmaTab3V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab3V2G <- dplyr::bind_rows(proTissueTab3V2G,
+#                                 metaPlasmaTab3V2G,
+#                                 lipPlasmaTab3V2G)
+# mofaObject3V2G <- create_mofa_from_df(summTab3V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject3V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject3V2G)
+# model_opts <- get_default_model_options(mofaObject3V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject3V2G)
+#
+# mofaObject3V2G <- prepare_mofa(mofaObject3V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject3V2G <- run_mofa(mofaObject3V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hell_mofa_3V2G-NTP&-PP_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject3V2G, paste0(project_path, 'data/mofa_model/Hell_mofa_3V2G-NTP&-PP_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject3V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject3V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject3V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject3V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  # dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject3V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject3V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Follow-up group**
+```{r}
+# View factor values for samples
+# Follow-up
+plot_factor(mofaObject3V2G, factors = 8, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+ ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject3V2G, gp = 'Follow-up Group', fac = 8))
+```
+
+# PM (Hopf) + PL + TTP
+**Untargeted Plasma Metabolomics + Plasma Lipidomics + Tumor Tissue Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject3V2G <- readRDS('./data/mofa/Hopf_mofa_3V2G-NTP&-PP_10Fac.rds')
+
+# Redefine model setup
+# metaPlasmaTab3V2G <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab3V2G <- dplyr::bind_rows(proTissueTab3V2G,
+#                                 metaPlasmaTab3V2G,
+#                                 lipPlasmaTab3V2G)
+# mofaObject3V2G <- create_mofa_from_df(summTab3V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject3V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject3V2G)
+# model_opts <- get_default_model_options(mofaObject3V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject3V2G)
+#
+# mofaObject3V2G <- prepare_mofa(mofaObject3V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject3V2G <- run_mofa(mofaObject3V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hopf_mofa_3V2G-NTP&-PP_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject3V2G, paste0(project_path, 'data/mofa_model/Hopf_mofa_3V2G-NTP&-PP_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject3V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject3V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject3V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject3V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject3V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject3V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+plot_factor(mofaObject3V2G, factors = 8, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Baseline):\n',
+#     effSize(mofaObject3V2G, gp = 'Baseline Group', fac = 8))
+```
+**Follow-up group**
+```{r}
+# Follow-up
+plot_factor(mofaObject3V2G, factors = 6, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject3V2G, gp = 'Follow-up Group', fac = 6))
+
+plot_factor(mofaObject3V2G, factors = 1, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject3V2G, gp = 'Follow-up Group', fac = 1))
+```
+
+
+
+
+# PM (Hell) + PL + PP + NTP
+**Targeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics + Normal**
+**Tissue Proteomics**\
+Normal Tissue Proteomics might be able to form tumor microenvironment and guide
+model training.\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject4V2G <- readRDS('./data/mofa/Hell_mofa_4V2G-TTP_10Fac.rds')
+
+# Redefine model setup
+# proTissueTab4V2G <- proTissueTab %>%
+#   dplyr::filter(Condition == 'Normal') %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = paste('Normal', view),
+#                 sample = stringr::str_replace(sample, '_NG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+#
+# proPlasmaTab4V2G <- proPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 view = 'Plasma Proteomics')%>%
+#   dplyr::select(-Condition)
+#
+# metaPlasmaTab4V2G <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   )) %>%
+#   dplyr::select(-Condition)
+#
+# lipPlasmaTab4V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab4V2G <- dplyr::bind_rows(proTissueTab4V2G,
+#                                 proPlasmaTab4V2G,
+#                                 metaPlasmaTab4V2G,
+#                                 lipPlasmaTab4V2G)
+# mofaObject4V2G <- create_mofa_from_df(summTab4V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject4V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject4V2G)
+# model_opts <- get_default_model_options(mofaObject4V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject4V2G)
+#
+# mofaObject4V2G <- prepare_mofa(mofaObject4V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject4V2G <- run_mofa(mofaObject4V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hell_mofa_4V2G-TTP_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject4V2G, paste0(project_path, 'data/mofa_model/Hell_mofa_4V2G-TTP_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject4V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject4V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+plot_factor(mofaObject4V2G, factors = 2, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+# ggsave(paste0(result_path, 'Hell_4V2G_normal_baseline_factor2.png'), device = 'png', dpi = 400)
+
+# cat('Effect size (Baseline):\n',
+#     effSize(mofaObject4V2G, gp = 'Baseline Group', fac = 2))
+```
+**Follow-up group**
+```{r}
+# Follow-up
+plot_factor(mofaObject4V2G, factors = 4, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 4))
+```
+
+# PM (Hopf) + PL + PP + NTP
+**Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics + Normal**
+**Tissue Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject4V2G <- readRDS('./data/mofa/Hopf_mofa_4V2G-TTP_10Fac.rds')
+
+# Redefine model setup
+# metaPlasmaTab4V2G <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab4V2G <- dplyr::bind_rows(proTissueTab4V2G,
+#                                 proPlasmaTab4V2G,
+#                                 metaPlasmaTab4V2G,
+#                                 lipPlasmaTab4V2G)
+# mofaObject4V2G <- create_mofa_from_df(summTab4V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject4V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject4V2G)
+# model_opts <- get_default_model_options(mofaObject4V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject4V2G)
+#
+# mofaObject4V2G <- prepare_mofa(mofaObject4V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject4V2G <- run_mofa(mofaObject4V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hopf_mofa_4V2G-TTP_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject4V2G, paste0(project_path, 'data/mofa_model/Hopf_mofa_4V2G-TTP_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject4V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject4V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+plot_factor(mofaObject4V2G, factors = 9, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  # geom_label_repel(aes(label = sample), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+# ggsave(paste0(result_path, 'Hopf_4V2G_normal_baseline_factor9.png'), device = 'png', dpi = 400)
+
+# cat('Effect size (Baseline):\n',
+#     effSize(mofaObject4V2G, gp = 'Baseline Group', fac = 9))
+```
+
+```{r eval = F}
+# Molecular signatures in data
+data_heatmap(mofaObject4V2G, factor = 9, view = 'Plasma Proteomics',
+             group = 'Baseline Group', features = 30,
+             smp_anno = recurBaseAnno, smp_cluster = 'Recurrence',
+             cluster_rows = T, cluster_cols = T,
+             show_rownames = F, show_colnames = T,
+             color = colorRampPalette(c('navy', 'white', 'red'))(100),
+             scale = 'row', main = 'Baseline Plasma Proteomics - Fac9')
+data_heatmap(mofaObject4V2G, factor = 9, view = 'Lipidomics',
+             group = 'Baseline Group', features = 30,
+             smp_anno = recurBaseAnno, smp_cluster = 'Recurrence',
+             cluster_rows = T, cluster_cols = T,
+             show_rownames = T, show_colnames = T,
+             color = colorRampPalette(c('navy', 'white', 'red'))(100),
+             scale = 'row', main = 'Baseline Plasma Lipidomics - Fac9')
+```
+
+**Follow-up group**
+```{r}
+# Follow-up
+plot_factor(mofaObject4V2G, factors = 7, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 7))
+
+plot_factor(mofaObject4V2G, factors = 1, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 1))
+```
+
+
+
+
+<!-- # PM (Hell) + PL + PP + DTP -->
+<!-- **Targeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics + Differential** -->
+<!-- **Tissue Proteomics**\ -->
+<!-- Instead of using only Tumor or Normal Tissue Proteomics, differential Tissue Proteomics -->
+<!-- (Tumor - Normal) was used.\ -->
+<!-- <br/> -->
+
+<!-- Visualize model setup -->
+<!-- ```{r} -->
+<!-- # Load trained MOFA object -->
+<!-- mofaObject4V2G <- readRDS('./data/mofa/Hell_mofa_4V2G_Diff_10Fac.rds') -->
+
+<!-- # Redefine model setup -->
+<!-- # proTissueTab4V2G <- proTissueDiffTab %>% -->
+<!-- #   dplyr::mutate(group = 'Baseline Group', -->
+<!-- #                 view = 'Differential Tissue Proteomics', -->
+<!-- #                 sample = paste0(sample, '_P_B')) -->
+<!-- # -->
+<!-- # proPlasmaTab4V2G <- proPlasmaTab %>% -->
+<!-- #   dplyr::mutate(group = 'Group', -->
+<!-- #                 group = dplyr::case_when( -->
+<!-- #                   Condition == 'Baseline' ~ paste('Baseline', group), -->
+<!-- #                   Condition != 'Baseline' ~ paste('Follow-up', group) -->
+<!-- #                   ), -->
+<!-- #                 view = 'Plasma Proteomics')%>% -->
+<!-- #   dplyr::select(-Condition) -->
+<!-- # -->
+<!-- # metaPlasmaTab4V2G <- metaPlasmaTab_Hell %>% -->
+<!-- #   dplyr::mutate(group = 'Group', -->
+<!-- #                 group = dplyr::case_when( -->
+<!-- #                   Condition == 'Baseline' ~ paste('Baseline', group), -->
+<!-- #                   Condition != 'Baseline' ~ paste('Follow-up', group) -->
+<!-- #                   )) %>% -->
+<!-- #   dplyr::select(-Condition) -->
+<!-- # -->
+<!-- # lipPlasmaTab4V2G <- lipPlasmaTab %>% -->
+<!-- #   dplyr::mutate(group = 'Group', -->
+<!-- #                 group = dplyr::case_when( -->
+<!-- #                   Condition == 'Baseline' ~ paste('Baseline', group), -->
+<!-- #                   Condition != 'Baseline' ~ paste('Follow-up', group) -->
+<!-- #                   ), -->
+<!-- #                 sample = dplyr::case_when( -->
+<!-- #                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'), -->
+<!-- #                   Condition != 'Baseline' ~ paste0(Patient, '_P_R') -->
+<!-- #                   )) %>% -->
+<!-- #   dplyr::select(-Condition) -->
+
+<!-- # Create MOFA object -->
+<!-- # Concatenate long data -->
+<!-- # summTab4V2G <- dplyr::bind_rows(proTissueTab4V2G, -->
+<!-- #                                 proPlasmaTab4V2G, -->
+<!-- #                                 metaPlasmaTab4V2G, -->
+<!-- #                                 lipPlasmaTab4V2G) -->
+<!-- # mofaObject4V2G <- create_mofa_from_df(summTab4V2G, extract_metadata = T) -->
+
+<!-- # Overview data in MOFA object -->
+<!-- plot_data_overview(mofaObject4V2G) -->
+
+
+<!-- # Train MOFA model -->
+<!-- # data_opts <- get_default_data_options(mofaObject4V2G) -->
+<!-- # model_opts <- get_default_model_options(mofaObject4V2G) -->
+<!-- # model_opts$num_factors <- 10 -->
+<!-- # train_opts <- get_default_training_options(mofaObject4V2G) -->
+<!-- # -->
+<!-- # mofaObject4V2G <- prepare_mofa(mofaObject4V2G, -->
+<!-- #                                data_options = data_opts, -->
+<!-- #                                model_options = model_opts, -->
+<!-- #                                training_options = train_opts) -->
+<!-- # -->
+<!-- # mofaObject4V2G <- run_mofa(mofaObject4V2G, -->
+<!-- #                            outfile = paste0(project_path, -->
+<!-- #                                             'data/mofa_model/Hell_mofa_4V2G_Diff_10Fac.hdf5'), -->
+<!-- #                            use_basilisk = F) -->
+<!-- # saveRDS(mofaObject4V2G, paste0(project_path, 'data/mofa_model/Hell_mofa_4V2G_Diff_10Fac.rds')) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- # Do sanity check for factor correlations -->
+<!-- # plot_factor_cor(mofaObject4V2G) -->
+
+<!-- # Perform variance dedecomposition analysis (coefficient of determination) -->
+<!-- plot_variance_explained(mofaObject4V2G, max_r2 = 15) + -->
+<!--   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) -->
+<!-- ``` -->
+
+<!-- **Baseline group** -->
+<!-- ```{r} -->
+<!-- # Conduct association test between learnt factors and cancer recurrence -->
+<!-- # Group: Baseline -->
+<!-- facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Baseline Group']], -->
+<!--                             rownames = 'sample') -->
+<!-- metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>% -->
+<!--   dplyr::filter(group == 'Baseline Group') %>% -->
+<!--   dplyr::select(sample, Recurrence) -->
+<!-- tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>% -->
+<!--   # dplyr::filter(pVal <= 0.05) %>% -->
+<!--   dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2')) -->
+<!-- tBaseRes -->
+<!-- ``` -->
+<!-- **Follow-up group** -->
+<!-- ```{r} -->
+<!-- # Group: Follow-up -->
+<!-- facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Follow-up Group']], -->
+<!--                             rownames = 'sample') -->
+<!-- metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>% -->
+<!--   dplyr::filter(group == 'Follow-up Group') %>% -->
+<!--   dplyr::select(sample, Recurrence) -->
+<!-- tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>% -->
+<!--   dplyr::filter(pVal <= 0.05) %>% -->
+<!--   dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2')) -->
+<!-- tFoloRes -->
+<!-- ``` -->
+<!-- <br/> -->
+
+<!-- **Follow-up group** -->
+<!-- ```{r} -->
+<!-- # View factor values for samples -->
+<!-- # Follow-up -->
+<!-- plot_factor(mofaObject4V2G, factors = 1, color_by = 'Recurrence', -->
+<!--             add_violin = T, dodge = T) + -->
+<!--   ggpubr::stat_compare_means(method = 't.test', paired = F, -->
+<!--                              method.args = list(var.equal = T)) -->
+<!-- # cat('Effect size (Follow-up):\n', -->
+<!-- #     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 1)) -->
+<!-- ``` -->
+
+<!-- # PM (Hopf) + PL + PP + DTP -->
+<!-- **Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics + Differential** -->
+<!-- **Tissue Proteomics**\ -->
+<!-- <br/> -->
+
+<!-- Visualize model setup -->
+<!-- ```{r} -->
+<!-- # Load trained MOFA object -->
+<!-- mofaObject4V2G <- readRDS('./data/mofa/Hopf_mofa_4V2G_Diff_10Fac.rds') -->
+
+<!-- # Redefine model setup -->
+<!-- # metaPlasmaTab4V2G <- metaPlasmaTab_Hopf %>% -->
+<!-- #   dplyr::mutate(group = 'Group', -->
+<!-- #                 group = dplyr::case_when( -->
+<!-- #                   Condition == 'Baseline' ~ paste('Baseline', group), -->
+<!-- #                   Condition != 'Baseline' ~ paste('Follow-up', group) -->
+<!-- #                   ), -->
+<!-- #                 sample = dplyr::case_when( -->
+<!-- #                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'), -->
+<!-- #                   Condition != 'Baseline' ~ paste0(Patient, '_P_R') -->
+<!-- #                   )) %>% -->
+<!-- #   dplyr::select(-Condition) -->
+
+<!-- # Create MOFA object -->
+<!-- # Concatenate long data -->
+<!-- # summTab4V2G <- dplyr::bind_rows(proTissueTab4V2G, -->
+<!-- #                                 proPlasmaTab4V2G, -->
+<!-- #                                 metaPlasmaTab4V2G, -->
+<!-- #                                 lipPlasmaTab4V2G) -->
+<!-- # mofaObject4V2G <- create_mofa_from_df(summTab4V2G, extract_metadata = T) -->
+
+<!-- # Overview data in MOFA object -->
+<!-- plot_data_overview(mofaObject4V2G) -->
+
+
+<!-- # Train MOFA model -->
+<!-- # data_opts <- get_default_data_options(mofaObject4V2G) -->
+<!-- # model_opts <- get_default_model_options(mofaObject4V2G) -->
+<!-- # model_opts$num_factors <- 10 -->
+<!-- # train_opts <- get_default_training_options(mofaObject4V2G) -->
+<!-- # -->
+<!-- # mofaObject4V2G <- prepare_mofa(mofaObject4V2G, -->
+<!-- #                                data_options = data_opts, -->
+<!-- #                                model_options = model_opts, -->
+<!-- #                                training_options = train_opts) -->
+<!-- # -->
+<!-- # mofaObject4V2G <- run_mofa(mofaObject4V2G, -->
+<!-- #                            outfile = paste0(project_path, -->
+<!-- #                                             'data/mofa_model/Hopf_mofa_4V2G_Diff_10Fac.hdf5'), -->
+<!-- #                            use_basilisk = F) -->
+<!-- # saveRDS(mofaObject4V2G, paste0(project_path, 'data/mofa_model/Hopf_mofa_4V2G_Diff_10Fac.rds')) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- # Do sanity check for factor correlations -->
+<!-- # plot_factor_cor(mofaObject4V2G) -->
+
+<!-- # Perform variance dedecomposition analysis (coefficient of determination) -->
+<!-- plot_variance_explained(mofaObject4V2G, max_r2 = 15) + -->
+<!--   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) -->
+<!-- ``` -->
+
+<!-- **Baseline group** -->
+<!-- ```{r} -->
+<!-- # Conduct association test between learnt factors and cancer recurrence -->
+<!-- # Group: Baseline -->
+<!-- facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Baseline Group']], -->
+<!--                             rownames = 'sample') -->
+<!-- metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>% -->
+<!--   dplyr::filter(group == 'Baseline Group') %>% -->
+<!--   dplyr::select(sample, Recurrence) -->
+<!-- tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>% -->
+<!--   dplyr::filter(pVal <= 0.05) %>% -->
+<!--   dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2')) -->
+<!-- tBaseRes -->
+<!-- ``` -->
+<!-- **Follow-up group** -->
+<!-- ```{r} -->
+<!-- # Group: Follow-up -->
+<!-- facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Follow-up Group']], -->
+<!--                             rownames = 'sample') -->
+<!-- metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>% -->
+<!--   dplyr::filter(group == 'Follow-up Group') %>% -->
+<!--   dplyr::select(sample, Recurrence) -->
+<!-- tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>% -->
+<!--   dplyr::filter(pVal <= 0.05) %>% -->
+<!--   dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2')) -->
+<!-- tFoloRes -->
+<!-- ``` -->
+<!-- <br/> -->
+
+<!-- **Baseline group** -->
+<!-- ```{r} -->
+<!-- # View factor values for samples -->
+<!-- # Baseline -->
+<!-- plot_factor(mofaObject4V2G, factors = 8, color_by = 'Recurrence', -->
+<!--             add_violin = T, dodge = T) + -->
+<!--   ggpubr::stat_compare_means(method = 't.test', paired = F, -->
+<!--                              method.args = list(var.equal = T), -->
+<!--                              size = 6, hjust = 0.65) + -->
+<!--   theme(strip.text = element_blank(), axis.ticks.x = element_blank(), -->
+<!--         axis.text.x = element_text(size = 16), -->
+<!--         axis.title.y = element_text(size = 16), -->
+<!--         legend.text = element_text(size = 14), -->
+<!--         legend.title = element_text(size = 12)) -->
+<!-- # ggsave(paste0(result_path, 'Hopf_4V2G_diff_baseline_factor8.png'), device = 'png', dpi = 400) -->
+
+<!-- # cat('Effect size (Baseline):\n', -->
+<!-- #     effSize(mofaObject4V2G, gp = 'Baseline Group', fac = 8)) -->
+<!-- ``` -->
+<!-- **Follow-up group** -->
+<!-- ```{r} -->
+<!-- # Follow-up -->
+<!-- plot_factor(mofaObject4V2G, factors = 1, color_by = 'Recurrence', -->
+<!--             add_violin = T, dodge = T) + -->
+<!--   ggpubr::stat_compare_means(method = 't.test', paired = F, -->
+<!--                              method.args = list(var.equal = T)) -->
+<!-- # cat('Effect size (Follow-up):\n', -->
+<!-- #     effSize(mofaObject4V2G, gp = 'Follow-up Group', fac = 1)) -->
+<!-- ``` -->
+
+
+
+
+# PM (Hell) + PL + PP + TTP + NTP + TTM + NTM
+**Targeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics + Tumor Tissue**
+**Proteomics + Normal Tissue Proteomics + Tumor Tissue Metabolomics + Normal Tissue Metabolomics**\
+All datasets were used to train a model.\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject7V2G <- readRDS('./data/mofa/Hell_mofa_7V2G_10Fac.rds')
+
+# Redefine model setup
+# proTissueTab7V2G <- proTissueTab %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = dplyr::case_when(
+#                   Condition == 'Tumor' ~ paste('Tumor', view),
+#                   Condition == 'Normal' ~ paste('Normal', view)
+#                   ),
+#                 sample = stringr::str_replace(sample, '_TG|_NG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+#
+# metaTissueTab7V2G <- metaTissueTab %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = dplyr::case_when(
+#                   Condition == 'Tumor' ~ paste('Tumor', view),
+#                   Condition == 'Normal' ~ paste('Normal', view)
+#                   ),
+#                 sample = stringr::str_replace(sample, '_TG|_NG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+#
+# proPlasmaTab7V2G <- proPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 view = 'Plasma Proteomics')%>%
+#   dplyr::select(-Condition)
+#
+# metaPlasmaTab7V2G <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   )) %>%
+#   dplyr::select(-Condition)
+#
+# lipPlasmaTab7V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                   )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab7V2G <- dplyr::bind_rows(proTissueTab7V2G,
+#                                 metaTissueTab7V2G,
+#                                 proPlasmaTab7V2G,
+#                                 metaPlasmaTab7V2G,
+#                                 lipPlasmaTab7V2G)
+# mofaObject7V2G <- create_mofa_from_df(summTab7V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject7V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject7V2G)
+# model_opts <- get_default_model_options(mofaObject7V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject7V2G)
+#
+# mofaObject7V2G <- prepare_mofa(mofaObject7V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject7V2G <- run_mofa(mofaObject7V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hell_mofa_7V2G_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject7V2G, paste0(project_path, 'data/mofa_model/Hell_mofa_7V2G_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject7V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject7V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject7V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject7V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  # dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject7V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject7V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Follow-up group**
+```{r}
+# View factor values for samples
+# Follow-up
+plot_factor(mofaObject7V2G, factors = 9, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject7V2G, gp = 'Follow-up Group', fac = 9))
+```
+
+# PM (Hopf) + PL + PP + TTP + NTP + TTM + NTM
+**Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics + Tumor Tissue**
+**Proteomics + Normal Tissue Proteomics + Tumor Tissue Metabolomics + Normal Tissue Metabolomics**\
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject7V2G <- readRDS('./data/mofa/Hopf_mofa_7V2G_10Fac.rds')
+
+# Redefine model setup
+# metaPlasmaTab7V2G <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(group = 'Group',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste('Baseline', group),
+#                   Condition != 'Baseline' ~ paste('Follow-up', group)
+#                   ),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')
+#                 )) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab7V2G <- dplyr::bind_rows(proTissueTab7V2G,
+#                                 metaTissueTab7V2G,
+#                                 proPlasmaTab7V2G,
+#                                 metaPlasmaTab7V2G,
+#                                 lipPlasmaTab7V2G)
+# mofaObject7V2G <- create_mofa_from_df(summTab7V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+plot_data_overview(mofaObject7V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject7V2G)
+# model_opts <- get_default_model_options(mofaObject7V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject7V2G)
+#
+# mofaObject7V2G <- prepare_mofa(mofaObject7V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject7V2G <- run_mofa(mofaObject7V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/Hopf_mofa_7V2G_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject7V2G, paste0(project_path, 'data/mofa_model/Hopf_mofa_7V2G_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# plot_factor_cor(mofaObject7V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+plot_variance_explained(mofaObject7V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject7V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject7V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  # dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject7V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject7V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Follow-up group**
+```{r}
+# View factor values for samples
+# Follow-up
+plot_factor(mofaObject7V2G, factors = 10, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject7V2G, gp = 'Follow-up Group', fac = 10))
+
+plot_factor(mofaObject7V2G, factors = 3, color_by = 'Recurrence',
+            add_violin = T, dodge = T) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T))
+# cat('Effect size (Follow-up):\n',
+#     effSize(mofaObject7V2G, gp = 'Follow-up Group', fac = 3))
+```
+Some findings:\
+1. Models trained on omics data combinations containing Untargeted Plasma Metabolomics
+perform better than those using Targeted Plasma Metabolomics in terms of predicting
+patient cancer recurrences. Evaluation includes learning Recurrence-related factors
+and separating recurrence and non-recurrence patient groups in Baseline group. This
+is sort of expected since Untargeted Plasma Metabolomics captures more features,
+which potentially provides more information.\
+2. Plasma Proteomics holds Recurrence-related information. Besides, variation in
+Plasma Proteomics and Plasma Lipidomics is always explained by Recurrence-related
+factors.\
+3. There exists this outlier Patient 'H03Y07RT' in most of trained models, except
+a model trained on PM (Hopf) + PL + PP + TTP. Consequently, this model outperforms
+the others in view of p-values. If this outlier is excluded or we look results
+concerning classification accuracy, many models can be pretty comparable, even better.
+It might be that (1) Patient 'H03Y07RT' is false positive, i.e., non-recurrence,
+(2) technical or biological noise is in Plasma Proteomics or Plasma Lipidomics
+datasets since they are common point across trained models, or (3) model trained
+on PM (Hopf) + PL + PP + TTP can really somehow classify Patient 'H03Y07RT' accurately
+(Factor 10 and 9!).
+
+
+
+
+# Outlier 'H03Y07RT' removal
+We observed that Sample 'H03Y07RT_P_B' is usually an extreme outlier in recurrence
+patient group in most of trained models, otherwise without this sample, many models
+can be quite comparable. Plus, current sample size is still small, which makes t-test
+very sensitive to outliers. Therefore, we removed this outlier when performing t-tests
+for model selection.
+
+```{r}
+# Load trained MOFA object
+# 3 views 2 groups: Plasma Proteomics, Metabolomics, Lipidomics
+# Plasma Metabolomics from AG Hell
+mofa3V2G_1 <- readRDS('./data/mofa/Hell_mofa_3V2G_10Fac.rds')
+# Plasma Metabolomics from AG Hopf
+mofa3V2G_2 <- readRDS('./data/mofa/Hopf_mofa_3V2G_10Fac.rds')
+
+# 5V2G: Plasma Proteomics, Metabolomics, Lipidomics, Tissue Proteomics
+mofa5V2G_1 <- readRDS('./data/mofa/Hell_mofa_5V2G_10Fac.rds')
+mofa5V2G_2 <- readRDS('./data/mofa/Hopf_mofa_5V2G_10Fac.rds')
+
+# 4V2G: Plasma Proteomics, Metabolomics, Lipidomics, Tissue Proteomics (Tumor)
+mofa4V2G_Tumor_1 <- readRDS('./data/mofa/Hell_mofa_4V2G-NTP_10Fac.rds')
+mofa4V2G_Tumor_2 <- readRDS('./data/mofa/Hopf_mofa_4V2G-NTP_10Fac.rds')
+
+# 4V2G: Plasma Proteomics, Metabolomics, Lipidomics, Tissue Proteomics (Normal)
+mofa4V2G_Normal_1 <- readRDS('./data/mofa/Hell_mofa_4V2G-TTP_10Fac.rds')
+mofa4V2G_Normal_2 <- readRDS('./data/mofa/Hopf_mofa_4V2G-TTP_10Fac.rds')
+```
+
+Display p-values from t-test results of Recurrence-related factors, where Patient
+'H03Y07RT' is excluded
+```{r}
+# Prepare tables containing promising and highly correlated factors learned from
+# different models
+# 3V2G: PP, PM, PL
+sigFac3V2G_1 <- MOFA2::get_factors(mofa3V2G_1)[['Baseline Plasma']] %>%
+  tibble::as_tibble(rownames = 'sample') %>%
+  dplyr::select(sample, Factor2) %>%
+  dplyr::filter(sample != 'H03Y07RT_P_B') %>%
+  dplyr::rename(Hell_3V_Factor2 = Factor2)
+sigFac3V2G_2 <- MOFA2::get_factors(mofa3V2G_2)[['Baseline Plasma']] %>%
+  tibble::as_tibble(rownames = 'sample') %>%
+  dplyr::select(sample, Factor6) %>%
+  dplyr::filter(sample != 'H03Y07RT_P_B') %>%
+  dplyr::rename(Hopf_3V_Factor6 = Factor6)
+
+# 5V2G: PP, PM, PL, TP (Both Tumor and Normal)
+sigFac5V2G_1 <- MOFA2::get_factors(mofa5V2G_1)[['Baseline Group']] %>%
+  tibble::as_tibble(rownames = 'sample') %>%
+  dplyr::select(sample, Factor1) %>%
+  dplyr::filter(sample != 'H03Y07RT_P_B') %>%
+  dplyr::rename(Hell_5V_Factor1 = Factor1)
+sigFac5V2G_2 <- MOFA2::get_factors(mofa5V2G_2)[['Baseline Group']] %>%
+  tibble::as_tibble(rownames = 'sample') %>%
+  dplyr::select(sample, Factor10) %>%
+  dplyr::filter(sample != 'H03Y07RT_P_B') %>%
+  dplyr::rename(Hopf_5V_Factor10 = Factor10)
+
+# 4V2G: PP, PM, PL, TP (Only Tumor)
+sigFac4V2G_Tumor_1 <- MOFA2::get_factors(mofa4V2G_Tumor_1)[['Baseline Group']] %>%
+  tibble::as_tibble(rownames = 'sample') %>%
+  dplyr::select(sample, Factor1) %>%
+  dplyr::filter(sample != 'H03Y07RT_P_B') %>%
+  dplyr::rename(Hell_4V_Tumor_Factor1 = Factor1)
+sigFac4V2G_Tumor_2 <- MOFA2::get_factors(mofa4V2G_Tumor_2)[['Baseline Group']] %>%
+  tibble::as_tibble(rownames = 'sample') %>%
+  dplyr::select(sample, Factor9) %>%
+  dplyr::filter(sample != 'H03Y07RT_P_B') %>%
+  dplyr::rename(Hopf_4V_Tumor_Factor9 = Factor9)
+
+# 4V2G: PP, PM, PL, TP (Only Normal)
+sigFac4V2G_Normal_1 <- MOFA2::get_factors(mofa4V2G_Normal_1)[['Baseline Group']] %>%
+  tibble::as_tibble(rownames = 'sample') %>%
+  dplyr::select(sample, Factor2) %>%
+  dplyr::filter(sample != 'H03Y07RT_P_B') %>%
+  dplyr::rename(Hell_4V_Normal_Factor2 = Factor2)
+sigFac4V2G_Normal_2 <- MOFA2::get_factors(mofa4V2G_Normal_2)[['Baseline Group']] %>%
+  tibble::as_tibble(rownames = 'sample') %>%
+  dplyr::select(sample, Factor9) %>%
+  dplyr::filter(sample != 'H03Y07RT_P_B') %>%
+  dplyr::rename(Hopf_4V_Normal_Factor9 = Factor9)
+
+# Combine all information
+tabList <- list(sigFac3V2G_1, sigFac3V2G_2, sigFac5V2G_1, sigFac5V2G_2,
+                sigFac4V2G_Tumor_1, sigFac4V2G_Tumor_2,
+                sigFac4V2G_Normal_1, sigFac4V2G_Normal_2)
+combinedTab <- dplyr::left_join(tabList[[1]], tabList[[2]], by = 'sample')
+for (i in 3:length(tabList)) {
+  combinedTab <- dplyr::left_join(combinedTab, tabList[[i]], by = 'sample')
+}
+
+# Prepare table containing sample metadata
+metaTab <- MOFA2::samples_metadata(mofa3V2G_1) %>%
+  dplyr::filter(group == 'Baseline Plasma', sample != 'H03Y07RT_P_B') %>%
+  dplyr::select(sample, Recurrence)
+
+# Systematically perform t-tests
+tRes <- tTestIter(combinedTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::select(Var1, pVal) %>%
+  dplyr::rename(Factor = Var1) %>%
+  dplyr::mutate(Factor = factor(Factor, levels = Factor))
+
+# Visualize t-test results
+ggplot(tRes, aes(x=Factor, y=pVal)) +
+  geom_bar(stat='identity') +
+  geom_text(aes(label=round(pVal, 5)), vjust = -1, size=3.5) +
+  labs(x = 'Recurrence-related factor', y = 'P-value') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Hopf_3V_Factor6 -> PM (Hopf) + PL + PP\
+Hopf_4V_Normal_Factor9 -> PM (Hopf) + PL + PP + NTP\
+Hopf_5V_Factor10 -> PM (Hopf) + PL + PP + TTP + NTP\
+Hell_4V_Normal_Factor2 -> PM (Hell) + PL + PP + NTP\
+Hell_3V_Factor2 -> PM (Hell) + PL + PP\
+Hopf_4V_Tumor_Factor9 -> PM (Hopf) + PL + PP + TTP\
+Hell_4V_Tumor_Factor1 -> PM (Hell) + PL + PP + TTP\
+Hell_5V_Factor1 -> PM (Hell) + PL + PP + TTP + NTP\
+<br/>
+
+Visualize top best Recurrence-related factors
+```{r}
+tab4Boxplot <- dplyr::left_join(combinedTab, metaTab, by = 'sample')
+
+# 3V2G: PP, PM (Hopf), PL
+ggplot(tab4Boxplot, aes(x=Recurrence, y=Hopf_3V_Factor6,
+                        col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  labs(title = 'PM (Hopf) + PL + PP') +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 5,
+                             method.args = list(var.equal = T),
+                             show.legend = F)
+
+# 4V2G: PP, PM (Hopf), PL, TP (Only Normal)
+ggplot(tab4Boxplot, aes(x=Recurrence, y=Hopf_4V_Normal_Factor9,
+                        col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  labs(title = 'PM (Hopf) + PL + PP + NTP') +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 5,
+                             method.args = list(var.equal = T),
+                             show.legend = F)
+
+# 5V2G: PP, PM (Hopf), PL, TP (Both Tumor and Normal)
+ggplot(tab4Boxplot, aes(x=Recurrence, y=Hopf_5V_Factor10,
+                        col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  labs(title = 'PM (Hopf) + PL + PP + TTP + NTP') +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 5,
+                             method.args = list(var.equal = T),
+                             show.legend = F)
+
+# 4V2G: PP, PM (Hell), PL, TP (Only Normal)
+ggplot(tab4Boxplot, aes(x=Recurrence, y=Hell_4V_Normal_Factor2,
+                        col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  labs(title = 'PM (Hell) + PL + PP + NTP') +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 5,
+                             method.args = list(var.equal = T),
+                             show.legend = F)
+
+# 3V2G: PP, PM (Hell), PL
+ggplot(tab4Boxplot, aes(x=Recurrence, y=Hell_3V_Factor2,
+                        col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  labs(title = 'PM (Hell) + PL + PP') +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 5,
+                             method.args = list(var.equal = T),
+                             show.legend = F)
+```
+
+
+
+
+# Using both PM (Hell & Hopf)
+We found that correlations between Targeted and Untargeted metabolite features are
+overall not that high (all below 0.9). It might be that these two datasets provide
+different information that can be complementary to each other as Targeted method
+captured a lot of e.g., DG (Diglyceride) or TG (Triglyceride) derivatives. To this
+end, we trained models with omics data including both Targeted and Untargeted Plasma
+Metabolomics. The idea remains same that, firstly, only and all Plasma samples are
+used and then Tissue Proteomics is added to see changes in model performance.\
+(It might also be that Untargeted method is still immature, which introduces technical
+or biological noise, leading to inaccurate data?)
+
+## PM + PL + PP
+**Targeted and Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject4V2G <- readRDS('./data/mofa/mofa_4V2G_Both_10Fac.rds')
+
+# Redefine model setup
+# proPlasmaTab4V2G <- proPlasmaTab %>%
+#   dplyr::mutate(view = 'Plasma Proteomics',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'))
+#
+# metaPlasmaTab4V2G_Hell <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(view = 'Plasma Metabolomics (AG Hell)',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'))
+#
+# metaPlasmaTab4V2G_Hopf <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(view = 'Plasma Metabolomics (AG Hopf)',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')))
+#
+# lipPlasmaTab4V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(view = 'Plasma Lipidomics',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')))
+
+# Create MOFA object
+# Concatenate long data
+# summTab4V2G <- dplyr::bind_rows(proPlasmaTab4V2G,
+#                                 metaPlasmaTab4V2G_Hell,
+#                                 metaPlasmaTab4V2G_Hopf,
+#                                 lipPlasmaTab4V2G)
+# mofaObject4V2G <- MOFA2::create_mofa_from_df(summTab4V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+MOFA2::plot_data_overview(mofaObject4V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject4V2G)
+# model_opts <- get_default_model_options(mofaObject4V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject4V2G)
+# train_opts$convergence_mode <- 'slow'
+#
+# mofaObject4V2G <- prepare_mofa(mofaObject4V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject4V2G <- run_mofa(mofaObject4V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/mofa_4V2G_Both_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject4V2G, paste0(project_path, 'data/mofa_model/mofa_4V2G_Both_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject4V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject4V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(Condition == 'Baseline') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  # dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+
+# Factor 9 is highly correlated with 6V2G(Both)_Factor9 (next model displayed) and
+# Factor 1 is highly correlated with e.g., 3V2G_Hell_Factor2 (first model above).
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject4V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject4V2G)) %>%
+  dplyr::filter(Condition != 'Baseline') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+MOFA2::plot_factor(mofaObject4V2G, factors = 9, color_by = 'Recurrence',
+                   add_violin = T, dodge = T) +
+  # geom_label_repel(aes(label=sample), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+
+# MOFA2::plot_factor(mofaObject4V2G, factors = 1, color_by = 'Recurrence',
+#                    add_violin = T, dodge = T) +
+#   # geom_label_repel(aes(label=sample), size = 2, show.legend = F) +
+#   ggpubr::stat_compare_means(method = 't.test', paired = F,
+#                              method.args = list(var.equal = T),
+#                              size = 6, hjust = 0.65) +
+#   theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+#         axis.text.x = element_text(size = 16),
+#         axis.title.y = element_text(size = 16),
+#         legend.text = element_text(size = 14),
+#         legend.title = element_text(size = 12))
+```
+
+## PM + PL + PP + TTP + NTP
+**Targeted and Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics**
+**+ Tumor Tissue Proteomics + Normal Tissue Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject6V2G <- readRDS('./data/mofa/mofa_6V2G_Both_10Fac.rds')
+
+# Redefine model setup
+# proPlasmaTab6V2G <- proPlasmaTab %>%
+#   dplyr::mutate(view = 'Plasma Proteomics',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'))
+#
+# metaPlasmaTab6V2G_Hell <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(view = 'Plasma Metabolomics (AG Hell)',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'))
+#
+# metaPlasmaTab6V2G_Hopf <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(view = 'Plasma Metabolomics (AG Hopf)',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')))
+#
+# lipPlasmaTab6V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(view = 'Plasma Lipidomics',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')))
+#
+# proTissueTab6V2G <- proTissueTab %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = dplyr::case_when(
+#                   Condition == 'Tumor' ~ paste('Tumor Tissue', view),
+#                   Condition == 'Normal' ~ paste('Normal Tissue', view)),
+#                 sample = stringr::str_replace(sample, '_TG|_NG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab6V2G <- dplyr::bind_rows(proPlasmaTab6V2G,
+#                                 metaPlasmaTab6V2G_Hell,
+#                                 metaPlasmaTab6V2G_Hopf,
+#                                 lipPlasmaTab6V2G,
+#                                 proTissueTab6V2G)
+# mofaObject6V2G <- MOFA2::create_mofa_from_df(summTab6V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+MOFA2::plot_data_overview(mofaObject6V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject6V2G)
+# model_opts <- get_default_model_options(mofaObject6V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject6V2G)
+# train_opts$convergence_mode <- 'slow'
+#
+# mofaObject6V2G <- prepare_mofa(mofaObject6V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject6V2G <- run_mofa(mofaObject6V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/mofa_6V2G_Both_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject6V2G, paste0(project_path, 'data/mofa_model/mofa_6V2G_Both_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject6V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject6V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Factor 7,8,9 are highly correlated with all features in specific individual data
+# modalities, which indicates these factors very probably capture technical noise,
+# since, theoretically, biological variation should be co-observed in different data
+# modalities.
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject6V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject6V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  # dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject6V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject6V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+
+```{r include = F, eval = F}
+# View factor values for samples
+# Baseline
+MOFA2::plot_factor(mofaObject6V2G, factors = 1, color_by = 'Recurrence',
+                   add_violin = T, dodge = T) +
+  # geom_label_repel(aes(label=sample), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+```
+
+## PM + PL + PP + TTP
+**Targeted and Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics**
+**+ Tumor Tissue Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject5V2G <- readRDS('./data/mofa/mofa_5V2G_Both-NTP_10Fac.rds')
+
+# Redefine model setup
+# proPlasmaTab5V2G <- proPlasmaTab %>%
+#   dplyr::mutate(view = 'Plasma Proteomics',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'))
+#
+# metaPlasmaTab5V2G_Hell <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(view = 'Plasma Metabolomics (AG Hell)',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'))
+#
+# metaPlasmaTab5V2G_Hopf <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(view = 'Plasma Metabolomics (AG Hopf)',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')))
+#
+# lipPlasmaTab5V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(view = 'Plasma Lipidomics',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')))
+#
+# proTissueTab5V2G <- proTissueTab %>%
+#   dplyr::filter(Condition == 'Tumor') %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = paste('Tumor Tissue', view),
+#                 sample = stringr::str_replace(sample, '_TG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab5V2G <- dplyr::bind_rows(proPlasmaTab5V2G,
+#                                 metaPlasmaTab5V2G_Hell,
+#                                 metaPlasmaTab5V2G_Hopf,
+#                                 lipPlasmaTab5V2G,
+#                                 proTissueTab5V2G)
+# mofaObject5V2G <- MOFA2::create_mofa_from_df(summTab5V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+MOFA2::plot_data_overview(mofaObject5V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject5V2G)
+# model_opts <- get_default_model_options(mofaObject5V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject5V2G)
+# train_opts$convergence_mode <- 'slow'
+#
+# mofaObject5V2G <- prepare_mofa(mofaObject5V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject5V2G <- run_mofa(mofaObject5V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/mofa_5V2G_Both-NTP_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject5V2G, paste0(project_path, 'data/mofa_model/mofa_5V2G_Both-NTP_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject5V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject5V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject5V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject5V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject5V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject5V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+MOFA2::plot_factor(mofaObject5V2G, factors = 1, color_by = 'Recurrence',
+                   add_violin = T, dodge = T) +
+  # geom_label_repel(aes(label=sample), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+```
+
+
+## PM + PL + PP + NTP
+**Targeted and Untargeted Plasma Metabolomics + Plasma Lipidomics + Plasma Proteomics**
+**+ Normal Tissue Proteomics**\
+<br/>
+
+Visualize model setup
+```{r}
+# Load trained MOFA object
+mofaObject5V2G <- readRDS('./data/mofa/mofa_5V2G_Both-TTP_10Fac.rds')
+
+# Redefine model setup
+# proPlasmaTab5V2G <- proPlasmaTab %>%
+#   dplyr::mutate(view = 'Plasma Proteomics',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'))
+#
+# metaPlasmaTab5V2G_Hell <- metaPlasmaTab_Hell %>%
+#   dplyr::mutate(view = 'Plasma Metabolomics (AG Hell)',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'))
+#
+# metaPlasmaTab5V2G_Hopf <- metaPlasmaTab_Hopf %>%
+#   dplyr::mutate(view = 'Plasma Metabolomics (AG Hopf)',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')))
+#
+# lipPlasmaTab5V2G <- lipPlasmaTab %>%
+#   dplyr::mutate(view = 'Plasma Lipidomics',
+#                 group = dplyr::case_when(
+#                   Condition == 'Baseline' ~ 'Baseline Group',
+#                   Condition != 'Baseline' ~ 'Follow-up Group'),
+#                 sample = dplyr::case_when(
+#                   Condition == 'Baseline' ~ paste0(Patient, '_P_B'),
+#                   Condition != 'Baseline' ~ paste0(Patient, '_P_R')))
+#
+# proTissueTab5V2G <- proTissueTab %>%
+#   dplyr::filter(Condition == 'Normal') %>%
+#   dplyr::mutate(group = 'Baseline Group',
+#                 view = paste('Normal Tissue', view),
+#                 sample = stringr::str_replace(sample, '_NG', '_P_B')) %>%
+#   dplyr::select(-Condition)
+
+# Create MOFA object
+# Concatenate long data
+# summTab5V2G <- dplyr::bind_rows(proPlasmaTab5V2G,
+#                                 metaPlasmaTab5V2G_Hell,
+#                                 metaPlasmaTab5V2G_Hopf,
+#                                 lipPlasmaTab5V2G,
+#                                 proTissueTab5V2G)
+# mofaObject5V2G <- MOFA2::create_mofa_from_df(summTab5V2G, extract_metadata = T)
+
+# Overview data in MOFA object
+MOFA2::plot_data_overview(mofaObject5V2G)
+
+
+# Train MOFA model
+# data_opts <- get_default_data_options(mofaObject5V2G)
+# model_opts <- get_default_model_options(mofaObject5V2G)
+# model_opts$num_factors <- 10
+# train_opts <- get_default_training_options(mofaObject5V2G)
+# train_opts$convergence_mode <- 'slow'
+# train_opts$maxiter <- 1200
+#
+# mofaObject5V2G <- prepare_mofa(mofaObject5V2G,
+#                                data_options = data_opts,
+#                                model_options = model_opts,
+#                                training_options = train_opts)
+#
+# mofaObject5V2G <- run_mofa(mofaObject5V2G,
+#                            outfile = paste0(project_path,
+#                                             'data/mofa_model/mofa_5V2G_Both-TTP_10Fac.hdf5'),
+#                            use_basilisk = F)
+# saveRDS(mofaObject5V2G, paste0(project_path, 'data/mofa_model/mofa_5V2G_Both-TTP_10Fac.rds'))
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject5V2G)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject5V2G, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Display significant associations between learned factors (Var1) and cancer recurrence (Var2)\
+**Baseline group**
+```{r}
+# Conduct association test between learnt factors and cancer recurrence
+# Group: Baseline
+facTab <- tibble::as_tibble(get_factors(mofaObject5V2G)[['Baseline Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject5V2G)) %>%
+  dplyr::filter(group == 'Baseline Group') %>%
+  dplyr::select(sample, Recurrence)
+tBaseRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  # dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tBaseRes
+
+# Factor 1 is correlated with 4V2G(Both), 6V2G(Both), 5V2G(Both, Tumor) Factor 1
+# which is correlated with 3V2G_Hell Factor 2, 4V2G(Hopf, Tumor) Factor 9, and so on.
+```
+**Follow-up group**
+```{r}
+# Group: Follow-up
+facTab <- tibble::as_tibble(get_factors(mofaObject5V2G)[['Follow-up Group']],
+                            rownames = 'sample')
+metaTab <- tibble::as_tibble(samples_metadata(mofaObject5V2G)) %>%
+  dplyr::filter(group == 'Follow-up Group') %>%
+  dplyr::select(sample, Recurrence)
+tFoloRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
+  dplyr::filter(pVal <= 0.05) %>%
+  dplyr::select(-c('Group1', 'Group2', 'Mu1', 'Mu2'))
+tFoloRes
+```
+<br/>
+
+Visualize Recurrence-related factors\
+**Baseline group**
+```{r}
+# View factor values for samples
+# Baseline
+MOFA2::plot_factor(mofaObject5V2G, factors = 9, color_by = 'Recurrence',
+                   add_violin = T, dodge = T) +
+  # geom_label_repel(aes(label=sample), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, hjust = 0.65) +
+  theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+        axis.text.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12))
+
+# MOFA2::plot_factor(mofaObject5V2G, factors = 1, color_by = 'Recurrence',
+#                    add_violin = T, dodge = T) +
+#   # geom_label_repel(aes(label=sample), size = 2, show.legend = F) +
+#   ggpubr::stat_compare_means(method = 't.test', paired = F,
+#                              method.args = list(var.equal = T),
+#                              size = 6, hjust = 0.65) +
+#   theme(strip.text = element_blank(), axis.ticks.x = element_blank(),
+#         axis.text.x = element_text(size = 16),
+#         axis.title.y = element_text(size = 16),
+#         legend.text = element_text(size = 14),
+#         legend.title = element_text(size = 12))
+```
+=> Recurrence-related factors captured by model trained on omics data combinations
+containing both Targeted and Untargeted Plasma Metabolomics do not perform better
+than using either of them in terms of predicting patient cancer recurrences. Model
+trained on PM + PL + PP + TTP cannot even capture good Recurrence-related factor anymore.
