@@ -1,0 +1,218 @@
+---
+title: 'Preprocessing: Method development lung cancer patient cohort'
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+---
+
+<font size='4'> Description: Preprocess Plasma and Tissue DIA Proteomics generated
+by Karim Aljakouch from AG Krijgsveld, simply including data cleansing and data
+normalization (VSN). All needed information of each dataset (2 in total) was then
+stored in SummarizedExperiment objects for further analyses.\
+Q: 12 samples from Patient N02PM0LW, FH49U7TY, and F04ERF3M are missing. Why? </font>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+# knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+```
+
+Load libraries
+```{r library loading, message = FALSE}
+library('readr')
+library('vsn')
+library('SummarizedExperiment')
+library('tidyverse')
+# Load user-defined functions
+source('./code/misc.R')
+```
+
+# Plasma Proteomics
+
+```{r message = F}
+# Load unprocessed data
+proPlasmaTab <- readr::read_tsv('./data/AG_Krijgsveld/20230104_MarcS_Method_Estab_Plasma.pg_matrix.tsv') %>%
+  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %>%
+  tidyr::pivot_longer(cols = -c('Protein.Group', 'Protein.Names', 'Genes'),
+                      names_to = 'Identifier',
+                      values_to = 'Abundance') %>%
+  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, '_HUMAN'),
+                Identifier = stringr::str_remove_all(Identifier, 'D:.*oecf4.*Exploris_|_4\\.raw'))
+
+# Retrieve sample metadata from another datasets
+metadat <- readxl::read_excel('./data/AG_Hell/Thorax cohort_not-normalized_subset plasma.xlsx',
+                              skip = 1) %>%
+  dplyr::select(c(`Sample Identification`, patients_tissue, Individual_ID, Status)) %>%
+  dplyr::filter(!is.na(`Sample Identification`)) %>%
+  dplyr::rename(Sample = 'patients_tissue',
+                Patient = 'Individual_ID',
+                Condition = 'Status',
+                Identifier = 'Sample Identification') %>%
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'),
+                Condition = dplyr::case_when(Condition == 'BASELINE_SURGERY' ~ 'Baseline',
+                                             Condition == 'FOLLOW-UP' ~ 'Follow-up',
+                                             Condition == 'RECURRENCE' ~ 'Recurrence'))
+# Create information on patient cancer recurrences
+recurAnno <- dplyr::filter(metadat, Condition != 'Baseline') %>%
+  dplyr::mutate(Recurrence = dplyr::case_when(Condition == 'Follow-up' ~ 'No',
+                                              Condition == 'Recurrence' ~ 'Yes')) %>%
+  dplyr::select(c(Patient, Recurrence))
+
+# Combine all information into a table
+metadat <- dplyr::left_join(metadat, recurAnno, by = 'Patient')
+proPlasmaTab <- dplyr::left_join(proPlasmaTab, metadat, by = 'Identifier')
+
+# Convert long data to SE object (wide data)
+proPlasma <- df2SummExp(proPlasmaTab, row_id = 'Protein.Group', col_id = 'Sample',
+                        values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
+                        col_anno = c('Condition', 'Patient', 'Recurrence', 'Identifier'))
+```
+
+Display dimensions of data (34 samples and 505 features)
+```{r}
+dim(proPlasma)
+```
+
+Display distribution of original data
+```{r}
+ggplot(proPlasmaTab, aes(x=Sample, y=Abundance)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(y = 'Protein abundance') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Perform VSN and display distribution of normalized data
+```{r}
+# Perform VSN
+exprMat <- as.matrix(SummarizedExperiment::assay(proPlasma))
+fit <- vsnMatrix(exprMat)
+proPlasmaNorm <- proPlasma
+SummarizedExperiment::assay(proPlasmaNorm) <- predict(fit, exprMat)
+
+# Save normalized data
+# saveRDS(proPlasmaNorm, './data/AG_Krijgsveld/proPlasmaNorm_DIA.rds')
+
+# Convert SE object to long data for plotting
+proPlasmaTabNorm <- summExp2df(proPlasmaNorm, assay = 'Abundance',
+                               row_id = 'Protein.Group', col_id = 'Sample')
+
+ggplot(proPlasmaTabNorm, aes(x=Sample, y=Value)) +
+  geom_boxplot() +
+  labs(y = 'Normalized protein abundance') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+
+# Tissue Proteomics
+
+```{r message = F}
+# Load unprocessed data
+proTissueTab <- readr::read_tsv('./data/AG_Krijgsveld/20230104_MarcS_Method_Estab_Tissue.pg_matrix.tsv') %>%
+  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %>%
+  tidyr::pivot_longer(cols = -c('Protein.Group', 'Protein.Names', 'Genes'),
+                      names_to = 'Identifier',
+                      values_to = 'Abundance') %>%
+  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, '_HUMAN'),
+                Identifier = stringr::str_remove_all(Identifier, 'D:.*oecf4.*Exploris_|_4\\.raw'))
+
+# Retrieve sample metadata from another datasets
+metadat <- readxl::read_excel('./data/AG_Hell/Thorax cohort_not-normalized_subset tissue.xlsx',
+                              skip = 1) %>%
+  dplyr::select(c(`Sample Identification`, patients_tissue, Individual_ID, Status)) %>%
+  dplyr::filter(!is.na(`Sample Identification`)) %>%
+  dplyr::rename(Sample = 'patients_tissue',
+                Patient = 'Individual_ID',
+                Condition = 'Status',
+                Identifier = 'Sample Identification') %>%
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'),
+                Condition = dplyr::case_when(Condition == 'Normalgewebe' ~ 'Normal',
+                                             Condition == 'Tumorgewebe' ~ 'Tumor'))
+# Create information on patient cancer recurrences
+recurAnno <- readxl::read_excel('./data/AG_Hell/Thorax cohort_not-normalized_subset plasma.xlsx',
+                                skip = 1) %>%
+  dplyr::select(c(Individual_ID, Status)) %>%
+  dplyr::filter(!is.na(Individual_ID), Status != 'BASELINE_SURGERY') %>%
+  dplyr::mutate(Recurrence = dplyr::case_when(Status == 'FOLLOW-UP' ~ 'No',
+                                              Status == 'RECURRENCE' ~ 'Yes')) %>%
+  dplyr::select(-Status) %>%
+  dplyr::rename(Patient = 'Individual_ID')
+
+# Combine all information into a table
+metadat <- dplyr::left_join(metadat, recurAnno, by = 'Patient')
+proTissueTab <- dplyr::left_join(proTissueTab, metadat, by = 'Identifier')
+
+# Convert long data to SE object (wide data)
+proTissue <- df2SummExp(proTissueTab, row_id = 'Protein.Group', col_id = 'Sample',
+                        values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
+                        col_anno = c('Condition', 'Patient', 'Recurrence', 'Identifier'))
+```
+
+Display dimensions of data (34 samples and 6929 features)
+```{r}
+dim(proTissue)
+```
+
+Display distribution of original data
+```{r}
+ggplot(proTissueTab, aes(x=Sample, y=Abundance)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(y = 'Protein abundance') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Perform VSN and display distribution of normalized data
+```{r}
+# Perform VSN
+exprMat <- as.matrix(SummarizedExperiment::assay(proTissue))
+fit <- vsnMatrix(exprMat)
+proTissueNorm <- proTissue
+SummarizedExperiment::assay(proTissueNorm) <- predict(fit, exprMat)
+
+# Save normalized data
+# saveRDS(proTissueNorm, './data/AG_Krijgsveld/proTissueNorm_DIA.rds')
+
+# Convert SE object to long data for plotting
+proTissueTabNorm <- summExp2df(proTissueNorm, assay = 'Abundance',
+                               row_id = 'Protein.Group', col_id = 'Sample')
+
+ggplot(proTissueTabNorm, aes(x=Sample, y=Value)) +
+  geom_boxplot() +
+  labs(y = 'Normalized protein abundance') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+
+# Protein abundance comparisons
+Plasma vs Tissue:\
+Compare overall protein abundance between Plasma and Tissue samples
+```{r}
+# Load normalized data
+proPlasmaNorm <- readRDS('./data/AG_Krijgsveld/proPlasmaNorm_DIA.rds')
+proTissueNorm <- readRDS('./data/AG_Krijgsveld/proTissueNorm_DIA.rds')
+```
+
+```{r}
+# Plasma Proteomics
+proPlasmaTabNorm <- summExp2df(proPlasmaNorm, assay = 'Abundance',
+                               row_id = 'Protein.Group', col_id = 'Sample') %>%
+  dplyr::select(c('Protein.Group', 'Sample', 'Value')) %>%
+  dplyr::mutate(Sample = paste0('Plasma_', Sample),
+                Sample.Type = 'Plasma')
+# Tissue Proteomics
+proTissueTabNorm <- summExp2df(proTissueNorm, assay = 'Abundance',
+                               row_id = 'Protein.Group', col_id = 'Sample') %>%
+  dplyr::select(c('Protein.Group', 'Sample', 'Value')) %>%
+  dplyr::mutate(Sample = paste0('Tissue_', Sample),
+                Sample.Type = 'Tissue')
+# Concatenate two tables
+proTab <- rbind(proPlasmaTabNorm, proTissueTabNorm)
+
+ggplot(proTab, aes(x=Sample, y=Value, col=Sample.Type)) +
+  geom_boxplot(width = 0.7) +
+  labs(y = 'Protein abundance', col = 'Sample type') +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
