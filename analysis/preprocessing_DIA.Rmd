@@ -23,6 +23,7 @@ Load libraries
 ```{r library loading, message = FALSE}
 library('readr')
 library('vsn')
+library('visdat')
 library('SummarizedExperiment')
 library('tidyverse')
 # Load user-defined functions
@@ -82,6 +83,15 @@ ggplot(proPlasmaTab, aes(x=Sample, y=Abundance)) +
   scale_y_log10() +
   labs(y = 'Protein abundance') +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Display data missingness
+```{r}
+exprMat <- SummarizedExperiment::assay(proPlasma)
+vis_miss(exprMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0),
+        axis.text.y = element_blank())
 ```
 
 Perform VSN and display distribution of normalized data
@@ -162,6 +172,15 @@ ggplot(proTissueTab, aes(x=Sample, y=Abundance)) +
   scale_y_log10() +
   labs(y = 'Protein abundance') +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Display data missingness
+```{r}
+exprMat <- SummarizedExperiment::assay(proTissue)
+vis_miss(exprMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0),
+        axis.text.y = element_blank())
 ```
 
 Perform VSN and display distribution of normalized data

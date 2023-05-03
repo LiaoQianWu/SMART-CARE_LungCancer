@@ -1002,7 +1002,7 @@ pheatmap::pheatmap(datMat[featOrder, smpOrder],
 
 Use probabilistic dropout model to account for missing values and identify differentially
 abundant entity differences that are significantly associated with cancer recurrence.
-Note that features in heatmap are ordered by their t-statistics.
+Note that there is no differentially abundant lipid.
 ```{r}
 # Fit linear probabilistic dropout model to normalized data
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1515,8 +1515,7 @@ pheatmap::pheatmap(datMat[featOrder, smpOrder],
 
 Use probabilistic dropout model to account for missing values and identify differentially
 abundant metabolite difference between Tumor and Normal tissues that are significantly
-associated with cancer recurrence. Note that features in heatmap are ordered by their
-t-statistics.
+associated with cancer recurrence. Note that there is no differentially abundant metabolite.
 ```{r}
 # Fit linear probabilistic dropout model to normalized data
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -2100,8 +2099,7 @@ pheatmap::pheatmap(datMat[featOrder, smpOrder],
 
 Use probabilistic dropout model to account for missing values and identify differentially
 abundant lipid difference between Tumor and Normal tissues that are significantly
-associated with cancer recurrence. Note that features in heatmap are ordered by
-their t-statistics.
+associated with cancer recurrence. Note that there is no differentially abundant lipid.
 ```{r}
 # Fit linear probabilistic dropout model to normalized data
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
