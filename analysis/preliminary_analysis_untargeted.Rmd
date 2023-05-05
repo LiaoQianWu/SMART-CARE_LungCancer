@@ -20,13 +20,14 @@ and non-recurrence patients. </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
-# knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
 ```
 
 Load libraries
 ```{r library loading, message = F}
 library('SummarizedExperiment')
 library('proDA')
+library('limma')
 library('ggrepel')
 library('ggfortify')
 library('openxlsx')
@@ -87,13 +88,22 @@ PC1 explains most variation in data and separates patient samples by time points
 
 ggplot(pcTab, aes(x=PC1, y=PC2, col=TimePoint, shape=Recurrence, group=Patient)) +
   geom_point(size = 4) +
-  labs(x = 'PC1 (27.76%)', y = 'PC2 (13.77%)') +
   geom_line(col = 'grey50', linetype = 'dashed') +
   scale_color_discrete(name = 'Time point',
                        labels = c('Baseline', '2 years later')) +
   theme(axis.title = element_text(size = 16),
         legend.title = element_text(size = 14), legend.text = element_text(size = 12))
-# ggsave(paste0(result_path, 'AG_Hopf/metaPlasma_pca.png'), device = 'png', dpi = 400)
+
+ggplot(pcTab, aes(x=Recurrence, y=PC2, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 6,
+                             method.args = list(var.equal = T), hjust = 0.65,
+                             show.legend = F) +
+  theme(axis.title = element_text(size = 16),
+        legend.title = element_text(size = 14), legend.text = element_text(size = 12))
 ```
 
 Display variance explained by each PC
@@ -202,7 +212,7 @@ significance test.
 <br/>
 <br/>
 
-Visualize data of top 6 significant features
+Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
 topSigFeats <- proDAMetaBaseRes$name[1:6]
@@ -223,70 +233,11 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
                              show.legend = F)
 ```
 
-Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+There is no significant association between PCs (Var1) and cancer recurrence (Var2).
 ```{r}
 # Display PCs that can significantly separate recurrence and non-recurrence
 # patients
 tPCASigRes
-
-# Display proportion of total variance captured by all PCs explained by each PC
-varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
-PC <- paste0('PC', seq(length(varExplained)))
-varTab <- data.frame(PC = factor(PC, levels = PC),
-                     Var_explained = varExplained)
-ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
-  geom_col() +
-  labs(x = '', y = 'Variance explained (%)',
-       title = 'Baseline plasma metabolomics')
-```
-
-PC5 potentially separates recurrence and non-recurrence patients.
-```{r}
-# ggplot2::autoplot(pcaRes, x = 1, y = 5)
-
-# Visualize PCs
-ggplot(pcTab, aes(x=Recurrence, y=PC5, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  labs(y = 'PC5 (5.4%)', title = 'Baseline plasma metabolomics') +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 6,
-                             method.args = list(var.equal = T), hjust = 0.65,
-                             show.legend = F) +
-  theme(axis.title = element_text(size = 16),
-        legend.title = element_text(size = 14), legend.text = element_text(size = 12))
-# ggsave(paste0(result_path, 'AG_Hopf/metaPlasma_baseline_pca_pc5.png'), device = 'png', dpi = 400)
-```
-
-Plot molecular signatures captured by PC5 in input data. We took a look at top
-20 features with highest loadings and observed metabolite levels of these top
-features through heatmap. Note that features in heatmap are ordered by their loadings.
-There is no single feature that can decently hint if patients will suffer cancer
-recurrence or not, which means each of these top features contributes a bit to
-explaining variation between recurrence and non-recurrence patients.
-```{r}
-# Plot molecular signatures in input data
-# Extract top features with highest loadings
-topFeats <- pcTopFeatTab$PC5$Feature[1:20]
-# Order features by loadings
-topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
-a <- pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
-                   annotation_col = smpRecur,
-                   color = colorRampPalette(c('navy', 'white', 'red'))(100),
-                   cluster_rows = F, cluster_cols = F,
-                   scale = 'row', main = 'Baseline plasma metabolomics - PC5')
-# ggsave(paste0(result_path, 'AG_Hopf/metaPlasma_baseline_heatmap_pc5.png'), a, device = 'png', dpi = 400)
-```
-
-Display top features that build the PC5
-```{r}
-# Display top features with highest loadings of PC of interest
-pcTopFeats <- dplyr::left_join(pcTopFeatTab$PC5, featInfo, by = 'Feature')
-pcTopFeats
-
-# Store table in list for creating Excel file
-sigFeatSheet <- append(sigFeatSheet, list(BasePlasmaMetab_PC5 = pcTopFeats))
 ```
 
 ## Follow-up samples
@@ -375,10 +326,10 @@ cat('The following features', paste0('(n =', length(ovl), ')'),
     'are tested significant by both methods:\n', ovl)
 ```
 
-Visualize data of top 6 significant features
+Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDAMetaFoloRes$name[2:7]
+topSigFeats <- proDAMetaFoloRes$name[1:6]
 topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
@@ -413,10 +364,10 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
        title = 'Follow-up plasma metabolomics')
 ```
 
-PC4 potentially separates recurrence and non-recurrence patients.
+PC12 potentially separates recurrence and non-recurrence patients.
 ```{r}
 # Visualize PCs
-ggplot(pcTab, aes(x=Recurrence, y=PC4, col=Recurrence, fill=Recurrence)) +
+ggplot(pcTab, aes(x=Recurrence, y=PC12, col=Recurrence, fill=Recurrence)) +
   geom_boxplot(alpha = 0.5, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   labs(title = 'Follow-up plasma metabolomics') +
@@ -427,27 +378,33 @@ ggplot(pcTab, aes(x=Recurrence, y=PC4, col=Recurrence, fill=Recurrence)) +
                              show.legend = F)
 ```
 
-Plot molecular signatures captured by PC4 in input data. We took a look at top
+Plot molecular signatures captured by PC12 in input data. We took a look at top
 20 features with highest loadings and observed metabolite levels of these top
 features through heatmap. Note that features in heatmap are ordered by their loadings.
+There is no single feature that can decently hint if patients will suffer cancer
+recurrence or not, which means each of these top features contributes a bit to
+explaining variation between recurrence and non-recurrence patients.
 ```{r}
 # Plot molecular signatures in input data
 # Extract top features with highest loadings
-topFeats <- pcTopFeatTab$PC4$Feature[1:20]
+topFeats <- pcTopFeatTab$PC12$Feature[1:20]
 # Order features by loadings
 topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
 pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
-                   scale = 'row', main = 'Follow-up plasma metabolomics - PC4')
+                   scale = 'row', main = 'Follow-up plasma metabolomics - PC12')
+```
 
+Display top features that build the PC12
+```{r}
 # Display top features with highest loadings of PC of interest
-pcTopFeats <- dplyr::left_join(pcTopFeatTab$PC4, featInfo, by = 'Feature')
+pcTopFeats <- dplyr::left_join(pcTopFeatTab$PC12, featInfo, by = 'Feature')
 pcTopFeats
 
 # Store table in list for creating Excel file
-sigFeatSheet <- append(sigFeatSheet, list(FolloPlasmaMetab_PC4 = pcTopFeats))
+sigFeatSheet <- append(sigFeatSheet, list(FolloPlasmaMetab_PC12 = pcTopFeats))
 ```
 
 ## Changes in time course
@@ -487,6 +444,9 @@ datMat <- metaPlasmaDiffRes$data
 smpAnno <- metaPlasmaDiffRes$smpMetadata
 tFeatSigRes <- metaPlasmaDiffRes$tFeatSigRes
 tPCASigRes <- metaPlasmaDiffRes$tPCASigRes
+pcaRes <- metaPlasmaDiffRes$pcaRes
+pcTab <- metaPlasmaDiffRes$pcTab
+pcTopFeatTab <- metaPlasmaDiffRes$pcTopFeatTab
 
 # Display features that can significantly separate recurrence and non-recurrence
 # patients
@@ -553,7 +513,7 @@ cat('The following features', paste0('(n =', length(ovl), ')'),
     'are tested significant by both methods:\n', ovl)
 ```
 
-Visualize data of top 6 significant features
+Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
 topSigFeats <- proDAMetaPlasmaDiffRes$name[1:6]
@@ -579,6 +539,56 @@ Display significant associations between PCs (Var1) and cancer recurrence (Var2)
 # Display PCs that can significantly separate recurrence and non-recurrence
 # patients
 tPCASigRes
+
+# Display proportion of total variance captured by all PCs explained by each PC
+varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
+PC <- paste0('PC', seq(length(varExplained)))
+varTab <- data.frame(PC = factor(PC, levels = PC),
+                     Var_explained = varExplained)
+ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
+  geom_col() +
+  labs(x = '', y = 'Variance explained (%)',
+       title = 'Differential plasma metabolomics')
+```
+
+PC12 potentially separates recurrence and non-recurrence patients.
+```{r}
+# Visualize PCs
+ggplot(pcTab, aes(x=Recurrence, y=PC12, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  labs(title = 'Differential plasma metabolomics') +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 5,
+                             method.args = list(var.equal = T),
+                             show.legend = F)
+```
+
+Plot molecular signatures captured by PC12 in input data. We took a look at top
+20 features with highest loadings and observed metabolite levels of these top
+features through heatmap. Note that features in heatmap are ordered by their loadings.
+```{r}
+# Plot molecular signatures in input data
+# Extract top features with highest loadings
+topFeats <- pcTopFeatTab$PC12$Feature[1:20]
+# Order features by loadings
+topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
+pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
+                   annotation_col = smpRecur,
+                   color = colorRampPalette(c('navy', 'white', 'red'))(100),
+                   cluster_rows = F, cluster_cols = F,
+                   scale = 'row', main = 'Differential plasma metabolomics - PC12')
+```
+
+Display top features that build the PC12
+```{r}
+# Display top features with highest loadings of PC of interest
+pcTopFeats <- dplyr::left_join(pcTopFeatTab$PC12, featInfo, by = 'Feature')
+pcTopFeats
+
+# Store table in list for creating Excel file
+sigFeatSheet <- append(sigFeatSheet, list(DiffPlasmaMetab_PC12 = pcTopFeats))
 ```
 
 
@@ -626,7 +636,7 @@ recurrence and non-recurrence patient groups or baseline and follow-up sample gr
 tPCASigRes
 ```
 
-PC1 explains most variation in data and separates patient samples by time point.
+PC1 and PC2 explain most variation in data and separate patient samples by time point.
 ```{r}
 ggplot(pcTab, aes(x=PC1, y=PC2, col=TimePoint, shape=Recurrence, group=Patient)) +
   geom_point(size = 3) +
@@ -734,7 +744,7 @@ cat('The following features', paste0('(n =', length(ovl), ')'),
     'are tested significant by both methods:\n', ovl)
 ```
 
-Visualize data of top 6 significant features
+Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
 topSigFeats <- proDALipBaseRes$name[1:6]
@@ -755,62 +765,11 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
                              show.legend = F)
 ```
 
-Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+There is no significant association between PCs (Var1) and cancer recurrence (Var2).
 ```{r}
 # Display PCs that can significantly separate recurrence and non-recurrence
 # patients
 tPCASigRes
-
-# Display proportion of total variance captured by all PCs explained by each PC
-varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
-PC <- paste0('PC', seq(length(varExplained)))
-varTab <- data.frame(PC = factor(PC, levels = PC),
-                     Var_explained = varExplained)
-ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
-  geom_col() +
-  labs(x = '', y = 'Variance explained (%)',
-       title = 'Baseline plasma lipidomics')
-```
-
-PC18 potentially separates recurrence and non-recurrence patients.
-```{r}
-# Visualize PCs
-ggplot(pcTab, aes(x=Recurrence, y=PC18, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  # geom_text_repel(aes(label=Sample), size = 2, show.legend = F) +
-  labs(title = 'Baseline plasma lipidomics') +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 5,
-                             method.args = list(var.equal = T),
-                             show.legend = F)
-```
-
-Plot molecular signatures captured by PC18 in input data. We took a look at top
-20 features with highest loadings and observed lipid levels of these top features
-through heatmap. Note that features in heatmap are ordered by their loadings.
-```{r}
-# Plot molecular signatures in input data
-# Extract top features with highest loadings
-topFeats <- pcTopFeatTab$PC18$Feature[1:20]
-# Order features by loadings
-topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
-pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
-                   annotation_col = smpRecur,
-                   color = colorRampPalette(c('navy', 'white', 'red'))(100),
-                   cluster_rows = F, cluster_cols = F,
-                   scale = 'row', main = 'Baseline plasma lipidomics - PC18')
-```
-
-Display top features that build the PC18
-```{r}
-# Display top features with highest loadings of PC of interest
-pcTopFeats <- dplyr::left_join(pcTopFeatTab$PC18, featInfo, by = 'Feature')
-pcTopFeats
-
-# Store table in list for creating Excel file
-sigFeatSheet <- append(sigFeatSheet, list(BasePlasmaLipid_PC18 = pcTopFeats))
 ```
 
 ## Follow-up samples
@@ -897,7 +856,7 @@ cat('The following features', paste0('(n =', length(ovl), ')'),
     'are tested significant by both methods:\n', ovl)
 ```
 
-Visualize data of top 6 significant features
+Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
 topSigFeats <- proDALipFoloRes$name[1:6]
@@ -918,21 +877,11 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
                              show.legend = F)
 ```
 
-Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+There is no significant association between PCs (Var1) and cancer recurrence (Var2).
 ```{r}
 # Display PCs that can significantly separate recurrence and non-recurrence
 # patients
 tPCASigRes
-
-# Display proportion of total variance captured by all PCs explained by each PC
-varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
-PC <- paste0('PC', seq(length(varExplained)))
-varTab <- data.frame(PC = factor(PC, levels = PC),
-                     Var_explained = varExplained)
-ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
-  geom_col() +
-  labs(x = '', y = 'Variance explained (%)',
-       title = 'Follow-up plasma lipidomics')
 ```
 
 ## Changes in time course
@@ -1035,6 +984,27 @@ cat('The following features', paste0('(n =', length(ovl), ')'),
 proDALipPlasmaDiffRes <- dplyr::filter(proDALipPlasmaDiffRes, pval < 0.05)
 ```
 
+Visualize data of top 6 significant features based on regular t-test result
+```{r}
+# Visualize data of top 6 significant features
+topSigFeats <- tFeatSigRes$Var1[1:6]
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+  tidyr::pivot_longer(cols = -'Feature',
+                      names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(smpAnno, by = 'Sample')
+
+ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Feature), scales = 'free') +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F)
+```
+
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
 ```{r}
 # Display PCs that can significantly separate recurrence and non-recurrence
@@ -1066,7 +1036,7 @@ ggplot(pcTab, aes(x=Recurrence, y=PC18, col=Recurrence, fill=Recurrence)) +
                              show.legend = F)
 ```
 
-Plot molecular signatures captured by PC4 in input data. We took a look at top
+Plot molecular signatures captured by PC18 in input data. We took a look at top
 20 features with highest loadings and observed lipid levels of these top features
 through heatmap. Note that features in heatmap are ordered by their loadings.
 ```{r}
@@ -1131,7 +1101,7 @@ ggplot(pcTab, aes(x=PC1, y=PC2, col=Condition, shape=Recurrence, group=Patient))
   theme(axis.title = element_text(size = 16),
         legend.title = element_text(size = 14), legend.text = element_text(size = 12))
 
-ggplot(pcTab, aes(x=Recurrence, y=PC10, col=Recurrence, fill=Recurrence)) +
+ggplot(pcTab, aes(x=Recurrence, y=PC9, col=Recurrence, fill=Recurrence)) +
   geom_boxplot(alpha = 0.5, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
@@ -1245,10 +1215,10 @@ cat('The following features', paste0('(n =', length(ovl), ')'),
     'are tested significant by both methods:\n', ovl)
 ```
 
-Visualize data of top 6 significant features
+Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDAMetaTumorRes$name[2:7]
+topSigFeats <- proDAMetaTumorRes$name[1:6]
 topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
@@ -1285,10 +1255,10 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
        title = 'Tumor tissue metabolomics')
 ```
 
-PC6 potentially separates recurrence and non-recurrence patients.
+PC5 potentially separates recurrence and non-recurrence patients.
 ```{r}
 # Visualize PCs
-ggplot(pcTab, aes(x=Recurrence, y=PC6, col=Recurrence, fill=Recurrence)) +
+ggplot(pcTab, aes(x=Recurrence, y=PC5, col=Recurrence, fill=Recurrence)) +
   geom_boxplot(alpha = 0.5, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   # labs(title = 'Tumor tissue metabolomics') +
@@ -1303,30 +1273,33 @@ ggplot(pcTab, aes(x=Recurrence, y=PC6, col=Recurrence, fill=Recurrence)) +
 #        height = 8, width = 10)
 ```
 
-Plot molecular signatures captured by PC6 in input data. We took a look at top
+Plot molecular signatures captured by PC5 in input data. We took a look at top
 20 features with highest loadings and observed metabolite levels of these top
 features through heatmap. Note that features in heatmap are ordered by their loadings.
+There is no single feature that can decently hint if patients will suffer cancer
+recurrence or not, which means each of these top features contributes a bit to
+explaining variation between recurrence and non-recurrence patients.
 ```{r}
 # Plot molecular signatures in input data
 # Extract top features with highest loadings
-topFeats <- pcTopFeatTab$PC6$Feature[1:20]
+topFeats <- pcTopFeatTab$PC5$Feature[1:20]
 # Order features by loadings
 topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
 pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
-                   scale = 'row', main = 'Tumor tissue metabolomics - PC6')
+                   scale = 'row', main = 'Tumor tissue metabolomics - PC5')
 ```
 
-Display top features that build the PC6
+Display top features that build the PC5
 ```{r}
 # Display top features with highest loadings of PC of interest
-pcTopFeats <- dplyr::left_join(pcTopFeatTab$PC6, featInfo, by = 'Feature')
+pcTopFeats <- dplyr::left_join(pcTopFeatTab$PC5, featInfo, by = 'Feature')
 pcTopFeats
 
 # Store table in list for creating Excel file
-sigFeatSheet <- append(sigFeatSheet, list(TumorTissueMetab_PC6 = pcTopFeats))
+sigFeatSheet <- append(sigFeatSheet, list(TumorTissueMetab_PC5 = pcTopFeats))
 ```
 
 ## Normal samples
@@ -1418,7 +1391,7 @@ cat('The following features', paste0('(n =', length(ovl), ')'),
     'are tested significant by both methods:\n', ovl)
 ```
 
-Visualize data of top 6 significant features
+Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
 topSigFeats <- proDAMetaNormalRes$name[2:7]
@@ -1441,7 +1414,7 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
 #        height = 8, width = 10)
 ```
 
-Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+There is no significant association between PCs (Var1) and cancer recurrence (Var2).
 ```{r}
 # Display PCs that can significantly separate recurrence and non-recurrence
 # patients
@@ -1548,7 +1521,28 @@ cat('The following features', paste0('(n =', length(ovl), ')'),
 proDAMetaTissueDiffRes <- dplyr::filter(proDAMetaTissueDiffRes, pval < 0.05)
 ```
 
-Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+Visualize data of top 6 significant features based on regular t-test result
+```{r}
+# Visualize data of top 6 significant features
+topSigFeats <- tFeatSigRes$Var1[1:6]
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+  tidyr::pivot_longer(cols = -'Feature',
+                      names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(smpAnno, by = 'Sample')
+
+ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Feature), scales = 'free') +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F)
+```
+
+There is no significant association between PCs (Var1) and cancer recurrence (Var2).
 ```{r}
 # Display PCs that can significantly separate recurrence and non-recurrence
 # patients
@@ -1563,43 +1557,6 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = '', y = 'Variance explained (%)',
        title = 'Differential tissue metabolomics')
-```
-
-PC10 potentially separates recurrence and non-recurrence patients.
-```{r}
-# Visualize PCs
-ggplot(pcTab, aes(x=Recurrence, y=PC10, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  labs(title = 'Differential tissue metabolomics') +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 5,
-                             method.args = list(var.equal = T),
-                             show.legend = F)
-```
-
-Plot molecular signatures captured by PC10 in input data. We took a look at top
-20 features with highest loadings and observed metabolite levels of these top
-features through heatmap. Note that features in heatmap are ordered by their loadings.
-```{r}
-# Plot molecular signatures in input data
-# Extract top features with highest loadings
-topFeats <- pcTopFeatTab$PC10$Feature[1:20]
-# Order features by loadings
-topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
-pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
-                   annotation_col = smpRecur,
-                   color = colorRampPalette(c('navy', 'white', 'red'))(100),
-                   cluster_rows = F, cluster_cols = F,
-                   scale = 'row', main = 'Differential tissue metabolomics - PC10')
-
-# Display top features with highest loadings of PC of interest
-pcTopFeats <- dplyr::left_join(pcTopFeatTab$PC10, featInfo, by = 'Feature')
-pcTopFeats
-
-# Store table in list for creating Excel file
-sigFeatSheet <- append(sigFeatSheet, list(DiffTissueMetab_PC10 = pcTopFeats))
 ```
 
 
@@ -1751,10 +1708,10 @@ cat('The following features', paste0('(n =', length(ovl), ')'),
     'are tested significant by both methods:\n', ovl)
 ```
 
-Visualize data of top 6 significant features
+Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDALipTumorRes$name[2:7]
+topSigFeats <- proDALipTumorRes$name[1:6]
 topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
@@ -1952,7 +1909,7 @@ cat('The following features', paste0('(n =', length(ovl), ')'),
     'are tested significant by both methods:\n', ovl)
 ```
 
-Visualize data of top 6 significant features
+Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
 topSigFeats <- proDALipNormalRes$name[1:6]
@@ -2136,6 +2093,27 @@ proDALipTissueDiffRes <- dplyr::filter(proDALipTissueDiffRes, pval < 0.05) %>%
                                         warn_missing = F))
 ```
 
+Visualize data of top 6 significant features based on regular t-test result
+```{r}
+# Visualize data of top 6 significant features
+topSigFeats <- tFeatSigRes$Var1[1:6]
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+  tidyr::pivot_longer(cols = -'Feature',
+                      names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(smpAnno, by = 'Sample')
+
+ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Feature), scales = 'free') +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F)
+```
+
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
 ```{r}
 # Display PCs that can significantly separate recurrence and non-recurrence
@@ -2236,9 +2214,8 @@ sigFeatSheet <- append(sigFeatSheet, list(DiffTissueLipid_PC6 = pcTopFeats))
 ```
 
 Display proportion of significant features that can separate cancer recurrence and
-non-recurrence patient groups in each dataset. Plasma Metabolomics has 1406 features,
-Plasma Lipidomics has 2493 features, Tissue Metabolomics has 1387 features, and
-Tissue Lipidomics has 2168 features.
+non-recurrence patient groups in each dataset. Numbers after bars indicate total
+feature numbers.
 
 **proDA R package that accounts for missing values**
 ```{r}
@@ -2265,17 +2242,22 @@ proportion <- rev(c(metaBaseSigFeats, metaFoloSigFeats,
                     lipBaseSigFeats, lipFoloSigFeats,
                     metaTumorSigFeats, metaNormalSigFeats,
                     lipTumorSigFeats, lipNormalSigFeats))
+numFeat <- rev(c(rep(nrow(metaBaseRes$data), 2), rep(nrow(lipBaseRes$data), 2),
+                 rep(nrow(metaTumorRes$data), 2), rep(nrow(lipTumorRes$data), 2)))
 sigFeatPropTab <- data.frame(Data = factor(dat, levels = dat),
                              Data_modality = datModal,
                              Data_of = datOf,
-                             Proportion = proportion)
+                             Proportion = proportion,
+                             Feature_number = numFeat)
 
-ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill=Data_of)) +
+ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill=Data_of, label=Feature_number)) +
   geom_bar(stat = 'identity') +
+  ylim(0, 9) +
   coord_flip() +
+  geom_text(size = 5, hjust = -0.2) +
   labs(y = 'Percentage (%)',
        title = 'Proportion of Cancer Recurrence-Related Features') +
-  scale_fill_discrete(name = 'Data of') +
+  scale_fill_discrete(name = 'Sample Type') +
   theme(axis.title = element_text(size = 16), axis.text = element_text(size = 12),
         legend.title = element_text(size = 14), legend.text = element_text(size = 12))
 # ggsave(paste0(result_path, 'AG_Hopf/proporSigFeats.png'), device = 'png', dpi = 400,
@@ -2310,13 +2292,18 @@ proportion <- rev(c(metaBaseSigFeats, metaFoloSigFeats, #metaPlasmaDiffSigFeats,
                     lipBaseSigFeats, lipFoloSigFeats, #lipPlasmaDiffSigFeats,
                     metaTumorSigFeats, metaNormalSigFeats, #metaTissueDiffSigFeats,
                     lipTumorSigFeats, lipNormalSigFeats)) #lipTissueDiffSigFeats
+numFeat <- rev(c(rep(nrow(metaBaseRes$data), 2), rep(nrow(lipBaseRes$data), 2),
+                 rep(nrow(metaTumorRes$data), 2), rep(nrow(lipTumorRes$data), 2)))
 sigFeatPropTab <- data.frame(Data = factor(dat, levels = dat),
                              Data_modality = datModal,
-                             Proportion = proportion)
+                             Proportion = proportion,
+                             Feature_number = numFeat)
 
-ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill=Data_modality)) +
+ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill=Data_modality, label=Feature_number)) +
   geom_bar(stat = 'identity') +
+  ylim(0, 11) +
   coord_flip() +
+  geom_text(hjust = -0.4) +
   labs(y = 'Percentage (%)',
        title = 'Proportion of Cancer Recurrence-Related Features') +
   scale_fill_discrete(name = 'Data modality')
@@ -2330,7 +2317,7 @@ Plasma Lipidomics compared to the results of the other datasets, and in the mean
 there are much more replicated features (same m/z and retention time) in Plasma
 Lipidomics dataset (check the preprocessing report of the Untargeted data). Are
 many of these Recurrence-related features replicates? No, there are only 3 (out
-of 253) replicates in the significance test result, which is negligible.
+of 255) replicates in the significance test result, which is negligible.
 <br/>
 <br/>
 
@@ -2357,9 +2344,11 @@ dplyr::select(lipFoloRes$tFeatSigRes, Var1) %>%
 ```
 
 Visualize Recurrence-related features through volcano plots. Significance results
-were done by proDA R package. Changes in mean group abundances (up and down) are
-recurrence to non-recurrence groups.
-```{r}
+were done by proDA R package that uses probabilistic dropout model to account for
+data missingness, which makes t-test results more reliable. Log2-FC (up and down)
+is recurrence to non-recurrence groups. To be clearer, entities on up side are more
+abundant in recurrence group than non-recurrence group, and so forth.
+```{r message = F}
 # Volcano plots for summarizing association test results between features and
 # cancer recurrence
 # Prepare feature information for converting feature IDs to m/z ratio and retention
@@ -2369,124 +2358,331 @@ lipPlasmaFeatInfo <- tibble::as_tibble(rowData(lipPlasmaVsn), rownames = 'Featur
 metaTissueFeatInfo <- tibble::as_tibble(rowData(metaTissueVsn), rownames = 'Feature_ID')
 lipTissueFeatInfo <- tibble::as_tibble(rowData(lipTissueVsn), rownames = 'Feature_ID')
 
-# Prepare needed information for volcano plots
+# Prepare log2-fold change information
+# PM
+metaPlasmaMedi <- readRDS('./data/AG_Hopf/metaPlasmaMedi.rds') %>%
+  summExp2df(assay = 'mediAbundance', row_id = 'Feature', col_id = 'Sample_ID') %>%
+  dplyr::select(Feature, Value, Condition, Recurrence)
+# BPM
+metaBaseLogFC <- dplyr::filter(metaPlasmaMedi, Condition == 'Baseline') %>%
+  dplyr::group_by(Feature, Recurrence) %>%
+  dplyr::summarise(Mean = mean(Value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = 'Recurrence', values_from = 'Mean') %>%
+  dplyr::mutate(logFC = Yes - No) %>%
+  dplyr::select(Feature, logFC)
+# FPM
+metaFoloLogFC <- dplyr::filter(metaPlasmaMedi, Condition != 'Baseline') %>%
+  dplyr::group_by(Feature, Recurrence) %>%
+  dplyr::summarise(Mean = mean(Value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = 'Recurrence', values_from = 'Mean') %>%
+  dplyr::mutate(logFC = Yes - No) %>%
+  dplyr::select(Feature, logFC)
+
+# PL
+lipPlasmaMedi <- readRDS('./data/AG_Hopf/lipPlasmaMedi.rds') %>%
+  summExp2df(assay = 'mediAbundance', row_id = 'Feature', col_id = 'Sample_ID') %>%
+  dplyr::select(Feature, Value, Condition, Recurrence)
+# BPL
+lipBaseLogFC <- dplyr::filter(lipPlasmaMedi, Condition == 'Baseline') %>%
+  dplyr::group_by(Feature, Recurrence) %>%
+  dplyr::summarise(Mean = mean(Value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = 'Recurrence', values_from = 'Mean') %>%
+  dplyr::mutate(logFC = Yes - No) %>%
+  dplyr::select(Feature, logFC)
+# FPL
+lipFoloLogFC <- dplyr::filter(lipPlasmaMedi, Condition != 'Baseline') %>%
+  dplyr::group_by(Feature, Recurrence) %>%
+  dplyr::summarise(Mean = mean(Value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = 'Recurrence', values_from = 'Mean') %>%
+  dplyr::mutate(logFC = Yes - No) %>%
+  dplyr::select(Feature, logFC)
+
+# TM
+metaTissueMedi <- readRDS('./data/AG_Hopf/metaTissueMedi.rds') %>%
+  summExp2df(assay = 'mediAbundance', row_id = 'Feature', col_id = 'Sample_ID') %>%
+  dplyr::select(Feature, Value, Condition, Recurrence)
+# TTM
+metaTumorLogFC <- dplyr::filter(metaTissueMedi, Condition == 'Tumor') %>%
+  dplyr::group_by(Feature, Recurrence) %>%
+  dplyr::summarise(Mean = mean(Value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = 'Recurrence', values_from = 'Mean') %>%
+  dplyr::mutate(logFC = Yes - No) %>%
+  dplyr::select(Feature, logFC)
+# NTM
+metaNormalLogFC <- dplyr::filter(metaTissueMedi, Condition == 'Normal') %>%
+  dplyr::group_by(Feature, Recurrence) %>%
+  dplyr::summarise(Mean = mean(Value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = 'Recurrence', values_from = 'Mean') %>%
+  dplyr::mutate(logFC = Yes - No) %>%
+  dplyr::select(Feature, logFC)
+
+# TL
+lipTissueMedi <- readRDS('./data/AG_Hopf/lipTissueMedi.rds') %>%
+  summExp2df(assay = 'mediAbundance', row_id = 'Feature', col_id = 'Sample_ID') %>%
+  dplyr::select(Feature, Value, Condition, Recurrence)
+# TTL
+lipTumorLogFC <- dplyr::filter(lipTissueMedi, Condition == 'Tumor') %>%
+  dplyr::group_by(Feature, Recurrence) %>%
+  dplyr::summarise(Mean = mean(Value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = 'Recurrence', values_from = 'Mean') %>%
+  dplyr::mutate(logFC = Yes - No) %>%
+  dplyr::select(Feature, logFC)
+# NTL
+lipNormalLogFC <- dplyr::filter(lipTissueMedi, Condition == 'Normal') %>%
+  dplyr::group_by(Feature, Recurrence) %>%
+  dplyr::summarise(Mean = mean(Value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = 'Recurrence', values_from = 'Mean') %>%
+  dplyr::mutate(logFC = Yes - No) %>%
+  dplyr::select(Feature, logFC)
+
+
+# Collect all needed information for volcano plots
 # Baseline Plasma Metabolomics
-feats <- all_proDAMetaBaseRes$name #metaBaseRes$tFeatRes$Var1
-logFC <- all_proDAMetaBaseRes$diff #metaBaseRes$tFeatRes$Mu2 - metaBaseRes$tFeatRes$Mu1
-pVal <- all_proDAMetaBaseRes$pval #metaBaseRes$tFeatRes$pVal
-metaBaseVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-                             Data = 'Baseline Plasma Metabolomics') %>%
-  dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
+metaBaseVolTab <- dplyr::select(all_proDAMetaBaseRes, name, pval) %>%
+  dplyr::rename(Feature = name, pVal = pval) %>%
+  dplyr::left_join(metaBaseLogFC, by = 'Feature') %>%
+  dplyr::mutate(Data = 'Baseline Plasma Metabolomics',
+                MZ.RT = plyr::mapvalues(Feature,
                                         from = metaPlasmaFeatInfo$Feature_ID,
                                         to = metaPlasmaFeatInfo$m.z_RT,
                                         warn_missing = F))
 # Follow-up Plasma Metabolomics
-feats <- all_proDAMetaFoloRes$name #metaFoloRes$tFeatRes$Var1
-logFC <- all_proDAMetaFoloRes$diff #metaFoloRes$tFeatRes$Mu2 - metaFoloRes$tFeatRes$Mu1
-pVal <- all_proDAMetaFoloRes$pval #metaFoloRes$tFeatRes$pVal
-metaFoloVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-                             Data = 'Follow-up Plasma Metabolomics') %>%
-  dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
+metaFoloVolTab <- dplyr::select(all_proDAMetaFoloRes, name, pval) %>%
+  dplyr::rename(Feature = name, pVal = pval) %>%
+  dplyr::left_join(metaFoloLogFC, by = 'Feature') %>%
+  dplyr::mutate(Data = 'Follow-up Plasma Metabolomics',
+                MZ.RT = plyr::mapvalues(Feature,
                                         from = metaPlasmaFeatInfo$Feature_ID,
                                         to = metaPlasmaFeatInfo$m.z_RT,
                                         warn_missing = F))
-# Differential Plasma Metabolomics
-# feats <- metaPlasmaDiffRes$tFeatRes$Var1
-# logFC <- metaPlasmaDiffRes$tFeatRes$Mu2 - metaPlasmaDiffRes$tFeatRes$Mu1
-# pVal <- metaPlasmaDiffRes$tFeatRes$pVal
-# metaPlasmaDiffVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-#                                    Data = 'Differential Plasma Metabolomics') %>%
-#   dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
-#                                          from = metaPlasmaFeatInfo$Feature_ID,
-#                                          to = metaPlasmaFeatInfo$m.z_RT))
+
 # Baseline Plasma Lipidomics
-feats <- all_proDALipBaseRes$name #lipBaseRes$tFeatRes$Var1
-logFC <- all_proDALipBaseRes$diff #lipBaseRes$tFeatRes$Mu2 - lipBaseRes$tFeatRes$Mu1
-pVal <- all_proDALipBaseRes$pval #lipBaseRes$tFeatRes$pVal
-lipBaseVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-                            Data = 'Baseline Plasma Lipidomics') %>%
-  dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
+lipBaseVolTab <- dplyr::select(all_proDALipBaseRes, name, pval) %>%
+  dplyr::rename(Feature = name, pVal = pval) %>%
+  dplyr::left_join(lipBaseLogFC, by = 'Feature') %>%
+  dplyr::mutate(Data = 'Baseline Plasma Lipidomics',
+                MZ.RT = plyr::mapvalues(Feature,
                                         from = lipPlasmaFeatInfo$Feature_ID,
                                         to = lipPlasmaFeatInfo$m.z_RT,
                                         warn_missing = F))
 # Follow-up Plasma Lipidomics
-feats <- all_proDALipFoloRes$name #lipFoloRes$tFeatRes$Var1
-logFC <- all_proDALipFoloRes$diff #lipFoloRes$tFeatRes$Mu2 - lipFoloRes$tFeatRes$Mu1
-pVal <- all_proDALipFoloRes$pval #lipFoloRes$tFeatRes$pVal
-lipFoloVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-                            Data = 'Follow-up Plasma Lipidomics') %>%
-  dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
+lipFoloVolTab <- dplyr::select(all_proDALipFoloRes, name, pval) %>%
+  dplyr::rename(Feature = name, pVal = pval) %>%
+  dplyr::left_join(lipFoloLogFC, by = 'Feature') %>%
+  dplyr::mutate(Data = 'Follow-up Plasma Lipidomics',
+                MZ.RT = plyr::mapvalues(Feature,
                                         from = lipPlasmaFeatInfo$Feature_ID,
                                         to = lipPlasmaFeatInfo$m.z_RT,
                                         warn_missing = F))
-# Differential Plasma Lipidomics
-# feats <- lipPlasmaDiffRes$tFeatRes$Var1
-# logFC <- lipPlasmaDiffRes$tFeatRes$Mu2 - lipPlasmaDiffRes$tFeatRes$Mu1
-# pVal <- lipPlasmaDiffRes$tFeatRes$pVal
-# lipPlasmaDiffVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-#                                   Data = 'Differential Plasma Lipidomics') %>%
-#   dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
-#                                          from = lipPlasmaFeatInfo$Feature_ID,
-#                                          to = lipPlasmaFeatInfo$m.z_RT))
+
 # Tumor Tissue Metabolomics
-feats <- all_proDAMetaTumorRes$name #metaTumorRes$tFeatRes$Var1
-logFC <- all_proDAMetaTumorRes$diff #metaTumorRes$tFeatRes$Mu2 - metaTumorRes$tFeatRes$Mu1
-pVal <- all_proDAMetaTumorRes$pval #metaTumorRes$tFeatRes$pVal
-metaTumorVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-                              Data = 'Tumor Tissue Metabolomics') %>%
-  dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
+metaTumorVolTab <- dplyr::select(all_proDAMetaTumorRes, name, pval) %>%
+  dplyr::rename(Feature = name, pVal = pval) %>%
+  dplyr::left_join(metaTumorLogFC, by = 'Feature') %>%
+  dplyr::mutate(Data = 'Tumor Tissue Metabolomics',
+                MZ.RT = plyr::mapvalues(Feature,
                                         from = metaTissueFeatInfo$Feature_ID,
                                         to = metaTissueFeatInfo$MZ.RT,
                                         warn_missing = F))
 # Normal Tissue Metabolomics
-feats <- all_proDAMetaNormalRes$name #metaNormalRes$tFeatRes$Var1
-logFC <- all_proDAMetaNormalRes$diff #metaNormalRes$tFeatRes$Mu2 - metaNormalRes$tFeatRes$Mu1
-pVal <- all_proDAMetaNormalRes$pval #metaNormalRes$tFeatRes$pVal
-metaNormalVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-                               Data = 'Normal Tissue Metabolomics') %>%
-  dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
+metaNormalVolTab <- dplyr::select(all_proDAMetaNormalRes, name, pval) %>%
+  dplyr::rename(Feature = name, pVal = pval) %>%
+  dplyr::left_join(metaNormalLogFC, by = 'Feature') %>%
+  dplyr::mutate(Data = 'Normal Tissue Metabolomics',
+                MZ.RT = plyr::mapvalues(Feature,
                                         from = metaTissueFeatInfo$Feature_ID,
                                         to = metaTissueFeatInfo$MZ.RT,
                                         warn_missing = F))
-# Differential Tissue Metabolomics
-# feats <- metaTissueDiffRes$tFeatRes$Var1
-# logFC <- metaTissueDiffRes$tFeatRes$Mu2 - metaTissueDiffRes$tFeatRes$Mu1
-# pVal <- metaTissueDiffRes$tFeatRes$pVal
-# metaTissueDiffVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-#                                    Data = 'Differential Tissue Metabolomics') %>%
-#   dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
-#                                         from = metaTissueFeatInfo$Feature_ID,
-#                                         to = metaTissueFeatInfo$MZ.RT))
+
 # Tumor Tissue Lipidomics
-feats <- all_proDALipTumorRes$name #lipTumorRes$tFeatRes$Var1
-logFC <- all_proDALipTumorRes$diff #lipTumorRes$tFeatRes$Mu2 - lipTumorRes$tFeatRes$Mu1
-pVal <- all_proDALipTumorRes$pval #lipTumorRes$tFeatRes$pVal
-lipTumorVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-                             Data = 'Tumor Tissue Lipidomics') %>%
-  dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
+lipTumorVolTab <- dplyr::select(all_proDALipTumorRes, name, pval) %>%
+  dplyr::rename(Feature = name, pVal = pval) %>%
+  dplyr::left_join(lipTumorLogFC, by = 'Feature') %>%
+  dplyr::mutate(Data = 'Tumor Tissue Lipidomics',
+                MZ.RT = plyr::mapvalues(Feature,
                                         from = lipTissueFeatInfo$Feature_ID,
                                         to = lipTissueFeatInfo$MZ.RT,
                                         warn_missing = F))
 # Normal Tissue Lipidomics
-feats <- all_proDALipNormalRes$name #lipNormalRes$tFeatRes$Var1
-logFC <- all_proDALipNormalRes$diff #lipNormalRes$tFeatRes$Mu2 - lipNormalRes$tFeatRes$Mu1
-pVal <- all_proDALipNormalRes$pval #lipNormalRes$tFeatRes$pVal
-lipNormalVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-                              Data = 'Normal Tissue Lipidomics') %>%
-  dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
+lipNormalVolTab <- dplyr::select(all_proDALipNormalRes, name, pval) %>%
+  dplyr::rename(Feature = name, pVal = pval) %>%
+  dplyr::left_join(lipNormalLogFC, by = 'Feature') %>%
+  dplyr::mutate(Data = 'Normal Tissue Lipidomics',
+                MZ.RT = plyr::mapvalues(Feature,
                                         from = lipTissueFeatInfo$Feature_ID,
                                         to = lipTissueFeatInfo$MZ.RT,
                                         warn_missing = F))
-# Differential Tissue Lipidomics
-# feats <- lipTissueDiffRes$tFeatRes$Var1
-# logFC <- lipTissueDiffRes$tFeatRes$Mu2 - lipTissueDiffRes$tFeatRes$Mu1
-# pVal <- lipTissueDiffRes$tFeatRes$pVal
-# lipTissueDiffVolTab <- data.frame(Feature = feats, logFC = logFC, pVal = pVal,
-#                                   Data = 'Differential Tissue Lipidomics') %>%
-#   dplyr::mutate(MZ.RT = plyr::mapvalues(Feature,
-#                                         from = lipTissueFeatInfo$Feature_ID,
-#                                         to = lipTissueFeatInfo$MZ.RT))
+```
 
+Log2-FC cutoffs are 0.7 (FC=1.6) and -0.7 (FC=0.6).
+```{r}
+# BPM
+volTab <- metaBaseVolTab
+volTab['DE'] <- 'Not significant'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC > 0.7] <- 'Up'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC < -0.7] <- 'Down'
+volTab['Label'] <- NA
+label4SigFeats <- volTab$MZ.RT[volTab$DE != 'Not significant']
+volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
+
+ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
+  geom_point() +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.2) +
+  geom_vline(xintercept = c(-0.7, 0.7), col = 'red', linewidth = 0.2) +
+  geom_text_repel(size = 3, show.legend = F) +
+  scale_color_manual(values = c('navy', 'grey', 'red')) +
+  labs(x = 'log2(FC)', title = 'Baseline Plasma Metabolomics')
+```
+
+Log2-FC cutoffs are 0.7 (FC=1.6) and -0.7 (FC=0.6).
+```{r}
+# FPM
+volTab <- metaFoloVolTab
+volTab['DE'] <- 'Not significant'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC > 0.7] <- 'Up'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC < -0.7] <- 'Down'
+volTab['Label'] <- NA
+label4SigFeats <- volTab$MZ.RT[volTab$DE != 'Not significant']
+volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
+
+ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
+  geom_point() +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.2) +
+  geom_vline(xintercept = c(-0.7, 0.7), col = 'red', linewidth = 0.2) +
+  geom_text_repel(size = 3, show.legend = F) +
+  scale_color_manual(values = c('navy', 'grey', 'red')) +
+  labs(x = 'log2(FC)', title = 'Follow-up Plasma Metabolomics')
+```
+
+Log2-FC cutoffs are 0.7 (FC=1.6) and -0.7 (FC=0.6).
+```{r}
+# BPL
+volTab <- lipBaseVolTab
+volTab['DE'] <- 'Not significant'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC > 0.7] <- 'Up'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC < -0.7] <- 'Down'
+volTab['Label'] <- NA
+label4SigFeats <- volTab$MZ.RT[volTab$DE != 'Not significant']
+volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
+
+ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
+  geom_point() +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.2) +
+  geom_vline(xintercept = c(-0.7, 0.7), col = 'red', linewidth = 0.2) +
+  geom_text_repel(size = 3, show.legend = F) +
+  scale_color_manual(values = c('navy', 'grey', 'red')) +
+  labs(x = 'log2(FC)', title = 'Baseline Plasma Lipidomics')
+```
+
+Log2-FC cutoffs are 1 (FC=2) and -1 (FC=0.5).
+```{r}
+# FPL
+volTab <- lipFoloVolTab
+volTab['DE'] <- 'Not significant'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC > 1] <- 'Up'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC < -1] <- 'Down'
+volTab['Label'] <- NA
+label4SigFeats <- volTab$MZ.RT[volTab$DE != 'Not significant']
+volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
+
+ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
+  geom_point() +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.2) +
+  geom_vline(xintercept = c(-1, 1), col = 'red', linewidth = 0.2) +
+  geom_text_repel(size = 3, show.legend = F) +
+  scale_color_manual(values = c('navy', 'grey', 'red')) +
+  labs(x = 'log2(FC)', title = 'Follow-up Plasma Lipidomics')
+```
+
+Log2-FC cutoffs are 0.5 (FC=1.4) and -0.5 (FC=0.7).
+```{r}
+# TTM
+volTab <- metaTumorVolTab
+volTab['DE'] <- 'Not significant'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC > 0.5] <- 'Up'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC < -0.5] <- 'Down'
+volTab['Label'] <- NA
+label4SigFeats <- volTab$MZ.RT[volTab$DE != 'Not significant']
+volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
+
+ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
+  geom_point() +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.2) +
+  geom_vline(xintercept = c(-0.5, 0.5), col = 'red', linewidth = 0.2) +
+  geom_text_repel(size = 3, show.legend = F) +
+  scale_color_manual(values = c('navy', 'grey', 'red')) +
+  labs(x = 'log2(FC)', title = 'Tumor Tissue Metabolomics')
+```
+
+Log2-FC cutoffs are 0.5 (FC=1.4) and -0.5 (FC=0.7).
+```{r}
+# NTM
+volTab <- metaNormalVolTab
+volTab['DE'] <- 'Not significant'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC > 0.5] <- 'Up'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC < -0.5] <- 'Down'
+volTab['Label'] <- NA
+label4SigFeats <- volTab$MZ.RT[volTab$DE != 'Not significant']
+volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
+
+ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
+  geom_point() +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.2) +
+  geom_vline(xintercept = c(-0.5, 0.5), col = 'red', linewidth = 0.2) +
+  geom_text_repel(size = 3, show.legend = F) +
+  scale_color_manual(values = c('navy', 'grey', 'red')) +
+  labs(x = 'log2(FC)', title = 'Normal Tissue Metabolomics')
+```
+
+Log2-FC cutoffs are 0.7 (FC=1.6) and -0.7 (FC=0.6).
+```{r}
+# TTL
+volTab <- lipTumorVolTab
+volTab['DE'] <- 'Not significant'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC > 0.7] <- 'Up'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC < -0.7] <- 'Down'
+volTab['Label'] <- NA
+label4SigFeats <- volTab$MZ.RT[volTab$DE != 'Not significant']
+volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
+
+ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
+  geom_point() +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.2) +
+  geom_vline(xintercept = c(-0.7, 0.7), col = 'red', linewidth = 0.2) +
+  geom_text_repel(size = 3, show.legend = F) +
+  scale_color_manual(values = c('navy', 'grey', 'red')) +
+  labs(x = 'log2(FC)', title = 'Tumor Tissue Lipidomics')
+```
+
+Log2-FC cutoffs are 0.9 (FC=1.9) and -0.9 (FC=0.5).
+```{r}
+# NTL
+volTab <- lipNormalVolTab
+volTab['DE'] <- 'Not significant'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC > 0.9] <- 'Up'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC < -0.9] <- 'Down'
+volTab['Label'] <- NA
+label4SigFeats <- volTab$MZ.RT[volTab$DE != 'Not significant']
+volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
+
+ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
+  geom_point() +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.2) +
+  geom_vline(xintercept = c(-0.9, 0.9), col = 'red', linewidth = 0.2) +
+  geom_text_repel(size = 3, show.legend = F) +
+  scale_color_manual(values = c('navy', 'grey', 'red')) +
+  labs(x = 'log2(FC)', title = 'Normal Tissue Lipidomics')
+```
+
+```{r include = F, eval = F}
 # Baseline and follow-up plasma datasets
 # Combine result tables for plotting
 volTab <- dplyr::bind_rows(metaBaseVolTab, metaFoloVolTab,
@@ -2505,7 +2701,7 @@ ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
   geom_text_repel(size = 2, show.legend = F) +
   scale_color_manual(values = c('navy', 'grey', 'red')) +
   facet_wrap(vars(Data)) +
-  labs(x = 'log(FC)')
+  labs(x = 'log2(FC)')
 
 # Tumor and normal tissue datasets
 # Combine result tables for plotting
@@ -2525,25 +2721,5 @@ ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
   geom_text_repel(size = 2, show.legend = F) +
   scale_color_manual(values = c('navy', 'grey', 'red')) +
   facet_wrap(vars(Data)) +
-  labs(x = 'log(FC)')
-
-# Differential datasets
-# Combine result tables for plotting
-# volDiffTab <- dplyr::bind_rows(metaPlasmaDiffVolTab, lipPlasmaDiffVolTab,
-#                                metaTissueDiffVolTab, lipTissueDiffVolTab)
-# volDiffTab['DE'] <- 'Not significant'
-# volDiffTab$DE[volDiffTab$pVal <= 0.05 & volDiffTab$logFC > 1.5] <- 'Up'
-# volDiffTab$DE[volDiffTab$pVal <= 0.05 & volDiffTab$logFC < -1.5] <- 'Down'
-# volDiffTab['Label'] <- NA
-# label4SigFeats <- volDiffTab$MZ.RT[volDiffTab$DE != 'Not significant']
-# volDiffTab$Label[volDiffTab$DE != 'Not significant'] <- label4SigFeats
-# 
-# ggplot(volDiffTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
-#   geom_point() +
-#   geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.2) +
-#   geom_vline(xintercept = c(-1.5, 1.5), col = 'red', linewidth = 0.2) +
-#   geom_text_repel(size = 2, show.legend = F) +
-#   scale_color_manual(values = c('navy', 'grey', 'red')) +
-#   facet_wrap(vars(Data)) +
-#   labs(x = 'log(FC)')
+  labs(x = 'log2(FC)')
 ```
