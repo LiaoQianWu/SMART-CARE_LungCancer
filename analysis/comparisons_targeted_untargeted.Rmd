@@ -20,7 +20,7 @@ predicting cancer recurrence is of most interest. </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
-# knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
 ```
 
 Load libraries
@@ -103,7 +103,7 @@ tPCASigRes
 <font size='4'> Untargeted Metabolomics from AG Hopf </font>\
 <br/>
 **Baseline Plasma Metabolomics**\
-PC19 explains no variation in data.
+There is no Recurrence-related PC learned.
 ```{r}
 # Baseline Plasma Metabolomics
 # Load normalized data
@@ -173,7 +173,8 @@ proDAMetaTumorSigFeats <- proDA::test_diff(fit,
   dplyr::filter(pval < 0.05)
 ```
 
-**Normal Tissue Metabolomics**
+**Normal Tissue Metabolomics**\
+There is no Recurrence-related PC learned.
 ```{r}
 # Normal Tissue Metabolomics
 # Subset baseline samples
@@ -207,58 +208,28 @@ proDAMetaNormalSigFeats <- proDA::test_diff(fit,
 Visualize correlations of Recurrence-related PCs learned from Targeted and Untargeted
 data to see if same sources of variation are captured by different methods\
 <br/>
-<font size='4'> Original Untargeted data with missing values </font>\
-**Targeted Baseline Plasma Metabolomics vs Untargeted BPM**
-```{r}
-# BPM_Hell vs BPM_Hopf
-# Extract significant PCs from different datasets and combine needed information
-# into a table
-metaBaseSigPC_Hell <- dplyr::select(metaBaseRes_Hell$pcTab, c(Sample, PC11, PC15))
-metaBaseSigPC_Hopf <- dplyr::select(metaBaseRes_Hopf$pcTab, c(Sample, PC5, Recurrence))
-metaBaseSigPC <- dplyr::left_join(metaBaseSigPC_Hell, metaBaseSigPC_Hopf, by = 'Sample')
-# Compute correlations between significant PCs
-cat('Correlation between Targeted BPM PC11 and Untargeted BPM PC5 is',
-    stats::cor.test(metaBaseSigPC$PC11, metaBaseSigPC$PC5,
-                    method = 'pearson', use = "pairwise.complete.obs")$estimate)
-cat('Correlation between Targeted BPM PC15 and Untargeted BPM PC5 is',
-    stats::cor.test(metaBaseSigPC$PC15, metaBaseSigPC$PC5,
-                    method = 'pearson', use = "pairwise.complete.obs")$estimate)
-# cat('Correlation between Targeted BPM PC11 and Targeted BPM PC15 is',
-#     stats::cor.test(metaBaseSigPC$PC11, metaBaseSigPC$PC15,
-#                     method = 'pearson', use = "pairwise.complete.obs")$estimate)
-
-# Display relationship between significant PCs
-ggplot(metaBaseSigPC, aes(x=PC15, PC5, col=Recurrence)) +
-  geom_point(size = 4) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)),
-                   method = 'pearson', size = 5, color = 'black') +
-  stat_smooth(formula = y ~ x, method = "lm", color = "grey", alpha = 0.2) +
-  labs(x = 'PC15 (Targeted BPM)', y = 'PC5 (Untargeted BPM)') +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D'))
-```
-
 **Targeted Tumor Tissue Metabolomics vs Untargeted TTM**
 ```{r}
+# <font size='4'> Original Untargeted data with missing values </font>\
+
 # TTM_Hell vs TTM_Hopf
 # Extract significant PCs from different datasets and combine needed information
 # into a table
 metaTumorSigPC_Hell <- dplyr::select(metaTumorRes_Hell$pcTab, c(Sample, PC16))
-metaTumorSigPC_Hopf <- dplyr::select(metaTumorRes_Hopf$pcTab, c(Sample, PC6, Recurrence))
+metaTumorSigPC_Hopf <- dplyr::select(metaTumorRes_Hopf$pcTab, c(Sample, PC5, Recurrence))
 metaTumorSigPC <- dplyr::left_join(metaTumorSigPC_Hell, metaTumorSigPC_Hopf, by = 'Sample')
 # Compute correlations between significant PCs
-cat('Correlation between Targeted TTM PC16 and Untargeted TTM PC6 is',
-    stats::cor.test(metaTumorSigPC$PC16, metaTumorSigPC$PC6,
+cat('Correlation between Targeted TTM PC16 and Untargeted TTM PC5 is',
+    stats::cor.test(metaTumorSigPC$PC16, metaTumorSigPC$PC5,
                     method = 'pearson', use = "pairwise.complete.obs")$estimate)
 ```
-<br/>
-<br/>
 
-<font size='4'> Imputed Untargeted data using MissForest algorithm </font>\
-<br/>
-**Targeted TTM vs Imputed Untargeted TTM**\
-Display Recurrence-related PC learned from imputed Untargeted TTM dataset
-```{r}
+```{r include = F, eval = F}
+# <font size='4'> Imputed Untargeted data using MissForest algorithm </font>\
+# <br/>
+# **Targeted TTM vs Imputed Untargeted TTM**\
+# Display Recurrence-related PC learned from imputed Untargeted TTM dataset
+
 # Load imputed data
 impuMetaTumor_Hopf <- readRDS('./data/AG_Hopf/impuByMF/impuTTM_Hopf.rds')
 # Conduct PCA
@@ -278,10 +249,10 @@ metaTumorSigPC <- dplyr::left_join(metaTumorSigPC_Hell, impuMetaTumorSigPC_Hopf,
 cat('Correlation between Targeted TTM PC16 and Imputed Untargeted TTM PC6 is',
     stats::cor.test(metaTumorSigPC$PC16, metaTumorSigPC$PC6,
                     method = 'pearson', use = "pairwise.complete.obs")$estimate)
-```
 
-**Untargeted TTM vs Imputed Untargeted TTM**
-```{r}
+
+# **Untargeted TTM vs Imputed Untargeted TTM**
+
 # TTM_Hopf vs imputed TTM_Hopf
 # Extract significant PCs and combine needed information into a table
 metaTumorSigPC_Hopf <- dplyr::select(metaTumorRes_Hopf$pcTab, c(Sample, PC6)) %>%
@@ -306,11 +277,11 @@ ggplot(metaTumorSigPC, aes(x=PC6, impuPC6, col=Recurrence)) +
   labs(x = 'PC6 (Untargeted TTM)', y = 'PC6 (Untargeted & Imputed TTM)') +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D'))
-```
 
-**Targeted Normal Tissue Metabolomics vs Imputed Untargeted NTM**\
-Display Recurrence-related PCs learned from imputed Untargeted NTM dataset
-```{r}
+
+# **Targeted Normal Tissue Metabolomics vs Imputed Untargeted NTM**\
+# Display Recurrence-related PCs learned from imputed Untargeted NTM dataset
+
 # NTM_Hell
 # Extract significant PCs
 metaNormalSigPC_Hell <- dplyr::select(metaNormalRes_Hell$pcTab,
@@ -358,25 +329,32 @@ cat('Correlation between Targeted PC9 and Imputed Untargeted PC14 is',
 # cat('Correlation between Imputed Targeted PC10 and Imputed Untargeted PC14 is',
 #     stats::cor.test(impuMetaNormalSigPC_Hopf$PC10, impuMetaNormalSigPC_Hopf$PC14,
 #                     method = 'pearson', use = "pairwise.complete.obs")$estimate)
-```
 
-```{r include = F, eval = F}
+
 # Load imputed data
 impuMetaBase_Hopf <- readRDS('./data/AG_Hopf/impuByMF/impuBPM_Hopf.rds')
 # Conduct PCA
 # impuMetaBaseRes_Hopf <- SOA(impuMetaBase_Hopf, factor = 'Recurrence')
 # impuMetaBaseRes_Hopf$tPCASigRes
+
+# => Generally, correlations of Recurrence-related PCs between Targeted and (Imputed)
+# Untargeted datasets are low, indicating that Targeted and Untargeted data may carry
+# different information in terms of predicting cancer recurrence. However, cannot
+# say if MissForest algorithm is reliable for imputing missing values. Theoretically,
+# MissForest should be good at handling MAR (missing at random), yet we assume much
+# of missingness in our data is due to extremely small values (MNAR, missing not at
+# random) that machine fails to detect. Therefore, it might also be that too much
+# information is removed from Untargeted datasets when conducting PCA and imputated
+# values are not biologically accurate, leading to uncorrelated results between Targeted
+# and Untargeted datasets.
 ```
-=> Generally, correlations of Recurrence-related PCs between Targeted and (Imputed)
-Untargeted datasets are low, indicating that Targeted and Untargeted data may carry
-different information in terms of predicting cancer recurrence. However, cannot
-say if MissForest algorithm is reliable for imputing missing values. Theoretically,
-MissForest should be good at handling MAR (missing at random), yet we assume much
-of missingness in our data is due to extremely small values (MNAR, missing not at
-random) that machine fails to detect. Therefore, it might also be that too much
-information is removed from Untargeted datasets when conducting PCA and imputated
-values are not biologically accurate, leading to uncorrelated results between Targeted
-and Untargeted datasets.
+=> Correlation of Recurrence-related PCs between Targeted and Untargeted Tumor Tissue
+Metabolomics are low, indicating that these two datasets may carry different information
+in terms of predicting cancer recurrence. Yet, it may also be that too much information
+is removed from Untargeted datasets since PCA does not use features with missing
+data, leading to unreliable Recurrence-related PC. Maybe same missing data issue
+also cause that Untargeted Baseline Plasma Metabolomics and Untargeted Normal Tissue
+Metabolomics fail to learn Recurrence-related PCs.
 
 
 
@@ -415,8 +393,7 @@ featTab_Hell <- t(datMat_Hell) %>%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaPlasmaRes_Hopf_Hell <- corrIter(featTab_Hopf, featTab_Hell, cmn_col = 'Sample')
-# saveRDS(corrMetaPlasmaRes_Hopf_Hell, paste0(result_path,
-#                                             'corrMetaPlasmaRes_Hopf_Hell.rds'))
+# saveRDS(corrMetaPlasmaRes_Hopf_Hell, './data/corrMetaPlasmaRes_Hopf_Hell.rds')
 corrMetaPlasmaRes_Hopf_Hell <- readRDS('./data/corrMetaPlasmaRes_Hopf_Hell.rds')
 
 # Convert long data to wide data
@@ -468,13 +445,12 @@ ggraph(g, layout = 'fr') + #layout = 'auto'
   theme_void() +
   scale_edge_alpha_continuous(name = 'Correlation') +
   scale_color_manual(values = c('firebrick', 'steelblue'))
-# ggsave(paste0(result_path, 'metaPlasma_feat_corr_network_Hopf_Hell.png'),
-#        height = 10, width = 10, device = 'png', dpi = 400)
+# ggsave('./output/network_tar_untar_PM.png', device = 'png', dpi = 400, height = 10, width = 10)
 ```
 
 <font size='5'>**Untargeted Plasma Metabolites** </font>\
 Systematically compute correlations of all feature pairs in Untargeted (Baseline)
-Plasma Metabolomics. There are 62 out of 1406 Baseline features that can potentially
+Plasma Metabolomics. There are 43 out of 974 Baseline features that can potentially
 predict patient cancer recurrences. Since features (defined by m/z and retention
 time) in this dataset have not yet been identified through database search, there
 might be a large number of highly correlated features.
@@ -496,8 +472,7 @@ featTab <- t(datMat_Hopf) %>%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaBaseRes_Hopf <- corrIter(featTab, featTab, cmn_col = 'Sample')
-# saveRDS(corrMetaBaseRes_Hopf, paste0(result_path,
-#                                        'AG_Hopf/corrMetaBaseRes_Hopf.rds'))
+# saveRDS(corrMetaBaseRes_Hopf, './data/AG_Hopf/corrMetaBaseRes_Hopf.rds')
 corrMetaBaseRes_Hopf <- readRDS('./data/AG_Hopf/corrMetaBaseRes_Hopf.rds')
 
 # Convert long data to wide data
@@ -515,7 +490,7 @@ corrMat <- dplyr::select(corrMetaBaseRes_Hopf, Var1, Var2, Corr) %>%
 Show highly positively correlated feature pairs through network plot. Cutoff is
 (1) correlations greater than 0.9 and (2) adjusted p-values less than 0.05. Red
 dots indicate Recurrence-related features captured in Baseline samples. There are
-29 (out of 62) significant features here.
+27 (out of 43) significant features here.
 ```{r fig.height = 12, fig.width = 14}
 # Prepare node table
 nodes <- data.frame(id = seq_len(nrow(datMat_Hopf)),
@@ -577,8 +552,7 @@ featTab <- t(datMat_Hopf) %>%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaPlasmaRes_Hopf <- corrIter(featTab, featTab, cmn_col = 'Sample')
-# saveRDS(corrMetaPlasmaRes_Hopf, paste0(result_path,
-#                                        'AG_Hopf/corrMetaPlasmaRes_Hopf.rds'))
+# saveRDS(corrMetaPlasmaRes_Hopf, './data/AG_Hopf/corrMetaPlasmaRes_Hopf.rds')
 corrMetaPlasmaRes_Hopf <- readRDS('./data/AG_Hopf/corrMetaPlasmaRes_Hopf.rds')
 
 # Convert long data to wide data
@@ -670,7 +644,7 @@ featTab <- t(datMat_Hell) %>%
 
 # Compute correlations
 # corrMetaBaseRes_Hell <- corrIter(featTab, featTab, cmn_col = 'Sample')
-# saveRDS(corrMetaBaseRes_Hell, paste0(result_path, 'AG_Hell/corrMetaBaseRes_Hell.rds'))
+# saveRDS(corrMetaBaseRes_Hell, './data/AG_Hell/corrMetaBaseRes_Hell.rds')
 corrMetaBaseRes_Hell <- readRDS('./data/AG_Hell/corrMetaBaseRes_Hell.rds')
 
 # Convert long data to wide data
@@ -745,7 +719,7 @@ featTab <- t(datMat_Hell) %>%
 
 # Compute correlations
 # corrMetaPlasmaRes_Hell <- corrIter(featTab, featTab, cmn_col = 'Sample')
-# saveRDS(corrMetaPlasmaRes_Hell, paste0(result_path, 'AG_Hell/corrMetaPlasmaRes_Hell.rds'))
+# saveRDS(corrMetaPlasmaRes_Hell, './data/AG_Hell/corrMetaPlasmaRes_Hell.rds')
 corrMetaPlasmaRes_Hell <- readRDS('./data/AG_Hell/corrMetaPlasmaRes_Hell.rds')
 
 # Convert long data to wide data
@@ -825,8 +799,7 @@ featTab_Hell <- t(datMat_Hell) %>%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaTissueRes_Hopf_Hell <- corrIter(featTab_Hopf, featTab_Hell, cmn_col = 'Sample')
-# saveRDS(corrMetaTissueRes_Hopf_Hell, paste0(result_path,
-#                                             'corrMetaTissueRes_Hopf_Hell.rds'))
+# saveRDS(corrMetaTissueRes_Hopf_Hell, './data/corrMetaTissueRes_Hopf_Hell.rds')
 corrMetaTissueRes_Hopf_Hell <- readRDS('./data/corrMetaTissueRes_Hopf_Hell.rds')
 
 # Convert long data to wide data
@@ -902,8 +875,7 @@ featTab <- t(datMat) %>%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaTumorRes_Hopf <- corrIter(featTab, featTab, cmn_col = 'Sample')
-# saveRDS(corrMetaTumorRes_Hopf, paste0(result_path,
-#                                        'AG_Hopf/corrMetaTumorRes_Hopf.rds'))
+# saveRDS(corrMetaTumorRes_Hopf, './data/AG_Hopf/corrMetaTumorRes_Hopf.rds')
 corrMetaTumorRes_Hopf <- readRDS('./data/AG_Hopf/corrMetaTumorRes_Hopf.rds')
 
 # Convert long data to wide data
@@ -977,8 +949,7 @@ featTab <- t(datMat) %>%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaNormalRes_Hopf <- corrIter(featTab, featTab, cmn_col = 'Sample')
-# saveRDS(corrMetaNormalRes_Hopf, paste0(result_path,
-#                                        'AG_Hopf/corrMetaNormalRes_Hopf.rds'))
+# saveRDS(corrMetaNormalRes_Hopf, './data/AG_Hopf/corrMetaNormalRes_Hopf.rds')
 corrMetaNormalRes_Hopf <- readRDS('./data/AG_Hopf/corrMetaNormalRes_Hopf.rds')
 
 # Convert long data to wide data
@@ -1050,8 +1021,7 @@ featTab <- t(datMat) %>%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaTissueRes_Hopf <- corrIter(featTab, featTab, cmn_col = 'Sample')
-# saveRDS(corrMetaTissueRes_Hopf, paste0(result_path,
-#                                        'AG_Hopf/corrMetaTissueRes_Hopf.rds'))
+# saveRDS(corrMetaTissueRes_Hopf, './data/AG_Hopf/corrMetaTissueRes_Hopf.rds')
 corrMetaTissueRes_Hopf <- readRDS('./data/AG_Hopf/corrMetaTissueRes_Hopf.rds')
 
 # Convert long data to wide data
@@ -1470,24 +1440,23 @@ plot_data_overview(mofaPlasmaObject)
 # model_opts$num_factors <- 10
 # train_opts <- get_default_training_options(mofaPlasmaObject)
 # train_opts$convergence_mode <- 'slow'
-#
+# 
 # mofaPlasmaObject <- prepare_mofa(mofaPlasmaObject,
 #                                  data_options = data_opts,
 #                                  model_options = model_opts,
 #                                  training_options = train_opts)
-#
+# 
 # mofaPlasmaObject <- run_mofa(mofaPlasmaObject,
-#                              outfile = paste0(project_path,
-#                                               'data/mofa_model/metaPlasma_mofa_10Fac.hdf5'),
+#                              outfile = './data/mofa/co_metaPlasma_mofa_10Fac.hdf5',
 #                              use_basilisk = F)
-# saveRDS(mofaPlasmaObject, paste0(project_path, 'data/mofa_model/metaPlasma_mofa_10Fac.rds'))
+# saveRDS(mofaPlasmaObject, './data/mofa/co_metaPlasma_mofa_10Fac.rds')
 
 
 # Load trained MOFA model
 mofaPlasmaObject <- readRDS('./data/mofa/co_metaPlasma_mofa_10Fac.rds')
 
 # Do sanity check for factor correlations
-MOFA2::plot_factor_cor(mofaPlasmaObject)
+# MOFA2::plot_factor_cor(mofaPlasmaObject)
 
 # Perform variance dedecomposition analysis (coefficient of determination)
 MOFA2::plot_variance_explained(mofaPlasmaObject, max_r2 = 15) +
@@ -1521,17 +1490,16 @@ plot_data_overview(mofaTissueObject)
 # model_opts$num_factors <- 10
 # train_opts <- get_default_training_options(mofaTissueObject)
 # train_opts$convergence_mode <- 'slow'
-#
+# 
 # mofaTissueObject <- prepare_mofa(mofaTissueObject,
 #                                  data_options = data_opts,
 #                                  model_options = model_opts,
 #                                  training_options = train_opts)
-#
+# 
 # mofaTissueObject <- run_mofa(mofaTissueObject,
-#                              outfile = paste0(project_path,
-#                                               'data/mofa_model/metaTissue_mofa_10Fac.hdf5'),
+#                              outfile = './data/mofa/co_metaTissue_mofa_10Fac.hdf5',
 #                              use_basilisk = F)
-# saveRDS(mofaTissueObject, paste0(project_path, 'data/mofa_model/metaTissue_mofa_10Fac.rds'))
+# saveRDS(mofaTissueObject, './data/mofa/co_metaTissue_mofa_10Fac.rds')
 
 
 # Load trained MOFA model
@@ -1570,8 +1538,8 @@ tNormalRes <- tTestIter(facTab, metaTab, cmn_col = 'sample') %>%
 # tNormalRes
 ```
 => The MOFA models capture few factors that slightly explain the same sources of
-variation across Targeted and Untargeted Plasma (e.g., Factor6) or Tissue (e.g.,
-Factor5) Metabolomics. To sum up, Targeted and Untargeted datasets have some
+variation across Targeted and Untargeted Plasma (e.g., Factor4) or Tissue (e.g.,
+Factor10) Metabolomics. To sum up, Targeted and Untargeted datasets have some
 similarities but not much.
 
 
