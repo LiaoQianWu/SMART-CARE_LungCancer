@@ -643,6 +643,7 @@ ggplot(pcTab, aes(x=PC1, y=PC2, col=TimePoint, shape=Recurrence, group=Patient))
   geom_line(col = 'grey50', linetype = 'dashed') +
   scale_color_discrete(name = 'Time point',
                        labels = c('Baseline', '2 years later'))
+ggsave('./output/AG_Hopf/pca_PL.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 Display variance explained by each PC
@@ -2580,6 +2581,7 @@ ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
   geom_text_repel(size = 3, show.legend = F) +
   scale_color_manual(values = c('navy', 'grey', 'red')) +
   labs(x = 'log2(FC)', title = 'Baseline Plasma Lipidomics')
+# ggsave('./output/AG_Hopf/volcano_BPL.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 Log2-FC cutoffs are 1 (FC=2) and -1 (FC=0.5).
