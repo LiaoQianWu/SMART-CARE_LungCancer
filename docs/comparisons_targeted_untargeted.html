@@ -393,7 +393,7 @@ aria-hidden="true"></span> </a>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2023-04-26
+<strong>Last updated:</strong> 2023-05-08
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -551,15 +551,15 @@ relative
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtreed8a6936ee6f7db4d3c703528661b321827fc0aabtargetblankd8a6936a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree80c5e2dc52362aacd28d1d54cc0cd2600a1f7110targetblank80c5e2da">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/d8a6936ee6f7db4d3c703528661b321827fc0aab" target="_blank">d8a6936</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/80c5e2dc52362aacd28d1d54cc0cd2600a1f7110" target="_blank">80c5e2d</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtreed8a6936ee6f7db4d3c703528661b321827fc0aabtargetblankd8a6936a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree80c5e2dc52362aacd28d1d54cc0cd2600a1f7110targetblank80c5e2da"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -569,7 +569,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/d8a6936ee6f7db4d3c703528661b321827fc0aab" target="_blank">d8a6936</a>.
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/80c5e2dc52362aacd28d1d54cc0cd2600a1f7110" target="_blank">80c5e2d</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -588,12 +588,12 @@ Ignored files:
     Ignored:    analysis/.DS_Store
     Ignored:    code/.DS_Store
     Ignored:    data/.DS_Store
+    Ignored:    output/.DS_Store
 
 Untracked files:
     Untracked:  code/about.Rmd
     Untracked:  code/feature_selection.Rmd
     Untracked:  code/license.Rmd
-    Untracked:  code/misc.R
     Untracked:  code/mofa_downstream_analysis.Rmd
     Untracked:  code/mofa_factors_investigation.Rmd
     Untracked:  code/workflowr_commands.R
@@ -603,10 +603,15 @@ Untracked files:
     Untracked:  data/corrMetaPlasmaRes_Hopf_Hell.rds
     Untracked:  data/corrMetaTissueRes_Hopf_Hell.rds
     Untracked:  data/mofa/
+    Untracked:  output/AG_Hopf/
+    Untracked:  output/network_tar_untar_PM.png
+    Untracked:  output/percentage_sigFeats.png
+    Untracked:  output/percentage_sigFeats2.png
 
 Unstaged changes:
     Deleted:    analysis/about.Rmd
     Deleted:    analysis/license.Rmd
+    Modified:   analysis/preliminary_analysis_DIA.Rmd
 
 </code></pre>
 <p>
@@ -653,6 +658,42 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/70459c11aabe575c447b2ecba6cd3cf3914d5b0a/analysis/comparisons_targeted_untargeted.Rmd" target="_blank">70459c1</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-07
+</td>
+<td>
+use new untargeted features filtered by retention time to rerun
+comparisons_targeted_untargeted.Rmd and
+analysis/mofa_varied_omics_combinations.Rmd
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/60e2be1baf6c417a1fac3ca5b43772501dff8cbb/docs/comparisons_targeted_untargeted.html" target="_blank">60e2be1</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-26
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -781,7 +822,7 @@ tPCASigRes</code></pre>
 <p><br/> <br/></p>
 <p><font size='4'> Untargeted Metabolomics from AG Hopf </font><br />
 <br/> <strong>Baseline Plasma Metabolomics</strong><br />
-PC19 explains no variation in data.</p>
+There is no Recurrence-related PC learned.</p>
 <pre class="r"><code># Baseline Plasma Metabolomics
 # Load normalized data
 metaPlasma_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)
@@ -806,9 +847,8 @@ smpAnno &lt;- metaBaseRes_Hopf$smpMetadata
 # Display PCs that can significantly separate recurrence and non-recurrence
 # patients
 tPCASigRes</code></pre>
-<pre><code>  Var1       Var2       pVal    tStats  pValAdj
-1  PC5 Recurrence 0.03600889  2.266117 0.470386
-2 PC19 Recurrence 0.04896661 -2.111571 0.470386</code></pre>
+<pre><code>[1] Var1    Var2    pVal    tStats  pValAdj
+&lt;0 rows&gt; (or 0-length row.names)</code></pre>
 <pre class="r"><code># Use probabilistic dropout model to account for missing values and identify
 # differentially abundant entities
 # Fit linear probabilistic dropout model to normalized data
@@ -836,8 +876,8 @@ smpAnno &lt;- metaTumorRes_Hopf$smpMetadata
 # Display PCs that can significantly separate recurrence and non-recurrence
 # patients
 tPCASigRes</code></pre>
-<pre><code>  Var1       Var2       pVal    tStats  pValAdj
-1  PC6 Recurrence 0.01851625 -2.589162 0.370325</code></pre>
+<pre><code>  Var1       Var2       pVal   tStats   pValAdj
+1  PC5 Recurrence 0.02112346 2.526208 0.4224691</code></pre>
 <pre class="r"><code># Use probabilistic dropout model to account for missing values and identify
 # differentially abundant entities
 # Fit linear probabilistic dropout model to normalized data
@@ -848,7 +888,8 @@ proDAMetaTumorSigFeats &lt;- proDA::test_diff(fit,
                                            sort_by = &#39;pval&#39;) %&gt;%
   dplyr::select(-c(diff, se, df, avg_abundance, n_approx)) %&gt;%
   dplyr::filter(pval &lt; 0.05)</code></pre>
-<p><strong>Normal Tissue Metabolomics</strong></p>
+<p><strong>Normal Tissue Metabolomics</strong><br />
+There is no Recurrence-related PC learned.</p>
 <pre class="r"><code># Normal Tissue Metabolomics
 # Subset baseline samples
 smpNormalIdx &lt;- which(colData(metaTissue_Hopf)$Condition == &#39;Normal&#39;)
@@ -879,250 +920,30 @@ proDAMetaNormalSigFeats &lt;- proDA::test_diff(fit,
 <p>Visualize correlations of Recurrence-related PCs learned from
 Targeted and Untargeted data to see if same sources of variation are
 captured by different methods<br />
-<br/> <font size='4'> Original Untargeted data with missing values
-</font><br />
-<strong>Targeted Baseline Plasma Metabolomics vs Untargeted
-BPM</strong></p>
-<pre class="r"><code># BPM_Hell vs BPM_Hopf
-# Extract significant PCs from different datasets and combine needed information
-# into a table
-metaBaseSigPC_Hell &lt;- dplyr::select(metaBaseRes_Hell$pcTab, c(Sample, PC11, PC15))
-metaBaseSigPC_Hopf &lt;- dplyr::select(metaBaseRes_Hopf$pcTab, c(Sample, PC5, Recurrence))
-metaBaseSigPC &lt;- dplyr::left_join(metaBaseSigPC_Hell, metaBaseSigPC_Hopf, by = &#39;Sample&#39;)
-# Compute correlations between significant PCs
-cat(&#39;Correlation between Targeted BPM PC11 and Untargeted BPM PC5 is&#39;,
-    stats::cor.test(metaBaseSigPC$PC11, metaBaseSigPC$PC5,
-                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Targeted BPM PC11 and Untargeted BPM PC5 is -0.3331772</code></pre>
-<pre class="r"><code>cat(&#39;Correlation between Targeted BPM PC15 and Untargeted BPM PC5 is&#39;,
-    stats::cor.test(metaBaseSigPC$PC15, metaBaseSigPC$PC5,
-                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Targeted BPM PC15 and Untargeted BPM PC5 is 0.5072442</code></pre>
-<pre class="r"><code># cat(&#39;Correlation between Targeted BPM PC11 and Targeted BPM PC15 is&#39;,
-#     stats::cor.test(metaBaseSigPC$PC11, metaBaseSigPC$PC15,
-#                     method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)
-
-# Display relationship between significant PCs
-ggplot(metaBaseSigPC, aes(x=PC15, PC5, col=Recurrence)) +
-  geom_point(size = 4) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)),
-                   method = &#39;pearson&#39;, size = 5, color = &#39;black&#39;) +
-  stat_smooth(formula = y ~ x, method = &quot;lm&quot;, color = &quot;grey&quot;, alpha = 0.2) +
-  labs(x = &#39;PC15 (Targeted BPM)&#39;, y = &#39;PC5 (Untargeted BPM)&#39;) +
-  scale_color_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
-  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-1">
-Past versions of unnamed-chunk-7-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-7-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-7-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p><strong>Targeted Tumor Tissue Metabolomics vs Untargeted
+<br/> <strong>Targeted Tumor Tissue Metabolomics vs Untargeted
 TTM</strong></p>
-<pre class="r"><code># TTM_Hell vs TTM_Hopf
+<pre class="r"><code># &lt;font size=&#39;4&#39;&gt; Original Untargeted data with missing values &lt;/font&gt;\
+
+# TTM_Hell vs TTM_Hopf
 # Extract significant PCs from different datasets and combine needed information
 # into a table
 metaTumorSigPC_Hell &lt;- dplyr::select(metaTumorRes_Hell$pcTab, c(Sample, PC16))
-metaTumorSigPC_Hopf &lt;- dplyr::select(metaTumorRes_Hopf$pcTab, c(Sample, PC6, Recurrence))
+metaTumorSigPC_Hopf &lt;- dplyr::select(metaTumorRes_Hopf$pcTab, c(Sample, PC5, Recurrence))
 metaTumorSigPC &lt;- dplyr::left_join(metaTumorSigPC_Hell, metaTumorSigPC_Hopf, by = &#39;Sample&#39;)
 # Compute correlations between significant PCs
-cat(&#39;Correlation between Targeted TTM PC16 and Untargeted TTM PC6 is&#39;,
-    stats::cor.test(metaTumorSigPC$PC16, metaTumorSigPC$PC6,
+cat(&#39;Correlation between Targeted TTM PC16 and Untargeted TTM PC5 is&#39;,
+    stats::cor.test(metaTumorSigPC$PC16, metaTumorSigPC$PC5,
                     method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Targeted TTM PC16 and Untargeted TTM PC6 is -0.2196444</code></pre>
-<p><br/> <br/></p>
-<p><font size='4'> Imputed Untargeted data using MissForest algorithm
-</font><br />
-<br/> <strong>Targeted TTM vs Imputed Untargeted TTM</strong><br />
-Display Recurrence-related PC learned from imputed Untargeted TTM
-dataset</p>
-<pre class="r"><code># Load imputed data
-impuMetaTumor_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/impuByMF/impuTTM_Hopf.rds&#39;)
-# Conduct PCA
-impuMetaTumorRes_Hopf &lt;- SOA(impuMetaTumor_Hopf, factor = &#39;Recurrence&#39;)
-impuMetaTumorRes_Hopf$tPCASigRes</code></pre>
-<pre><code>  Var1       Var2      pVal   tStats   pValAdj
-1  PC6 Recurrence 0.0385144 2.232625 0.6281249</code></pre>
-<pre class="r"><code># TTM_Hell vs imputed TTM_Hopf
-# Extract significant PCs and combine needed information into a table
-metaTumorSigPC_Hell &lt;- dplyr::select(metaTumorRes_Hell$pcTab, c(Sample, PC16)) %&gt;%
-  dplyr::mutate(Sample = stringr::str_remove(Sample, &#39;_.*&#39;))
-impuMetaTumorSigPC_Hopf &lt;- dplyr::select(impuMetaTumorRes_Hopf$pcTab,
-                                         c(Sample, PC6, Recurrence)) %&gt;%
-  dplyr::mutate(Sample = stringr::str_remove(Sample, &#39;_.*&#39;))
-metaTumorSigPC &lt;- dplyr::left_join(metaTumorSigPC_Hell, impuMetaTumorSigPC_Hopf,
-                                   by = &#39;Sample&#39;)
-# Compute correlations between significant PCs
-cat(&#39;Correlation between Targeted TTM PC16 and Imputed Untargeted TTM PC6 is&#39;,
-    stats::cor.test(metaTumorSigPC$PC16, metaTumorSigPC$PC6,
-                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Targeted TTM PC16 and Imputed Untargeted TTM PC6 is 0.2729389</code></pre>
-<p><strong>Untargeted TTM vs Imputed Untargeted TTM</strong></p>
-<pre class="r"><code># TTM_Hopf vs imputed TTM_Hopf
-# Extract significant PCs and combine needed information into a table
-metaTumorSigPC_Hopf &lt;- dplyr::select(metaTumorRes_Hopf$pcTab, c(Sample, PC6)) %&gt;%
-  dplyr::mutate(Sample = stringr::str_remove(Sample, &#39;_.*&#39;))
-impuMetaTumorSigPC_Hopf &lt;- dplyr::select(impuMetaTumorRes_Hopf$pcTab,
-                                         c(Sample, PC6, Recurrence)) %&gt;%
-  dplyr::mutate(Sample = stringr::str_remove(Sample, &#39;_.*&#39;)) %&gt;%
-  dplyr::rename(impuPC6 = PC6)
-metaTumorSigPC &lt;- dplyr::left_join(metaTumorSigPC_Hopf, impuMetaTumorSigPC_Hopf,
-                                   by = &#39;Sample&#39;)
-# Compute correlations between significant PCs
-cat(&#39;Correlation between Untargeted TTM PC6 and Imputed Untargeted TTM PC6 is&#39;,
-    stats::cor.test(metaTumorSigPC$PC6, metaTumorSigPC$impuPC6,
-                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Untargeted TTM PC6 and Imputed Untargeted TTM PC6 is -0.5198117</code></pre>
-<pre class="r"><code># Display relationship between significant PCs
-ggplot(metaTumorSigPC, aes(x=PC6, impuPC6, col=Recurrence)) +
-  geom_point(size = 4) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)),
-                   method = &#39;pearson&#39;, size = 5, color = &#39;black&#39;) +
-  stat_smooth(formula = y ~ x, method = &quot;lm&quot;, color = &quot;grey&quot;, alpha = 0.2) +
-  labs(x = &#39;PC6 (Untargeted TTM)&#39;, y = &#39;PC6 (Untargeted &amp; Imputed TTM)&#39;) +
-  scale_color_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
-  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-10-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-1">
-Past versions of unnamed-chunk-10-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-10-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-10-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p><strong>Targeted Normal Tissue Metabolomics vs Imputed Untargeted
-NTM</strong><br />
-Display Recurrence-related PCs learned from imputed Untargeted NTM
-dataset</p>
-<pre class="r"><code># NTM_Hell
-# Extract significant PCs
-metaNormalSigPC_Hell &lt;- dplyr::select(metaNormalRes_Hell$pcTab,
-                                      c(Sample, PC6, PC17, PC9))
-# Computed correlations between significant PCs
-# stats::cor.test(metaNormalSigPC_Hell$PC6, metaNormalSigPC_Hell$PC17,
-#                 method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate
-# stats::cor.test(metaNormalSigPC_Hell$PC6, metaNormalSigPC_Hell$PC9,
-#                 method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate
-
-# Load imputed data
-impuMetaNormal_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/impuByMF/impuNTM_Hopf.rds&#39;)
-# Conduct PCA
-impuMetaNormalRes_Hopf &lt;- SOA(impuMetaNormal_Hopf, factor = &#39;Recurrence&#39;)
-impuMetaNormalRes_Hopf$tPCASigRes</code></pre>
-<pre><code>  Var1       Var2       pVal    tStats   pValAdj
-1 PC10 Recurrence 0.01878822 -2.582216 0.3392681
-2 PC14 Recurrence 0.03392681  2.295630 0.3392681</code></pre>
-<pre class="r"><code># NTM_Hell vs imputed NTM_Hopf
-# Extract significant PCs and combine needed information into a table
-metaNormalSigPC_Hell &lt;- dplyr::mutate(metaNormalSigPC_Hell,
-                                      Sample = stringr::str_remove(Sample, &#39;_.*&#39;))
-impuMetaNormalSigPC_Hopf &lt;- dplyr::select(impuMetaNormalRes_Hopf$pcTab,
-                                          c(Sample, PC10, PC14)) %&gt;%
-  dplyr::mutate(Sample = stringr::str_remove(Sample, &#39;_.*&#39;))
-metaNormalSigPC &lt;- dplyr::left_join(metaNormalSigPC_Hell, impuMetaNormalSigPC_Hopf,
-                                    by = &#39;Sample&#39;)
-# Computed correlations between significant PCs
-cat(&#39;Correlation between Targeted PC6 and Imputed Untargeted PC10 is&#39;,
-    stats::cor.test(metaNormalSigPC_Hell$PC6, impuMetaNormalSigPC_Hopf$PC10,
-                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Targeted PC6 and Imputed Untargeted PC10 is -0.07162908</code></pre>
-<pre class="r"><code>cat(&#39;Correlation between Targeted PC6 and Imputed Untargeted PC14 is&#39;,
-    stats::cor.test(metaNormalSigPC_Hell$PC6, impuMetaNormalSigPC_Hopf$PC14,
-                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Targeted PC6 and Imputed Untargeted PC14 is 0.07499574</code></pre>
-<pre class="r"><code>cat(&#39;Correlation between Targeted PC17 and Imputed Untargeted PC10 is&#39;,
-    stats::cor.test(metaNormalSigPC_Hell$PC17, impuMetaNormalSigPC_Hopf$PC10,
-                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Targeted PC17 and Imputed Untargeted PC10 is 0.08523423</code></pre>
-<pre class="r"><code>cat(&#39;Correlation between Targeted PC17 and Imputed Untargeted PC14 is&#39;,
-    stats::cor.test(metaNormalSigPC_Hell$PC17, impuMetaNormalSigPC_Hopf$PC14,
-                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Targeted PC17 and Imputed Untargeted PC14 is -0.3294128</code></pre>
-<pre class="r"><code>cat(&#39;Correlation between Targeted PC9 and Imputed Untargeted PC10 is&#39;,
-    stats::cor.test(metaNormalSigPC_Hell$PC9, impuMetaNormalSigPC_Hopf$PC10,
-                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Targeted PC9 and Imputed Untargeted PC10 is 0.05301909</code></pre>
-<pre class="r"><code>cat(&#39;Correlation between Targeted PC9 and Imputed Untargeted PC14 is&#39;,
-    stats::cor.test(metaNormalSigPC_Hell$PC9, impuMetaNormalSigPC_Hopf$PC14,
-                    method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<pre><code>Correlation between Targeted PC9 and Imputed Untargeted PC14 is -0.02838791</code></pre>
-<pre class="r"><code># cat(&#39;Correlation between Imputed Targeted PC10 and Imputed Untargeted PC14 is&#39;,
-#     stats::cor.test(impuMetaNormalSigPC_Hopf$PC10, impuMetaNormalSigPC_Hopf$PC14,
-#                     method = &#39;pearson&#39;, use = &quot;pairwise.complete.obs&quot;)$estimate)</code></pre>
-<p>=&gt; Generally, correlations of Recurrence-related PCs between
-Targeted and (Imputed) Untargeted datasets are low, indicating that
-Targeted and Untargeted data may carry different information in terms of
-predicting cancer recurrence. However, cannot say if MissForest
-algorithm is reliable for imputing missing values. Theoretically,
-MissForest should be good at handling MAR (missing at random), yet we
-assume much of missingness in our data is due to extremely small values
-(MNAR, missing not at random) that machine fails to detect. Therefore,
-it might also be that too much information is removed from Untargeted
-datasets when conducting PCA and imputated values are not biologically
-accurate, leading to uncorrelated results between Targeted and
-Untargeted datasets.</p>
+<pre><code>Correlation between Targeted TTM PC16 and Untargeted TTM PC5 is 0.206152</code></pre>
+<p>=&gt; Correlation of Recurrence-related PCs between Targeted and
+Untargeted Tumor Tissue Metabolomics are low, indicating that these two
+datasets may carry different information in terms of predicting cancer
+recurrence. Yet, it may also be that too much information is removed
+from Untargeted datasets since PCA does not use features with missing
+data, leading to unreliable Recurrence-related PC. Maybe same missing
+data issue also cause that Untargeted Baseline Plasma Metabolomics and
+Untargeted Normal Tissue Metabolomics fail to learn Recurrence-related
+PCs.</p>
 </div>
 <div id="feature-correlations" class="section level1">
 <h1>Feature correlations</h1>
@@ -1157,8 +978,7 @@ featTab_Hell &lt;- t(datMat_Hell) %&gt;%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaPlasmaRes_Hopf_Hell &lt;- corrIter(featTab_Hopf, featTab_Hell, cmn_col = &#39;Sample&#39;)
-# saveRDS(corrMetaPlasmaRes_Hopf_Hell, paste0(result_path,
-#                                             &#39;corrMetaPlasmaRes_Hopf_Hell.rds&#39;))
+# saveRDS(corrMetaPlasmaRes_Hopf_Hell, &#39;./data/corrMetaPlasmaRes_Hopf_Hell.rds&#39;)
 corrMetaPlasmaRes_Hopf_Hell &lt;- readRDS(&#39;./data/corrMetaPlasmaRes_Hopf_Hell.rds&#39;)
 
 # Convert long data to wide data
@@ -1170,44 +990,7 @@ corrMat &lt;- dplyr::select(corrMetaPlasmaRes_Hopf_Hell, Var1, Var2, Corr) %&gt;
 a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    breaks = seq(-1, 1, by = 0.02))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-13-1">
-Past versions of unnamed-chunk-13-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-13-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-13-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># ggsave(paste0(result_path, &#39;metaPlasma_heatmap_feat_corr_Hopf_Hell.png&#39;), a,
 #        device = &#39;png&#39;, dpi = 400)</code></pre>
 <p>Show only highly positively correlated feature pairs through network
@@ -1246,13 +1029,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;firebrick&#39;, &#39;steelblue&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-14-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-10-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-14-1">
-Past versions of unnamed-chunk-14-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-1">
+Past versions of unnamed-chunk-10-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-14-1" class="collapse">
+<div id="fig-unnamed-chunk-10-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -1271,7 +1054,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-14-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-10-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -1284,12 +1067,11 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code># ggsave(paste0(result_path, &#39;metaPlasma_feat_corr_network_Hopf_Hell.png&#39;),
-#        height = 10, width = 10, device = &#39;png&#39;, dpi = 400)</code></pre>
+<pre class="r"><code># ggsave(&#39;./output/network_tar_untar_PM.png&#39;, device = &#39;png&#39;, dpi = 400, height = 10, width = 10)</code></pre>
 <p><font size='5'><strong>Untargeted Plasma Metabolites</strong>
 </font><br />
 Systematically compute correlations of all feature pairs in Untargeted
-(Baseline) Plasma Metabolomics. There are 62 out of 1406 Baseline
+(Baseline) Plasma Metabolomics. There are 43 out of 974 Baseline
 features that can potentially predict patient cancer recurrences. Since
 features (defined by m/z and retention time) in this dataset have not
 yet been identified through database search, there might be a large
@@ -1310,8 +1092,7 @@ featTab &lt;- t(datMat_Hopf) %&gt;%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaBaseRes_Hopf &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
-# saveRDS(corrMetaBaseRes_Hopf, paste0(result_path,
-#                                        &#39;AG_Hopf/corrMetaBaseRes_Hopf.rds&#39;))
+# saveRDS(corrMetaBaseRes_Hopf, &#39;./data/AG_Hopf/corrMetaBaseRes_Hopf.rds&#39;)
 corrMetaBaseRes_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/corrMetaBaseRes_Hopf.rds&#39;)
 
 # Convert long data to wide data
@@ -1327,7 +1108,7 @@ corrMat &lt;- dplyr::select(corrMetaBaseRes_Hopf, Var1, Var2, Corr) %&gt;%
 <p>Show highly positively correlated feature pairs through network plot.
 Cutoff is (1) correlations greater than 0.9 and (2) adjusted p-values
 less than 0.05. Red dots indicate Recurrence-related features captured
-in Baseline samples. There are 29 (out of 62) significant features
+in Baseline samples. There are 27 (out of 43) significant features
 here.</p>
 <pre class="r"><code># Prepare node table
 nodes &lt;- data.frame(id = seq_len(nrow(datMat_Hopf)),
@@ -1364,44 +1145,7 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-16-1.png" width="1344" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-16-1">
-Past versions of unnamed-chunk-16-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-16-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-16-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-12-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hopf/metaBase_network_feat_corr.png&#39;),
 #        height = 10, width = 11, device = &#39;png&#39;, dpi = 400)</code></pre>
 <p><strong>Use both Baseline and Follow-up samples to compute feature
@@ -1425,8 +1169,7 @@ featTab &lt;- t(datMat_Hopf) %&gt;%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaPlasmaRes_Hopf &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
-# saveRDS(corrMetaPlasmaRes_Hopf, paste0(result_path,
-#                                        &#39;AG_Hopf/corrMetaPlasmaRes_Hopf.rds&#39;))
+# saveRDS(corrMetaPlasmaRes_Hopf, &#39;./data/AG_Hopf/corrMetaPlasmaRes_Hopf.rds&#39;)
 corrMetaPlasmaRes_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/corrMetaPlasmaRes_Hopf.rds&#39;)
 
 # Convert long data to wide data
@@ -1439,13 +1182,13 @@ corrMat &lt;- dplyr::select(corrMetaPlasmaRes_Hopf, Var1, Var2, Corr) %&gt;%
 # Make heatmap
 a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-17-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-17-1">
-Past versions of unnamed-chunk-17-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-13-1">
+Past versions of unnamed-chunk-13-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-17-1" class="collapse">
+<div id="fig-unnamed-chunk-13-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -1464,7 +1207,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-17-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-13-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -1529,13 +1272,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-18-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-14-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-18-1">
-Past versions of unnamed-chunk-18-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-14-1">
+Past versions of unnamed-chunk-14-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-18-1" class="collapse">
+<div id="fig-unnamed-chunk-14-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -1554,7 +1297,18 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-18-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/60e2be1baf6c417a1fac3ca5b43772501dff8cbb/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-14-1.png" target="_blank">60e2be1</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-26
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-14-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -1589,7 +1343,7 @@ featTab &lt;- t(datMat_Hell) %&gt;%
 
 # Compute correlations
 # corrMetaBaseRes_Hell &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
-# saveRDS(corrMetaBaseRes_Hell, paste0(result_path, &#39;AG_Hell/corrMetaBaseRes_Hell.rds&#39;))
+# saveRDS(corrMetaBaseRes_Hell, &#39;./data/AG_Hell/corrMetaBaseRes_Hell.rds&#39;)
 corrMetaBaseRes_Hell &lt;- readRDS(&#39;./data/AG_Hell/corrMetaBaseRes_Hell.rds&#39;)
 
 # Convert long data to wide data
@@ -1645,13 +1399,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-20-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-16-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-20-1">
-Past versions of unnamed-chunk-20-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-16-1">
+Past versions of unnamed-chunk-16-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-20-1" class="collapse">
+<div id="fig-unnamed-chunk-16-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -1670,7 +1424,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-20-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-16-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -1698,7 +1452,7 @@ featTab &lt;- t(datMat_Hell) %&gt;%
 
 # Compute correlations
 # corrMetaPlasmaRes_Hell &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
-# saveRDS(corrMetaPlasmaRes_Hell, paste0(result_path, &#39;AG_Hell/corrMetaPlasmaRes_Hell.rds&#39;))
+# saveRDS(corrMetaPlasmaRes_Hell, &#39;./data/AG_Hell/corrMetaPlasmaRes_Hell.rds&#39;)
 corrMetaPlasmaRes_Hell &lt;- readRDS(&#39;./data/AG_Hell/corrMetaPlasmaRes_Hell.rds&#39;)
 
 # Convert long data to wide data
@@ -1711,13 +1465,13 @@ corrMat &lt;- dplyr::select(corrMetaPlasmaRes_Hell, Var1, Var2, Corr) %&gt;%
 # Make heatmap
 a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-21-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-17-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-1">
-Past versions of unnamed-chunk-21-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-17-1">
+Past versions of unnamed-chunk-17-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-21-1" class="collapse">
+<div id="fig-unnamed-chunk-17-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -1736,7 +1490,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-21-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-17-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -1786,13 +1540,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-22-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-18-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-1">
-Past versions of unnamed-chunk-22-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-18-1">
+Past versions of unnamed-chunk-18-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-22-1" class="collapse">
+<div id="fig-unnamed-chunk-18-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -1811,7 +1565,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-22-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-18-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -1850,8 +1604,7 @@ featTab_Hell &lt;- t(datMat_Hell) %&gt;%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaTissueRes_Hopf_Hell &lt;- corrIter(featTab_Hopf, featTab_Hell, cmn_col = &#39;Sample&#39;)
-# saveRDS(corrMetaTissueRes_Hopf_Hell, paste0(result_path,
-#                                             &#39;corrMetaTissueRes_Hopf_Hell.rds&#39;))
+# saveRDS(corrMetaTissueRes_Hopf_Hell, &#39;./data/corrMetaTissueRes_Hopf_Hell.rds&#39;)
 corrMetaTissueRes_Hopf_Hell &lt;- readRDS(&#39;./data/corrMetaTissueRes_Hopf_Hell.rds&#39;)
 
 # Convert long data to wide data
@@ -1863,44 +1616,7 @@ corrMat &lt;- dplyr::select(corrMetaTissueRes_Hopf_Hell, Var1, Var2, Corr) %&gt;
 a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    breaks = seq(-1, 1, by = 0.02))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-23-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-23-1">
-Past versions of unnamed-chunk-23-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-23-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-23-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-19-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># ggsave(paste0(result_path, &#39;diffMethod_metaTissue_featCorr_heatmap.png&#39;), a,
 #        device = &#39;png&#39;, dpi = 400, height = 8, width = 10)</code></pre>
 <p>Show only highly positively correlated feature pairs through network
@@ -1939,13 +1655,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;firebrick&#39;, &#39;steelblue&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-24-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-20-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-24-1">
-Past versions of unnamed-chunk-24-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-20-1">
+Past versions of unnamed-chunk-20-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-24-1" class="collapse">
+<div id="fig-unnamed-chunk-20-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -1964,7 +1680,18 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-24-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/60e2be1baf6c417a1fac3ca5b43772501dff8cbb/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-20-1.png" target="_blank">60e2be1</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-26
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-20-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -1999,8 +1726,7 @@ featTab &lt;- t(datMat) %&gt;%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaTumorRes_Hopf &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
-# saveRDS(corrMetaTumorRes_Hopf, paste0(result_path,
-#                                        &#39;AG_Hopf/corrMetaTumorRes_Hopf.rds&#39;))
+# saveRDS(corrMetaTumorRes_Hopf, &#39;./data/AG_Hopf/corrMetaTumorRes_Hopf.rds&#39;)
 corrMetaTumorRes_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/corrMetaTumorRes_Hopf.rds&#39;)
 
 # Convert long data to wide data
@@ -2052,13 +1778,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-26-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-22-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-26-1">
-Past versions of unnamed-chunk-26-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-1">
+Past versions of unnamed-chunk-22-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-26-1" class="collapse">
+<div id="fig-unnamed-chunk-22-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -2077,7 +1803,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-26-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-22-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -2108,8 +1834,7 @@ featTab &lt;- t(datMat) %&gt;%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaNormalRes_Hopf &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
-# saveRDS(corrMetaNormalRes_Hopf, paste0(result_path,
-#                                        &#39;AG_Hopf/corrMetaNormalRes_Hopf.rds&#39;))
+# saveRDS(corrMetaNormalRes_Hopf, &#39;./data/AG_Hopf/corrMetaNormalRes_Hopf.rds&#39;)
 corrMetaNormalRes_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/corrMetaNormalRes_Hopf.rds&#39;)
 
 # Convert long data to wide data
@@ -2161,13 +1886,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-28-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-24-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-28-1">
-Past versions of unnamed-chunk-28-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-24-1">
+Past versions of unnamed-chunk-24-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-28-1" class="collapse">
+<div id="fig-unnamed-chunk-24-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -2186,7 +1911,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-28-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-24-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -2214,8 +1939,7 @@ featTab &lt;- t(datMat) %&gt;%
 
 # Systematically compute correlations between untargeted feature pairs
 # corrMetaTissueRes_Hopf &lt;- corrIter(featTab, featTab, cmn_col = &#39;Sample&#39;)
-# saveRDS(corrMetaTissueRes_Hopf, paste0(result_path,
-#                                        &#39;AG_Hopf/corrMetaTissueRes_Hopf.rds&#39;))
+# saveRDS(corrMetaTissueRes_Hopf, &#39;./data/AG_Hopf/corrMetaTissueRes_Hopf.rds&#39;)
 corrMetaTissueRes_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/corrMetaTissueRes_Hopf.rds&#39;)
 
 # Convert long data to wide data
@@ -2228,44 +1952,7 @@ corrMat &lt;- dplyr::select(corrMetaTissueRes_Hopf, Var1, Var2, Corr) %&gt;%
 # Make heatmap
 a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-29-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-29-1">
-Past versions of unnamed-chunk-29-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-29-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-29-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-25-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hopf/metaTissue_heatmap_feat_corr.png&#39;), a,
 #        device = &#39;png&#39;, dpi = 400)</code></pre>
 <p>Show only highly positively correlated feature pairs through network
@@ -2303,13 +1990,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-30-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-26-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-30-1">
-Past versions of unnamed-chunk-30-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-26-1">
+Past versions of unnamed-chunk-26-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-30-1" class="collapse">
+<div id="fig-unnamed-chunk-26-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -2328,7 +2015,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-30-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-26-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -2419,13 +2106,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-32-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-28-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-32-1">
-Past versions of unnamed-chunk-32-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-28-1">
+Past versions of unnamed-chunk-28-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-32-1" class="collapse">
+<div id="fig-unnamed-chunk-28-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -2444,7 +2131,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-32-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-28-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -2531,13 +2218,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-34-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-30-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-34-1">
-Past versions of unnamed-chunk-34-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-30-1">
+Past versions of unnamed-chunk-30-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-34-1" class="collapse">
+<div id="fig-unnamed-chunk-30-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -2556,7 +2243,18 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-34-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/60e2be1baf6c417a1fac3ca5b43772501dff8cbb/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-30-1.png" target="_blank">60e2be1</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-26
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-30-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -2597,44 +2295,7 @@ corrMat &lt;- dplyr::select(corrMetaTissueRes_Hell, Var1, Var2, Corr) %&gt;%
 # Make heatmap
 a &lt;- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-35-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-35-1">
-Past versions of unnamed-chunk-35-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-35-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-35-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-31-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># ggsave(paste0(result_path, &#39;AG_Hell/metaTissue_heatmap_feat_corr.png&#39;), a,
 #        device = &#39;png&#39;, dpi = 400)</code></pre>
 <p>Show only highly positively correlated feature pairs through network
@@ -2672,13 +2333,13 @@ ggraph(g, layout = &#39;fr&#39;) + #layout = &#39;auto&#39;
   theme_void() +
   scale_edge_alpha_continuous(name = &#39;Correlation&#39;) +
   scale_color_manual(values = c(&#39;black&#39;, &#39;firebrick&#39;))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-36-1.png" width="1344" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-32-1.png" width="1344" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-36-1">
-Past versions of unnamed-chunk-36-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-32-1">
+Past versions of unnamed-chunk-32-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-36-1" class="collapse">
+<div id="fig-unnamed-chunk-32-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -2697,7 +2358,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-36-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-32-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -2750,11 +2411,11 @@ groups.</p>
           &#39;features in Untargeted Normal Metabolomics can significantly predict&#39;,
           &#39;patient cancer recurrences.&#39;))</code></pre>
 <pre><code>42 out of 630 features in Targeted Plasma Metabolomics, and
- 62 out of 1406 features in Untargeted Plasma Metabolomics, and
+ 43 out of 974 features in Untargeted Plasma Metabolomics, and
  8 out of 630 features in Targeted Tumor Metabolomics, and
- 12 out of 1387 features in Untargeted Tumor Metabolomics, and
+ 7 out of 882 features in Untargeted Tumor Metabolomics, and
  5 out of 630 features in Targeted Normal Metabolomics, and
- 9 out of 1387 features in Untargeted Normal Metabolomics can significantly predict patient cancer recurrences.</code></pre>
+ 8 out of 882 features in Untargeted Normal Metabolomics can significantly predict patient cancer recurrences.</code></pre>
 <pre class="r"><code># Make barplot
 # Compute proportion of significant features
 # Compute proportion of significant features
@@ -2784,44 +2445,7 @@ ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill=Method)) +
   scale_fill_discrete(name = &#39;Method&#39;) +
   theme(axis.title = element_text(size = 16), axis.text = element_text(size = 12),
         legend.title = element_text(size = 14), legend.text = element_text(size = 12))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-37-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-37-1">
-Past versions of unnamed-chunk-37-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-37-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-37-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-33-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># ggsave(paste0(result_path, &#39;diffMethod_proporSigFeats.png&#39;), device = &#39;png&#39;, dpi = 400,
 #        height = 8, width = 10)</code></pre>
 </div>
@@ -2881,13 +2505,13 @@ summPlasmaTab &lt;- dplyr::bind_rows(metaPlasmaTab_Hell, metaPlasmaTab_Hopf)
 mofaPlasmaObject &lt;- MOFA2::create_mofa_from_df(summPlasmaTab, extract_metadata = T)
 # Overview data in MOFA object
 plot_data_overview(mofaPlasmaObject)</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-39-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-35-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-39-1">
-Past versions of unnamed-chunk-39-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-35-1">
+Past versions of unnamed-chunk-35-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-39-1" class="collapse">
+<div id="fig-unnamed-chunk-35-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -2906,7 +2530,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-39-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-35-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -2925,103 +2549,28 @@ LiaoQianWu
 # model_opts$num_factors &lt;- 10
 # train_opts &lt;- get_default_training_options(mofaPlasmaObject)
 # train_opts$convergence_mode &lt;- &#39;slow&#39;
-#
+# 
 # mofaPlasmaObject &lt;- prepare_mofa(mofaPlasmaObject,
 #                                  data_options = data_opts,
 #                                  model_options = model_opts,
 #                                  training_options = train_opts)
-#
+# 
 # mofaPlasmaObject &lt;- run_mofa(mofaPlasmaObject,
-#                              outfile = paste0(project_path,
-#                                               &#39;data/mofa_model/metaPlasma_mofa_10Fac.hdf5&#39;),
+#                              outfile = &#39;./data/mofa/co_metaPlasma_mofa_10Fac.hdf5&#39;,
 #                              use_basilisk = F)
-# saveRDS(mofaPlasmaObject, paste0(project_path, &#39;data/mofa_model/metaPlasma_mofa_10Fac.rds&#39;))
+# saveRDS(mofaPlasmaObject, &#39;./data/mofa/co_metaPlasma_mofa_10Fac.rds&#39;)
 
 
 # Load trained MOFA model
 mofaPlasmaObject &lt;- readRDS(&#39;./data/mofa/co_metaPlasma_mofa_10Fac.rds&#39;)
 
 # Do sanity check for factor correlations
-MOFA2::plot_factor_cor(mofaPlasmaObject)</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-39-2.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-39-2">
-Past versions of unnamed-chunk-39-2.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-39-2" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-39-2.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<pre class="r"><code># Perform variance dedecomposition analysis (coefficient of determination)
+# MOFA2::plot_factor_cor(mofaPlasmaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
 MOFA2::plot_variance_explained(mofaPlasmaObject, max_r2 = 15) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-39-3.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-39-3">
-Past versions of unnamed-chunk-39-3.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-39-3" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-39-3.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-35-2.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># Conduct association test between learnt factors and cancer recurrence
 facTab &lt;- tibble::as_tibble(get_factors(mofaPlasmaObject)[[&#39;Baseline Plasma&#39;]],
                             rownames = &#39;sample&#39;)
@@ -3040,13 +2589,13 @@ summTissueTab &lt;- dplyr::bind_rows(metaTissueTab_Hell, metaTissueTab_Hopf)
 mofaTissueObject &lt;- MOFA2::create_mofa_from_df(summTissueTab, extract_metadata = T)
 # Overview data in MOFA object
 plot_data_overview(mofaTissueObject)</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-40-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-36-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-40-1">
-Past versions of unnamed-chunk-40-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-36-1">
+Past versions of unnamed-chunk-36-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-40-1" class="collapse">
+<div id="fig-unnamed-chunk-36-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -3065,7 +2614,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-40-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-36-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -3084,17 +2633,16 @@ LiaoQianWu
 # model_opts$num_factors &lt;- 10
 # train_opts &lt;- get_default_training_options(mofaTissueObject)
 # train_opts$convergence_mode &lt;- &#39;slow&#39;
-#
+# 
 # mofaTissueObject &lt;- prepare_mofa(mofaTissueObject,
 #                                  data_options = data_opts,
 #                                  model_options = model_opts,
 #                                  training_options = train_opts)
-#
+# 
 # mofaTissueObject &lt;- run_mofa(mofaTissueObject,
-#                              outfile = paste0(project_path,
-#                                               &#39;data/mofa_model/metaTissue_mofa_10Fac.hdf5&#39;),
+#                              outfile = &#39;./data/mofa/co_metaTissue_mofa_10Fac.hdf5&#39;,
 #                              use_basilisk = F)
-# saveRDS(mofaTissueObject, paste0(project_path, &#39;data/mofa_model/metaTissue_mofa_10Fac.rds&#39;))
+# saveRDS(mofaTissueObject, &#39;./data/mofa/co_metaTissue_mofa_10Fac.rds&#39;)
 
 
 # Load trained MOFA model
@@ -3107,44 +2655,7 @@ mofaTissueObject &lt;- readRDS(&#39;./data/mofa/co_metaTissue_mofa_10Fac.rds&#39
 MOFA2::plot_variance_explained(mofaTissueObject, max_r2 = 15) +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size = 11),
         text = element_text(size = 14))</code></pre>
-<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-40-2.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-40-2">
-Past versions of unnamed-chunk-40-2.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-40-2" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-40-2.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/comparisons_targeted_untargeted.Rmd/unnamed-chunk-36-2.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># ggsave(paste0(result_path, &#39;diffMethod_metaTissue_varExplained_mofa.png&#39;),
 #        height = 8, width = 10, device = &#39;png&#39;, dpi = 400)
 
@@ -3171,8 +2682,8 @@ tNormalRes &lt;- tTestIter(facTab, metaTab, cmn_col = &#39;sample&#39;) %&gt;%
 # tNormalRes</code></pre>
 <p>=&gt; The MOFA models capture few factors that slightly explain the
 same sources of variation across Targeted and Untargeted Plasma (e.g.,
-Factor6) or Tissue (e.g., Factor5) Metabolomics. To sum up, Targeted and
-Untargeted datasets have some similarities but not much.</p>
+Factor4) or Tissue (e.g., Factor10) Metabolomics. To sum up, Targeted
+and Untargeted datasets have some similarities but not much.</p>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
@@ -3214,41 +2725,38 @@ other attached packages:
 [27] workflowr_1.7.0            
 
 loaded via a namespace (and not attached):
-  [1] Rtsne_0.16             colorspace_2.1-0       ggsignif_0.6.4        
-  [4] rprojroot_2.0.3        XVector_0.36.0         fs_1.6.1              
-  [7] rstudioapi_0.14        ggpubr_0.6.0           farver_2.1.1          
- [10] graphlayouts_0.8.4     fansi_1.0.4            splines_4.2.1         
- [13] cachem_1.0.7           knitr_1.42             polyclip_1.10-4       
- [16] jsonlite_1.8.4         broom_1.0.4            png_0.1-8             
- [19] pheatmap_1.0.12        uwot_0.1.14            ggforce_0.4.1         
- [22] HDF5Array_1.24.2       compiler_4.2.1         httr_1.4.5            
- [25] backports_1.4.1        basilisk_1.8.1         Matrix_1.5-3          
- [28] fastmap_1.1.1          cli_3.6.1              later_1.3.0           
- [31] tweenr_2.0.2           htmltools_0.5.5        tools_4.2.1           
- [34] gtable_0.3.3           glue_1.6.2             GenomeInfoDbData_1.2.8
- [37] reshape2_1.4.4         Rcpp_1.0.10            carData_3.0-5         
- [40] jquerylib_0.1.4        vctrs_0.6.1            rhdf5filters_1.8.0    
- [43] nlme_3.1-162           proDA_1.10.0           xfun_0.38             
- [46] ps_1.7.3               timechange_0.2.0       lifecycle_1.0.3       
- [49] rstatix_0.7.2          getPass_0.2-2          zlibbioc_1.42.0       
- [52] MASS_7.3-58.3          scales_1.2.1           basilisk.utils_1.8.0  
- [55] tidygraph_1.2.3        hms_1.1.3              promises_1.2.0.1      
- [58] parallel_4.2.1         rhdf5_2.40.0           RColorBrewer_1.1-3    
- [61] yaml_2.3.7             gridExtra_2.3          sass_0.4.5            
- [64] stringi_1.7.12         highr_0.10             corrplot_0.92         
- [67] filelock_1.0.2         rlang_1.1.0            pkgconfig_2.0.3       
- [70] bitops_1.0-7           evaluate_0.20          lattice_0.20-45       
- [73] Rhdf5lib_1.18.2        labeling_0.4.2         cowplot_1.1.1         
- [76] processx_3.8.0         tidyselect_1.2.0       plyr_1.8.8            
- [79] magrittr_2.0.3         R6_2.5.1               generics_0.1.3        
- [82] DelayedArray_0.22.0    DBI_1.1.3              mgcv_1.8-42           
- [85] pillar_1.9.0           whisker_0.4.1          withr_2.5.0           
- [88] abind_1.4-5            RCurl_1.98-1.10        dir.expiry_1.4.0      
- [91] car_3.1-1              utf8_1.2.3             RVenn_1.1.0           
- [94] tzdb_0.3.0             rmarkdown_2.21         viridis_0.6.2         
- [97] grid_4.2.1             callr_3.7.3            git2r_0.31.0          
-[100] digest_0.6.31          httpuv_1.6.9           extraDistr_1.9.1      
-[103] munsell_0.5.0          viridisLite_0.4.1      bslib_0.4.2           </code></pre>
+ [1] Rtsne_0.16             colorspace_2.1-0       rprojroot_2.0.3       
+ [4] XVector_0.36.0         fs_1.6.1               rstudioapi_0.14       
+ [7] farver_2.1.1           graphlayouts_0.8.4     fansi_1.0.4           
+[10] cachem_1.0.7           knitr_1.42             polyclip_1.10-4       
+[13] jsonlite_1.8.4         png_0.1-8              pheatmap_1.0.12       
+[16] uwot_0.1.14            ggforce_0.4.1          HDF5Array_1.24.2      
+[19] compiler_4.2.1         httr_1.4.5             basilisk_1.8.1        
+[22] Matrix_1.5-3           fastmap_1.1.1          cli_3.6.1             
+[25] later_1.3.0            tweenr_2.0.2           htmltools_0.5.5       
+[28] tools_4.2.1            gtable_0.3.3           glue_1.6.2            
+[31] GenomeInfoDbData_1.2.8 reshape2_1.4.4         Rcpp_1.0.10           
+[34] jquerylib_0.1.4        vctrs_0.6.1            rhdf5filters_1.8.0    
+[37] proDA_1.10.0           xfun_0.38              ps_1.7.3              
+[40] timechange_0.2.0       lifecycle_1.0.3        getPass_0.2-2         
+[43] zlibbioc_1.42.0        MASS_7.3-58.3          scales_1.2.1          
+[46] basilisk.utils_1.8.0   tidygraph_1.2.3        hms_1.1.3             
+[49] promises_1.2.0.1       parallel_4.2.1         rhdf5_2.40.0          
+[52] RColorBrewer_1.1-3     yaml_2.3.7             gridExtra_2.3         
+[55] sass_0.4.5             stringi_1.7.12         highr_0.10            
+[58] corrplot_0.92          filelock_1.0.2         rlang_1.1.0           
+[61] pkgconfig_2.0.3        bitops_1.0-7           evaluate_0.20         
+[64] lattice_0.20-45        Rhdf5lib_1.18.2        labeling_0.4.2        
+[67] cowplot_1.1.1          processx_3.8.0         tidyselect_1.2.0      
+[70] plyr_1.8.8             magrittr_2.0.3         R6_2.5.1              
+[73] generics_0.1.3         DelayedArray_0.22.0    DBI_1.1.3             
+[76] pillar_1.9.0           whisker_0.4.1          withr_2.5.0           
+[79] RCurl_1.98-1.10        dir.expiry_1.4.0       utf8_1.2.3            
+[82] RVenn_1.1.0            tzdb_0.3.0             rmarkdown_2.21        
+[85] viridis_0.6.2          grid_4.2.1             callr_3.7.3           
+[88] git2r_0.31.0           digest_0.6.31          httpuv_1.6.9          
+[91] extraDistr_1.9.1       munsell_0.5.0          viridisLite_0.4.1     
+[94] bslib_0.4.2           </code></pre>
 </div>
 </div>
 </div>
