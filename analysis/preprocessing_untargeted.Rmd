@@ -38,6 +38,13 @@ library('SummarizedExperiment')
 library('tidyverse')
 # Load user-defined functions
 source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
 ```
 
 # Plasma Metabolomics
@@ -80,30 +87,10 @@ cat('The following features have duplication:\n',
 
 Display distribution of original data
 ```{r}
-# Load another Plasma Metabolomics dataset (sample patients) for annotating
-# sample conditions (baseline, follow-up, or recurrence)
-sampleAnno <- readxl::read_excel(
-  './data/AG_Hell/Thorax cohort_not-normalized_subset plasma.xlsx',
-  skip = 1) %>%
-  dplyr::filter(!is.na(parents)) %>%
-  dplyr::select(c(`Sample Identification`, Individual_ID, Status)) %>%
-  dplyr::rename(Sample = `Sample Identification`, Patient = Individual_ID,
-                Condition = Status) %>%
-  dplyr::mutate(Sample = stringr::str_remove(Sample, '_3$'),
-                Condition = dplyr::case_when(
-                  Condition == 'BASELINE_SURGERY' ~ 'Baseline',
-                  Condition == 'FOLLOW-UP' ~ 'Follow-up',
-                  Condition == 'RECURRENCE' ~ 'Recurrence'))
-# Prepare information that patients experienced cancer recurrence or not
-recurrence <- dplyr::filter(sampleAnno, Condition != 'Baseline') %>%
-  dplyr::mutate(Recurrence = dplyr::case_when(
-    Condition == 'Follow-up' ~ 'No',
-    Condition == 'Recurrence' ~ 'Yes'
-  )) %>%
-  dplyr::select(-c(Sample, Condition))
-# Combine annotation data
-sampleAnno <- dplyr::left_join(sampleAnno, recurrence, by = 'Patient')
-
+# Load sample metadata from preprocessed Targeted Metabolomics SE object
+smpAnno <- colData(readRDS('./data/AG_Hell/metaPlasmaNorm.rds')) %>%
+  tibble::as_tibble(rownames = 'Sample') %>%
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
 
 # Convert messy wide data to tidy long table
 metaPlasmaTab <- tidyr::pivot_longer(metaPlasmaTab,
@@ -114,17 +101,17 @@ metaPlasmaTab <- tidyr::pivot_longer(metaPlasmaTab,
   # might be extremely small or normal values and perform log2-transformation on
   # feature abundance
   dplyr::mutate(Abundance = replace(Abundance, Abundance == 0, NA),
-                Sample = stringr::str_remove(Sample_ID, '_2_.'),
+                Identifier = stringr::str_remove(Sample_ID, '_2_.'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_'),
                 log2Abundance = log2(Abundance)) %>%
-  dplyr::left_join(sampleAnno, by = 'Sample')
+  dplyr::left_join(smpAnno, by = 'Identifier')
 
 # Display original data distribution
 ggplot(metaPlasmaTab, aes(x=Sample_ID, y=Abundance)) +
   geom_boxplot() +
   scale_y_log10() +
   labs(x = 'Sample', title = 'Original data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Display distribution of log2-transformed data
@@ -133,7 +120,7 @@ Display distribution of log2-transformed data
 ggplot(metaPlasmaTab, aes(x=Sample_ID, y=log2Abundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Log2(Abundance)', title = 'Log2-transformed data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Percentage of missing values in data
@@ -156,7 +143,7 @@ abunSumm <- group_by(metaPlasmaTab, Sample_ID) %>%
 ggplot(abunSumm, aes(x=Sample_ID, y=Value, col=Summary)) +
   geom_point() +
   labs(x = 'Sample', title = 'Original data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 <br/>
 - Is data on the same scale (mean and median)?\
@@ -183,16 +170,16 @@ metaPlasmaVsnTab <- tidyr::pivot_longer(abunVsnMat,
                                         cols = -'Feature_ID',
                                         names_to = 'Sample_ID',
                                         values_to = 'vsnAbundance') %>%
-  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, '_2_.'),
+  dplyr::mutate(Identifier = stringr::str_remove(Sample_ID, '_2_.'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_')) %>%
-  dplyr::left_join(sampleAnno, by = 'Sample')
+  dplyr::left_join(smpAnno, by = 'Identifier')
 
 # Display VSN normalized data
 ggplot(metaPlasmaVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Vsn normalized data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 ### Median normalization
@@ -209,16 +196,16 @@ metaPlasmaMediTab <- limma::normalizeBetweenArrays(abunMat, method = 'scale') %>
                       names_to = 'Sample_ID',
                       values_to = 'mediAbundance') %>%
   dplyr::mutate(mediAbundance = log2(mediAbundance),
-                Sample = stringr::str_remove(Sample_ID, '_2_.'),
+                Identifier = stringr::str_remove(Sample_ID, '_2_.'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_')) %>%
-  dplyr::left_join(sampleAnno, by = 'Sample')
+  dplyr::left_join(smpAnno, by = 'Identifier')
 
 # Display median normalized data
 ggplot(metaPlasmaMediTab, aes(x=Sample_ID, y=mediAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Median normalized data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 
 # - Check how median scaling works in limma?
 ```
@@ -257,13 +244,14 @@ ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
   geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
              linetype="dashed", linewidth = 0.7, show.legend = F) +
   labs(x = 'Standard Deviation', y = 'Count',
-       title = 'Standard deviation of each feature among triplicates')
+       title = 'Standard deviation of each feature among triplicates') +
+  th
 ```
 <br/>
 - Is the standard deviation near zero among triplicates?
 
 ## PCA
-Assess similarity among triplicate measures normalized by different methods
+Assess similarity among triplicate measures normalized by different methods for quality control
 
 ### Log2-transformation
 
@@ -292,7 +280,8 @@ pcLog2Tab <- pcLog2Res$x[, 1:10] %>%
 ggplot(pcLog2Tab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Log2-transformed data')
+  labs(title = 'Log2-transformed data') +
+  th
 ```
 <br/>
 - What is the meaning of separation?\
@@ -319,14 +308,10 @@ pcVsnTab <- pcVsnRes$x[, 1:10] %>%
 ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Vsn normalized data')
+  labs(title = 'Vsn normalized data') +
+  th
 
 # ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Condition, group=Sample)) +
-#   geom_point() +
-#   geom_line(col = 'grey50', linetype = 'dashed') +
-#   labs(title = 'Vsn normalized data')
-
-# ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Recurrence, group=Sample)) +
 #   geom_point() +
 #   geom_line(col = 'grey50', linetype = 'dashed') +
 #   labs(title = 'Vsn normalized data')
@@ -351,7 +336,8 @@ pcMediTab <- pcMediRes$x[, 1:10] %>%
 ggplot(pcMediTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Median normalized data')
+  labs(title = 'Median normalized data') +
+  th
 ```
 
 ## Scatterplots between triplicates
@@ -383,7 +369,9 @@ ggplot(log2ScatTabB12, aes(x=Batch1, y=Batch2)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Log2-transformed data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 Batch2 vs Batch3
@@ -395,7 +383,9 @@ ggplot(log2ScatTabB23, aes(x=Batch2, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Log2-transformed data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 Batch1 vs Batch3
@@ -407,7 +397,9 @@ ggplot(log2ScatTabB13, aes(x=Batch1, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Log2-transformed data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 <br/>
 - Is there data shifting (linear relationship)?
@@ -434,7 +426,9 @@ ggplot(vsnScatTabB12, aes(x=Batch1, y=Batch2)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Vsn normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 Batch2 vs Batch3
@@ -446,7 +440,9 @@ ggplot(vsnScatTabB23, aes(x=Batch2, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Vsn normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 Batch1 vs Batch3
@@ -458,7 +454,9 @@ ggplot(vsnScatTabB13, aes(x=Batch1, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Vsn normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 ### Median normalization
@@ -483,7 +481,9 @@ ggplot(mediScatTabB12, aes(x=Batch1, y=Batch2)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Median normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 Batch2 vs Batch3
@@ -495,7 +495,9 @@ ggplot(mediScatTabB23, aes(x=Batch2, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Median normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 Batch1 vs Batch3
@@ -507,7 +509,9 @@ ggplot(mediScatTabB13, aes(x=Batch1, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Median normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 ## Batch correction
@@ -550,7 +554,7 @@ ggplot(metaPlasmaVsnTabBC, aes(x=Sample_ID, y=vsnAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Vsn normalized data (after batch correction)') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Compute standard deviation of each feature among triplicate samples
@@ -572,7 +576,8 @@ ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
   geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
              linetype="dashed", linewidth = 0.7, show.legend = F) +
   labs(x = 'Standard Deviation', y = 'Count',
-       title = 'Standard deviation of each feature among triplicates')
+       title = 'Standard deviation of each feature among triplicates') +
+  th
 ```
 
 PCA
@@ -595,7 +600,8 @@ pcVsnTabBC <- pcVsnResBC$x[, 1:10] %>%
 ggplot(pcVsnTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Vsn normalized data (after batch correction)')
+  labs(title = 'Vsn normalized data (after batch correction)') +
+  th
 ```
 
 Showcase changes in data points of PC1 top features with highest loadings. Large
@@ -620,7 +626,7 @@ ggplot(metaPlasmaVsnTabSub, aes(x=Feature_ID, y=vsnAbundance, col=Batch)) +
              size = 4, alpha = 0.7, show.legend = F) +
   labs(x = 'Feature ID', y = 'Normalized abundance',
        title = 'Before batch correction') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # After batch correction
 metaPlasmaVsnTabBCSub <- filter(metaPlasmaVsnTabBC,
@@ -634,7 +640,7 @@ ggplot(metaPlasmaVsnTabBCSub, aes(x=Feature_ID, y=vsnAbundance, col=Batch)) +
              size = 4, alpha = 0.7, show.legend = F) +
   labs(x = 'Feature ID', y = 'Normalized abundance',
        title = 'After batch correction') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 ```{r include = F, eval = F}
@@ -710,10 +716,10 @@ Mean of triplicates is taken.
 Display distribution of merged data
 ```{r message = F}
 # Merge triplicates (take mean)
-merge_metaPlasmaVsnTab <- dplyr::group_by(metaPlasmaVsnTabBC, Patient, Condition,
-                                          Recurrence, Feature_ID, Sample) %>%
+merge_metaPlasmaVsnTab <- dplyr::group_by(metaPlasmaVsnTabBC, Feature_ID, Sample) %>%
   dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %>%
-  dplyr::ungroup()
+  dplyr::ungroup() %>%
+  dplyr::left_join(smpAnno, by = 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(metaPlasmaTab, `m/z_RT`, Feature_ID) %>%
@@ -724,7 +730,7 @@ merge_metaPlasmaVsnTab <- dplyr::left_join(merge_metaPlasmaVsnTab, MZRT,
 ggplot(merge_metaPlasmaVsnTab, aes(x=Sample, y=vsnAbundance)) +
   geom_boxplot() +
   labs(y = 'Normalized abundance', title = 'Vsn normalized data') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 Percentage of missing values
@@ -739,7 +745,8 @@ metaPlasmaVsn <- df2SummExp(merge_metaPlasmaVsnTab,
                             row_id = 'Feature_ID', col_id = 'Sample',
                             values = 'vsnAbundance',
                             row_anno = 'm/z_RT',
-                            col_anno = c('Patient', 'Condition', 'Recurrence'))
+                            col_anno = c('Patient', 'Condition', 'Recurrence',
+                                         'Gender', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(metaPlasmaVsn, './data/AG_Hopf/metaPlasmaVsn.rds')
 ```
 
@@ -775,7 +782,8 @@ ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Time_point, shape=Condition,
   geom_line(col = 'grey50', linetype = 'dashed') +
   labs(title = 'Vsn normalized data') +
   scale_color_discrete(name = 'Time point',
-                       labels = c('Baseline', '2 years later'))
+                       labels = c('Baseline', '2 years later')) +
+  th
 ```
 <br/>
 -> PCA mainly captures source of variation in time points when samples were taken.
@@ -793,7 +801,7 @@ varTab <- data.frame(PC = factor(PC, levels = PC),
 ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = '', y = 'Variance explained (%)') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 ```{r message = F, eval = F}
@@ -829,7 +837,7 @@ ggplot(metaPlasmaMediTabBC, aes(x=Sample_ID, y=mediAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Median normalized data (after batch correction)') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 
 # Perform PCA
 # Remove rows (features) that have any NA values
@@ -846,13 +854,14 @@ pcMediTabBC <- pcMediResBC$x[, 1:10] %>%
 ggplot(pcMediTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Median normalized data (after batch correction)')
+  labs(title = 'Median normalized data (after batch correction)') +
+  th
 
 # Merge triplicates (take mean)
-merge_metaPlasmaMediTab <- dplyr::group_by(metaPlasmaMediTabBC, Patient, Condition,
-                                           Recurrence, Feature_ID, Sample) %>%
+merge_metaPlasmaMediTab <- dplyr::group_by(metaPlasmaMediTabBC, Feature_ID, Sample) %>%
   dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %>%
-  dplyr::ungroup()
+  dplyr::ungroup() %>%
+  dplyr::left_join(smpAnno, 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(metaPlasmaTab, `m/z_RT`, Feature_ID) %>%
@@ -863,7 +872,7 @@ merge_metaPlasmaMediTab <- dplyr::left_join(merge_metaPlasmaMediTab, MZRT,
 ggplot(merge_metaPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
   geom_boxplot() +
   labs(y = 'Normalized abundance', title = 'Median normalized data') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Convert tidy long table to SummarizedExperiment object and save it for further
 # analysis
@@ -871,7 +880,8 @@ metaPlasmaMedi <- df2SummExp(merge_metaPlasmaMediTab,
                              row_id = 'Feature_ID', col_id = 'Sample',
                              values = 'mediAbundance',
                              row_anno = 'm/z_RT',
-                             col_anno = c('Patient', 'Condition', 'Recurrence'))
+                             col_anno = c('Patient', 'Condition', 'Recurrence',
+                                          'Gender', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(metaPlasmaMedi, './data/AG_Hopf/metaPlasmaMedi.rds')
 ```
 
@@ -1069,30 +1079,10 @@ cat('The following features have duplication:\n',
 
 Display distribution of original data
 ```{r}
-# Load another Plasma Metabolomics dataset (sample patients) for annotating
-# sample conditions (baseline, follow-up, or recurrence)
-sampleAnno <- readxl::read_excel(
-  './data/AG_Hell/Thorax cohort_not-normalized_subset plasma.xlsx',
-  skip = 1) %>%
-  dplyr::filter(!is.na(parents)) %>%
-  dplyr::select(c(`Sample Identification`, Individual_ID, Status)) %>%
-  dplyr::rename(Sample = `Sample Identification`, Patient = Individual_ID,
-                Condition = Status) %>%
-  dplyr::mutate(Sample = stringr::str_remove(Sample, '_3$'),
-                Condition = dplyr::case_when(
-                  Condition == 'BASELINE_SURGERY' ~ 'Baseline',
-                  Condition == 'FOLLOW-UP' ~ 'Follow-up',
-                  Condition == 'RECURRENCE' ~ 'Recurrence'))
-# Prepare information that patients experienced cancer recurrence or not
-recurrence <- dplyr::filter(sampleAnno, Condition != 'Baseline') %>%
-  dplyr::mutate(Recurrence = dplyr::case_when(
-    Condition == 'Follow-up' ~ 'No',
-    Condition == 'Recurrence' ~ 'Yes'
-  )) %>%
-  dplyr::select(-c(Sample, Condition))
-# Combine annotation data
-sampleAnno <- dplyr::left_join(sampleAnno, recurrence, by = 'Patient')
-
+# Load sample metadata from preprocessed Targeted Metabolomics SE object
+smpAnno <- colData(readRDS('./data/AG_Hell/metaPlasmaNorm.rds')) %>%
+  tibble::as_tibble(rownames = 'Sample') %>%
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
 
 # Convert messy wide data to tidy long table
 lipPlasmaTab <- tidyr::pivot_longer(lipPlasmaTab,
@@ -1103,17 +1093,17 @@ lipPlasmaTab <- tidyr::pivot_longer(lipPlasmaTab,
   # might be extremely small or normal values and perform log2-transformation on
   # feature abundance
   dplyr::mutate(Abundance = replace(Abundance, Abundance == 0, NA),
-                Sample = stringr::str_remove(Sample_ID, '_2_.'),
+                Identifier = stringr::str_remove(Sample_ID, '_2_.'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_'),
                 log2Abundance = log2(Abundance)) %>%
-  dplyr::left_join(sampleAnno, by = 'Sample')
+  dplyr::left_join(smpAnno, by = 'Identifier')
 
 # Display original data distribution
 ggplot(lipPlasmaTab, aes(x=Sample_ID, y=Abundance)) +
   geom_boxplot() +
   scale_y_log10() +
   labs(x = 'Sample', title = 'Original data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Display distribution of log2-transformed data
@@ -1122,7 +1112,7 @@ Display distribution of log2-transformed data
 ggplot(lipPlasmaTab, aes(x=Sample_ID, y=log2Abundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Log2(Abundance)', title = 'Log2-transformed data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Percentage of missing values in data
@@ -1148,16 +1138,16 @@ lipPlasmaVsnTab <- tidyr::pivot_longer(abunVsnMat,
                                        cols = -'Feature_ID',
                                        names_to = 'Sample_ID',
                                        values_to = 'vsnAbundance') %>%
-  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, '_2_.'),
+  dplyr::mutate(Identifier = stringr::str_remove(Sample_ID, '_2_.'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_')) %>%
-  dplyr::left_join(sampleAnno, by = 'Sample')
+  dplyr::left_join(smpAnno, by = 'Identifier')
 
 # Display VSN normalized data
 ggplot(lipPlasmaVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Vsn normalized data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Display distribution of median normalized data
@@ -1169,16 +1159,16 @@ lipPlasmaMediTab <- limma::normalizeBetweenArrays(abunMat, method = 'scale') %>%
                       names_to = 'Sample_ID',
                       values_to = 'mediAbundance') %>%
   dplyr::mutate(mediAbundance = log2(mediAbundance),
-                Sample = stringr::str_remove(Sample_ID, '_2_.'),
+                Identifier = stringr::str_remove(Sample_ID, '_2_.'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_')) %>%
-  dplyr::left_join(sampleAnno, by = 'Sample')
+  dplyr::left_join(smpAnno, by = 'Identifier')
 
 # Display median normalized data
 ggplot(lipPlasmaMediTab, aes(x=Sample_ID, y=mediAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Median normalized data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Compute standard deviation of each feature among triplicate measures. Dashed line
@@ -1213,11 +1203,12 @@ ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
   geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
              linetype="dashed", linewidth = 0.7, show.legend = F) +
   labs(x = 'Standard deviation', y = 'Count',
-       title = 'Standard deviation of each feature among triplicates')
+       title = 'Standard deviation of each feature among triplicates') +
+  th
 ```
 
 ## PCA
-Assess similarity among triplicate measures normalized by different methods
+Assess similarity among triplicate measures normalized by different methods for quality control
 
 **Log2-transformed data**
 ```{r}
@@ -1245,12 +1236,14 @@ pcLog2Tab <- pcLog2Res$x[, 1:10] %>%
 ggplot(pcLog2Tab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Log2-transformed data')
+  labs(title = 'Log2-transformed data') +
+  th
 
 ggplot(pcLog2Tab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Log2-transformed data')
+  labs(title = 'Log2-transformed data') +
+  th
 ```
 
 **Vsn normalized data**
@@ -1272,12 +1265,14 @@ pcVsnTab <- pcVsnRes$x[, 1:10] %>%
 ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Vsn normalized data')
+  labs(title = 'Vsn normalized data') +
+  th
 
 ggplot(pcVsnTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Vsn normalized data')
+  labs(title = 'Vsn normalized data') +
+  th
 ```
 
 **Median normalized data**
@@ -1298,12 +1293,14 @@ pcMediTab <- pcMediRes$x[, 1:10] %>%
 ggplot(pcMediTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Median normalized data')
+  labs(title = 'Median normalized data') +
+  th
 
 ggplot(pcMediTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Median normalized data')
+  labs(title = 'Median normalized data') +
+  th
 ```
 
 Check correlations between triplicate measures processed using different data
@@ -1333,7 +1330,9 @@ ggplot(log2ScatTabB12, aes(x=Batch1, y=Batch2)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Log2-transformed data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 
 # Batch 2 and 3
 log2ScatTabB23 <- dplyr::left_join(log2B2, log2B3, by = c('Feature_ID', 'Sample'))
@@ -1342,7 +1341,9 @@ ggplot(log2ScatTabB23, aes(x=Batch2, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Log2-transformed data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 
 # Batch 1 and 3
 log2ScatTabB13 <- dplyr::left_join(log2B1, log2B3, by = c('Feature_ID', 'Sample'))
@@ -1351,7 +1352,9 @@ ggplot(log2ScatTabB13, aes(x=Batch1, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Log2-transformed data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 **Vsn normalized data**
@@ -1374,7 +1377,9 @@ ggplot(vsnScatTabB12, aes(x=Batch1, y=Batch2)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Vsn normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 
 # Batch 2 and 3
 vsnScatTabB23 <- dplyr::left_join(vsnB2, vsnB3, by = c('Feature_ID', 'Sample'))
@@ -1383,7 +1388,9 @@ ggplot(vsnScatTabB23, aes(x=Batch2, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Vsn normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 
 # Batch 1 and 3
 vsnScatTabB13 <- dplyr::left_join(vsnB1, vsnB3, by = c('Feature_ID', 'Sample'))
@@ -1392,7 +1399,9 @@ ggplot(vsnScatTabB13, aes(x=Batch1, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Vsn normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 **Median normalized data**
@@ -1415,7 +1424,9 @@ ggplot(mediScatTabB12, aes(x=Batch1, y=Batch2)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Median normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 
 # Batch 2 and 3
 mediScatTabB23 <- dplyr::left_join(mediB2, mediB3, by = c('Feature_ID', 'Sample'))
@@ -1424,7 +1435,9 @@ ggplot(mediScatTabB23, aes(x=Batch2, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Median normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 
 # Batch 1 and 3
 mediScatTabB13 <- dplyr::left_join(mediB1, mediB3, by = c('Feature_ID', 'Sample'))
@@ -1433,7 +1446,9 @@ ggplot(mediScatTabB13, aes(x=Batch1, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Median normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 ## Batch correction
@@ -1473,7 +1488,7 @@ ggplot(lipPlasmaVsnTabBC, aes(x=Sample_ID, y=vsnAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Vsn normalized data (after batch correction)') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Compute standard deviation of each feature among triplicate samples
@@ -1495,7 +1510,8 @@ ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
   geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
              linetype="dashed", linewidth = 0.7, show.legend = F) +
   labs(x = 'Standard Deviation', y = 'Count',
-       title = 'Standard deviation of each feature among triplicates')
+       title = 'Standard deviation of each feature among triplicates') +
+  th
 ```
 
 PCA
@@ -1518,12 +1534,14 @@ pcVsnTabBC <- pcVsnResBC$x[, 1:10] %>%
 ggplot(pcVsnTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Vsn normalized data (after batch correction)')
+  labs(title = 'Vsn normalized data (after batch correction)') +
+  th
 
 ggplot(pcVsnTabBC, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Vsn normalized data (after batch correction)')
+  labs(title = 'Vsn normalized data (after batch correction)') +
+  th
 ```
 
 ## Data fusion
@@ -1534,10 +1552,10 @@ Mean of triplicates is taken.
 Display distribution of merged data
 ```{r message = F}
 # Merge triplicates (take mean)
-merge_lipPlasmaVsnTab <- dplyr::group_by(lipPlasmaVsnTabBC, Patient, Condition,
-                                         Recurrence, Feature_ID, Sample) %>%
+merge_lipPlasmaVsnTab <- dplyr::group_by(lipPlasmaVsnTabBC, Feature_ID, Sample) %>%
   dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %>%
-  dplyr::ungroup()
+  dplyr::ungroup() %>%
+  dplyr::left_join(smpAnno, by = 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(lipPlasmaTab, `m/z_RT`, Feature_ID) %>%
@@ -1548,7 +1566,7 @@ merge_lipPlasmaVsnTab <- dplyr::left_join(merge_lipPlasmaVsnTab, MZRT,
 ggplot(merge_lipPlasmaVsnTab, aes(x=Sample, y=vsnAbundance)) +
   geom_boxplot() +
   labs(y = 'Normalized abundance', title = 'Vsn normalized data') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 Percentage of missing values
@@ -1563,7 +1581,8 @@ lipPlasmaVsn <- df2SummExp(merge_lipPlasmaVsnTab,
                            row_id = 'Feature_ID', col_id = 'Sample',
                            values = 'vsnAbundance',
                            row_anno = 'm/z_RT',
-                           col_anno = c('Patient', 'Condition', 'Recurrence'))
+                           col_anno = c('Patient', 'Condition', 'Recurrence',
+                                        'Gender', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(lipPlasmaVsn, './data/AG_Hopf/lipPlasmaVsn.rds')
 ```
 
@@ -1598,7 +1617,8 @@ ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Time_point, shape=Condition,
   geom_point(size = 3) +
   geom_line(col = 'grey50', linetype = 'dashed') +
   scale_color_discrete(name = 'Time point',
-                       labels = c('Baseline', '2 years later'))
+                       labels = c('Baseline', '2 years later')) +
+  th
 ```
 <br/>
 -> PCA mainly captures source of variation in time points when samples were taken. 
@@ -1616,7 +1636,7 @@ varTab <- data.frame(PC = factor(PC, levels = PC),
 ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = '', y = 'Variance explained (%)') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 ```{r message = F, eval = F}
@@ -1652,7 +1672,7 @@ ggplot(lipPlasmaMediTabBC, aes(x=Sample_ID, y=mediAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Median normalized data (after batch correction)') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 
 # Perform PCA
 # Remove rows (features) that have any NA values
@@ -1669,13 +1689,14 @@ pcMediTabBC <- pcMediResBC$x[, 1:10] %>%
 ggplot(pcMediTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Median normalized data (after batch correction)')
+  labs(title = 'Median normalized data (after batch correction)') +
+  th
 
 # Merge triplicates (take mean)
-merge_lipPlasmaMediTab <- dplyr::group_by(lipPlasmaMediTabBC, Patient, Condition,
-                                          Recurrence, Feature_ID, Sample) %>%
+merge_lipPlasmaMediTab <- dplyr::group_by(lipPlasmaMediTabBC, Feature_ID, Sample) %>%
   dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %>%
-  dplyr::ungroup()
+  dplyr::ungroup() %>%
+  dplyr::left_join(smpAnno, by = 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(lipPlasmaTab, `m/z_RT`, Feature_ID) %>%
@@ -1686,7 +1707,7 @@ merge_lipPlasmaMediTab <- dplyr::left_join(merge_lipPlasmaMediTab, MZRT,
 ggplot(merge_lipPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
   geom_boxplot() +
   labs(y = 'Normalized abundance', title = 'Median normalized data') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Convert tidy long table to SummarizedExperiment object and save it for further
 # analysis
@@ -1694,7 +1715,8 @@ lipPlasmaMedi <- df2SummExp(merge_lipPlasmaMediTab,
                             row_id = 'Feature_ID', col_id = 'Sample',
                             values = 'mediAbundance',
                             row_anno = 'm/z_RT',
-                            col_anno = c('Patient', 'Condition', 'Recurrence'))
+                            col_anno = c('Patient', 'Condition', 'Recurrence',
+                                         'Gender', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(lipPlasmaMedi, './data/AG_Hopf/lipPlasmaMedi.rds')
 ```
 
@@ -1841,11 +1863,10 @@ cat('The following features have duplication:\n',
 
 Display distribution of original data
 ```{r}
-# Load another Tissue Metabolomics dataset for sample annotations
-smpAnno <- readRDS('./data/AG_Hell/metaTissueNorm.rds') %>%
-  colData() %>%
+# Load sample metadata from preprocessed Targeted Metabolomics SE object
+smpAnno <- colData(readRDS('./data/AG_Hell/metaTissueNorm.rds')) %>%
   tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::select(Sample, Condition, Recurrence, Patient)
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
 
 # Convert messy wide data to tidy long table
 metaTissueTab <- tidyr::pivot_longer(metaTissueTab,
@@ -1866,7 +1887,7 @@ ggplot(metaTissueTab, aes(x=Sample_ID, y=Abundance)) +
   geom_boxplot() +
   scale_y_log10() +
   labs(x = 'Sample', title = 'Original data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Display distribution of log2-transformed data
@@ -1875,7 +1896,7 @@ Display distribution of log2-transformed data
 ggplot(metaTissueTab, aes(x=Sample_ID, y=log2Abundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Log2(Abundance)', title = 'Log2-transformed data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Percentage of missing values in data
@@ -1910,7 +1931,7 @@ ggplot(metaTissueVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Vsn normalized data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 
 # Every 6 measures are from same patients.
 ```
@@ -1930,7 +1951,7 @@ rm(mu, medi)
 ggplot(mu_medi, aes(x=Sample_ID, y=Value, col=Stat)) +
   geom_point() +
   labs(x = 'Sample') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Display distribution of median normalized data
@@ -1951,7 +1972,7 @@ ggplot(metaTissueMediTab, aes(x=Sample_ID, y=mediAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Median normalized data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Compute standard deviation of each feature among triplicate measures. Dashed line
@@ -1986,12 +2007,13 @@ ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
   geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
              linetype="dashed", linewidth = 0.7, show.legend = F) +
   labs(x = 'Standard deviation', y = 'Count',
-       title = 'Standard deviation of each feature among triplicates')
+       title = 'Standard deviation of each feature among triplicates') +
+  th
 ```
 -> All three methods got similar standard deviations.
 
 ## PCA
-Assess similarity among triplicate measures normalized by different methods
+Assess similarity among triplicate measures normalized by different methods for quality control
 
 **Log2-transformed data**
 ```{r}
@@ -2006,19 +2028,20 @@ abunLog2MatSub <- dplyr::select(metaTissueTab,
   tibble::column_to_rownames('Feature_ID')
 
 # Extract sample condition annotations
-smpAnno <- dplyr::select(metaTissueTab,
-                         Sample_ID, Sample, Batch) %>%
+condition <- dplyr::select(metaTissueTab,
+                           Sample_ID, Sample, Batch) %>%
   dplyr::filter(!duplicated(Sample_ID))
 
 pcLog2Res <- prcomp(t(abunLog2MatSub), center = T, scale. = F)
 pcLog2Tab <- pcLog2Res$x[, 1:10] %>%
   tibble::as_tibble(rownames = 'Sample_ID') %>%
-  dplyr::left_join(smpAnno, by = 'Sample_ID')
+  dplyr::left_join(condition, by = 'Sample_ID')
 
 ggplot(pcLog2Tab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Log2-transformed data')
+  labs(title = 'Log2-transformed data') +
+  th
 ```
 
 **Vsn normalized data**
@@ -2033,12 +2056,13 @@ abunVsnMatSub <- dplyr::select(metaTissueVsnTab,
 pcVsnRes <- prcomp(t(abunVsnMatSub), center = T, scale. = F)
 pcVsnTab <- pcVsnRes$x[, 1:10] %>%
   tibble::as_tibble(rownames = 'Sample_ID') %>%
-  dplyr::left_join(smpAnno, by = 'Sample_ID')
+  dplyr::left_join(condition, by = 'Sample_ID')
 
 ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Vsn normalized data')
+  labs(title = 'Vsn normalized data') +
+  th
 
 # ggplot(pcVsnTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
 #   geom_point() +
@@ -2058,12 +2082,13 @@ abunMediMatSub <- dplyr::select(metaTissueMediTab,
 pcMediRes <- prcomp(t(abunMediMatSub), center = T, scale. = F)
 pcMediTab <- pcMediRes$x[, 1:10] %>%
   tibble::as_tibble(rownames = 'Sample_ID') %>%
-  dplyr::left_join(smpAnno, by = 'Sample_ID')
+  dplyr::left_join(condition, by = 'Sample_ID')
 
 ggplot(pcMediTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Median normalized data')
+  labs(title = 'Median normalized data') +
+  th
 ```
 
 ## Data fusion
@@ -2074,10 +2099,10 @@ Vsn normalized data is selected and mean of triplicates is taken.
 Display distribution of merged data
 ```{r message = F}
 # Merge triplicates (take mean)
-merge_metaTissueVsnTab <- dplyr::group_by(metaTissueVsnTab, Patient, Condition,
-                                          Recurrence, Feature_ID, Sample) %>%
+merge_metaTissueVsnTab <- dplyr::group_by(metaTissueVsnTab, Feature_ID, Sample) %>%
   dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %>%
-  dplyr::ungroup()
+  dplyr::ungroup() %>%
+  dplyr::left_join(smpAnno, by = 'Sample')
 
 # Incorporate MZ/RT information
 MZRT <- dplyr::select(metaTissueTab, `MZ/RT`, Feature_ID) %>%
@@ -2088,7 +2113,7 @@ merge_metaTissueVsnTab <- dplyr::left_join(merge_metaTissueVsnTab, MZRT,
 ggplot(merge_metaTissueVsnTab, aes(x=Sample, y=vsnAbundance)) +
   geom_boxplot() +
   labs(y = 'Normalized abundance', title = 'Vsn normalized data') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 Percentage of missing values
@@ -2103,7 +2128,8 @@ metaTissueVsn <- df2SummExp(merge_metaTissueVsnTab,
                             row_id = 'Feature_ID', col_id = 'Sample',
                             values = 'vsnAbundance',
                             row_anno = 'MZ/RT',
-                            col_anno = c('Patient', 'Condition', 'Recurrence'))
+                            col_anno = c('Patient', 'Condition', 'Recurrence',
+                                         'Gender', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(metaTissueVsn, './data/AG_Hopf/metaTissueVsn.rds')
 ```
 
@@ -2120,19 +2146,20 @@ abunVsnMatSub <- dplyr::select(merge_metaTissueVsnTab,
   tibble::column_to_rownames('Feature_ID')
 
 # Extract sample condition annotations
-smpAnno <- dplyr::select(merge_metaTissueVsnTab,
+condition <- dplyr::select(merge_metaTissueVsnTab,
                          Sample, Patient, Condition, Recurrence) %>%
   dplyr::filter(!duplicated(Sample))
 
 pcVsnRes <- prcomp(t(abunVsnMatSub), center = T, scale. = F)
 pcVsnTab <- pcVsnRes$x[, 1:10] %>%
   tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(condition, by = 'Sample')
 
 ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Condition, shape=Recurrence,
                      group=Patient)) +
   geom_point(size = 3) +
-  geom_line(col = 'grey50', linetype = 'dashed')
+  geom_line(col = 'grey50', linetype = 'dashed') +
+  th
 ```
 <br/>
 -> PCA mainly captures source of variation in tissue conditions.
@@ -2150,16 +2177,16 @@ varTab <- data.frame(PC = factor(PC, levels = PC),
 ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = '', y = 'Variance explained (%)') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 ```{r message = F, eval = F}
 # Store median normalized data for computing log(FC) later
 # Merge triplicates (take mean)
-merge_metaTissueMediTab <- dplyr::group_by(metaTissueMediTab, Patient, Condition,
-                                           Recurrence, Feature_ID, Sample) %>%
+merge_metaTissueMediTab <- dplyr::group_by(metaTissueMediTab, Feature_ID, Sample) %>%
   dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %>%
-  dplyr::ungroup()
+  dplyr::ungroup() %>%
+  dplyr::left_join(smpAnno, by = 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(metaTissueTab, `MZ/RT`, Feature_ID) %>%
@@ -2170,7 +2197,7 @@ merge_metaTissueMediTab <- dplyr::left_join(merge_metaTissueMediTab, MZRT,
 ggplot(merge_metaTissueMediTab, aes(x=Sample, y=mediAbundance)) +
   geom_boxplot() +
   labs(y = 'Normalized abundance', title = 'Median normalized data') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Convert tidy long table to SummarizedExperiment object and save it for further
 # analysis
@@ -2178,7 +2205,8 @@ metaTissueMedi <- df2SummExp(merge_metaTissueMediTab,
                              row_id = 'Feature_ID', col_id = 'Sample',
                              values = 'mediAbundance',
                              row_anno = 'MZ/RT',
-                             col_anno = c('Patient', 'Condition', 'Recurrence'))
+                             col_anno = c('Patient', 'Condition', 'Recurrence',
+                                          'Gender', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(metaTissueMedi, './data/AG_Hopf/metaTissueMedi.rds')
 ```
 
@@ -2249,11 +2277,10 @@ cat('The following features have duplication:\n',
 
 Display distribution of original data
 ```{r}
-# Load another Tissue Metabolomics dataset for sample annotations
-smpAnno <- readRDS('./data/AG_Hell/metaTissueNorm.rds') %>%
-  colData() %>%
+# Load sample metadata from preprocessed Targeted Metabolomics SE object
+smpAnno <- colData(readRDS('./data/AG_Hell/metaTissueNorm.rds')) %>%
   tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::select(Sample, Condition, Recurrence, Patient)
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
 
 # Convert messy wide data to tidy long table
 lipTissueTab <- tidyr::pivot_longer(lipTissueTab,
@@ -2274,7 +2301,7 @@ ggplot(lipTissueTab, aes(x=Sample_ID, y=Abundance)) +
   geom_boxplot() +
   scale_y_log10() +
   labs(x = 'Sample', title = 'Original data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Display distribution of log2-transformed data
@@ -2283,7 +2310,7 @@ Display distribution of log2-transformed data
 ggplot(lipTissueTab, aes(x=Sample_ID, y=log2Abundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Log2(Abundance)', title = 'Log2-transformed data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Percentage of missing values in data
@@ -2318,7 +2345,7 @@ ggplot(lipTissueVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Vsn normalized data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Display distribution of median normalized data
@@ -2339,7 +2366,7 @@ ggplot(lipTissueMediTab, aes(x=Sample_ID, y=mediAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Median normalized data') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 Compute standard deviation of each feature among triplicate measures. Dashed line
@@ -2374,12 +2401,13 @@ ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
   geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
              linetype="dashed", linewidth = 0.7, show.legend = F) +
   labs(x = 'Standard deviation', y = 'Count',
-       title = 'Standard deviation of each feature among triplicates')
+       title = 'Standard deviation of each feature among triplicates') +
+  th
 ```
 -> VSN and median normalization got similar mean standard deviations.
 
 ## PCA
-Assess similarity among triplicate measures normalized by different methods
+Assess similarity among triplicate measures normalized by different methods for quality control
 
 **Log2-transformed data**
 ```{r}
@@ -2394,19 +2422,20 @@ abunLog2MatSub <- dplyr::select(lipTissueTab,
   tibble::column_to_rownames('Feature_ID')
 
 # Extract sample condition annotations
-smpAnno <- dplyr::select(lipTissueTab,
+condition <- dplyr::select(lipTissueTab,
                          Sample_ID, Sample, Batch) %>%
   dplyr::filter(!duplicated(Sample_ID))
 
 pcLog2Res <- prcomp(t(abunLog2MatSub), center = T, scale. = F)
 pcLog2Tab <- pcLog2Res$x[, 1:10] %>%
   tibble::as_tibble(rownames = 'Sample_ID') %>%
-  dplyr::left_join(smpAnno, by = 'Sample_ID')
+  dplyr::left_join(condition, by = 'Sample_ID')
 
 ggplot(pcLog2Tab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Log2-transformed data')
+  labs(title = 'Log2-transformed data') +
+  th
 ```
 
 **Vsn normalized data**
@@ -2421,12 +2450,13 @@ abunVsnMatSub <- dplyr::select(lipTissueVsnTab,
 pcVsnRes <- prcomp(t(abunVsnMatSub), center = T, scale. = F)
 pcVsnTab <- pcVsnRes$x[, 1:10] %>%
   tibble::as_tibble(rownames = 'Sample_ID') %>%
-  dplyr::left_join(smpAnno, by = 'Sample_ID')
+  dplyr::left_join(condition, by = 'Sample_ID')
 
 ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Vsn normalized data')
+  labs(title = 'Vsn normalized data') +
+  th
 
 # ggplot(pcVsnTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
 #   geom_point() +
@@ -2446,12 +2476,13 @@ abunMediMatSub <- dplyr::select(lipTissueMediTab,
 pcMediRes <- prcomp(t(abunMediMatSub), center = T, scale. = F)
 pcMediTab <- pcMediRes$x[, 1:10] %>%
   tibble::as_tibble(rownames = 'Sample_ID') %>%
-  dplyr::left_join(smpAnno, by = 'Sample_ID')
+  dplyr::left_join(condition, by = 'Sample_ID')
 
 ggplot(pcMediTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Median normalized data')
+  labs(title = 'Median normalized data') +
+  th
 ```
 
 Check correlations between triplicate measures processed using VSN due to batch
@@ -2479,7 +2510,9 @@ ggplot(vsnScatTabB12, aes(x=Batch1, y=Batch2)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Vsn normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 
 # Batch 2 and 3
 vsnScatTabB23 <- dplyr::left_join(vsnB2, vsnB3, by = c('Feature_ID', 'Sample'))
@@ -2488,7 +2521,9 @@ ggplot(vsnScatTabB23, aes(x=Batch2, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Vsn normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 
 # Batch 1 and 3
 vsnScatTabB13 <- dplyr::left_join(vsnB1, vsnB3, by = c('Feature_ID', 'Sample'))
@@ -2497,7 +2532,9 @@ ggplot(vsnScatTabB13, aes(x=Batch1, y=Batch3)) +
   facet_wrap(vars(Sample), ncol = 8) +
   labs(title = 'Vsn normalized data') +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5)
+  geom_abline(intercept = 0, slope = 1, col = 'red', linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = 'bold'),
+                                   axis.title = element_text(size = 14, face = 'bold'))
 ```
 
 ```{r, include = F, eval = F}
@@ -2539,7 +2576,7 @@ ggplot(lipTissueVsnTabBC, aes(x=Sample_ID, y=vsnAbundance)) +
   geom_boxplot() +
   labs(x = 'Sample', y = 'Normalized Abundance',
        title = 'Vsn normalized data (after batch correction)') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 
 # Compute standard deviation of each feature among triplicate samples
 
@@ -2560,7 +2597,8 @@ ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
   geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
              linetype="dashed", linewidth = 0.7, show.legend = F) +
   labs(x = 'Standard Deviation', y = 'Count',
-       title = 'Standard deviation of each feature among triplicates')
+       title = 'Standard deviation of each feature among triplicates') +
+  th
 
 # PCA
 
@@ -2582,12 +2620,14 @@ pcVsnTabBC <- pcVsnResBC$x[, 1:10] %>%
 ggplot(pcVsnTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Vsn normalized data (after batch correction)')
+  labs(title = 'Vsn normalized data (after batch correction)') +
+  th
 
 ggplot(pcVsnTabBC, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Vsn normalized data (after batch correction)')
+  labs(title = 'Vsn normalized data (after batch correction)') +
+  th
 ```
 
 ## Data fusion
@@ -2598,10 +2638,10 @@ Mean of triplicates is taken.
 Display distribution of merged data
 ```{r message = F}
 # Merge triplicates (take mean)
-merge_lipTissueVsnTab <- dplyr::group_by(lipTissueVsnTab, Patient, Condition,
-                                         Recurrence, Feature_ID, Sample) %>%
+merge_lipTissueVsnTab <- dplyr::group_by(lipTissueVsnTab, Feature_ID, Sample) %>%
   dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %>%
-  dplyr::ungroup()
+  dplyr::ungroup() %>%
+  dplyr::left_join(smpAnno, by = 'Sample')
 
 # Incorporate MZ/RT information
 MZRT <- dplyr::select(lipTissueTab, `MZ/RT`, Feature_ID) %>%
@@ -2612,7 +2652,7 @@ merge_lipTissueVsnTab <- dplyr::left_join(merge_lipTissueVsnTab, MZRT,
 ggplot(merge_lipTissueVsnTab, aes(x=Sample, y=vsnAbundance)) +
   geom_boxplot() +
   labs(y = 'Normalized abundance', title = 'Vsn normalized data') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 Percentage of missing values
@@ -2627,7 +2667,8 @@ lipTissueVsn <- df2SummExp(merge_lipTissueVsnTab,
                            row_id = 'Feature_ID', col_id = 'Sample',
                            values = 'vsnAbundance',
                            row_anno = 'MZ/RT',
-                           col_anno = c('Patient', 'Condition', 'Recurrence'))
+                           col_anno = c('Patient', 'Condition', 'Recurrence',
+                                        'Gender', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(lipTissueVsn, './data/AG_Hopf/lipTissueVsn.rds')
 ```
 
@@ -2642,19 +2683,20 @@ abunVsnMatSub <- dplyr::select(merge_lipTissueVsnTab,
   dplyr::filter(complete.cases(.))
 
 # Extract sample condition annotations
-smpAnno <- dplyr::select(merge_lipTissueVsnTab,
+condition <- dplyr::select(merge_lipTissueVsnTab,
                          Sample, Patient, Condition, Recurrence) %>%
   dplyr::filter(!duplicated(Sample))
 
 pcVsnRes <- prcomp(t(abunVsnMatSub), center = T, scale. = F)
 pcVsnTab <- pcVsnRes$x[, 1:10] %>%
   tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(condition, by = 'Sample')
 
 ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Condition, shape=Recurrence,
                      group=Patient)) +
   geom_point(size = 3) +
-  geom_line(col = 'grey50', linetype = 'dashed')
+  geom_line(col = 'grey50', linetype = 'dashed') +
+  th
 ```
 <br/>
 -> PCA mainly captures source of variation in tissue conditions. 
@@ -2672,16 +2714,16 @@ varTab <- data.frame(PC = factor(PC, levels = PC),
 ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = '', y = 'Variance explained (%)') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 ```{r message = F, eval = F}
 # Store median normalized data for computing log(FC) later
 # Merge triplicates (take mean)
-merge_lipTissueMediTab <- dplyr::group_by(lipTissueMediTab, Patient, Condition,
-                                          Recurrence, Feature_ID, Sample) %>%
+merge_lipTissueMediTab <- dplyr::group_by(lipTissueMediTab, Feature_ID, Sample) %>%
   dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %>%
-  dplyr::ungroup()
+  dplyr::ungroup() %>%
+  dplyr::left_join(smpAnno, by = 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(lipTissueTab, `MZ/RT`, Feature_ID) %>%
@@ -2692,7 +2734,7 @@ merge_lipTissueMediTab <- dplyr::left_join(merge_lipTissueMediTab, MZRT,
 ggplot(merge_lipTissueMediTab, aes(x=Sample, y=mediAbundance)) +
   geom_boxplot() +
   labs(y = 'Normalized abundance', title = 'Median normalized data') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Convert tidy long table to SummarizedExperiment object and save it for further
 # analysis
@@ -2700,7 +2742,8 @@ lipTissueMedi <- df2SummExp(merge_lipTissueMediTab,
                              row_id = 'Feature_ID', col_id = 'Sample',
                              values = 'mediAbundance',
                              row_anno = 'MZ/RT',
-                             col_anno = c('Patient', 'Condition', 'Recurrence'))
+                             col_anno = c('Patient', 'Condition', 'Recurrence',
+                                          'Gender', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(lipTissueMedi, './data/AG_Hopf/lipTissueMedi.rds')
 ```
 
@@ -2725,14 +2768,14 @@ lipPlasma <- readRDS('./data/AG_Hopf/lipPlasmaVsn.rds')
 # Convert SummarizedExperiment objects to tables for plotting
 # Tissue Metabolomics
 metaTissue4Plot <- summExp2df(metaTissue, assay = 'vsnAbundance',
-                              row_id = 'Metabolites', col_id = 'Sample') %>%
-  dplyr::select(c('Metabolites', 'Sample', 'Value')) %>%
+                              row_id = 'Metabolite', col_id = 'Sample') %>%
+  dplyr::select(c('Metabolite', 'Sample', 'Value')) %>%
   dplyr::mutate(Sample_type = 'Tissue', Sample = paste0('Tissue_', Sample))
 
 # Plasma Metabolomics
 metaPlasma4Plot <- summExp2df(metaPlasma, assay = 'vsnAbundance',
-                              row_id = 'Metabolites', col_id = 'Sample') %>%
-  dplyr::select(c('Metabolites', 'Sample', 'Value')) %>%
+                              row_id = 'Metabolite', col_id = 'Sample') %>%
+  dplyr::select(c('Metabolite', 'Sample', 'Value')) %>%
   dplyr::mutate(Sample_type = 'Plasma', Sample = paste0('Plasma_', Sample))
 
 # Concatenate two tables
@@ -2741,7 +2784,7 @@ metaTab4Plot <- rbind(metaTissue4Plot, metaPlasma4Plot)
 ggplot(metaTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
   geom_boxplot(width = 0.7) +
   labs(y = 'Metabolite abundance', title = 'Metabolomics', col = 'Sample type') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
 ## Lipidomics
@@ -2749,15 +2792,15 @@ ggplot(metaTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
 ```{r}
 # Tissue Lipidomics
 lipTissue4Plot <- summExp2df(lipTissue, assay = 'vsnAbundance',
-                             row_id = 'Lipidomics', col_id = 'Sample') %>%
-  dplyr::select(c('Lipidomics', 'Sample', 'Value')) %>%
-  dplyr::mutate(Sample_type = 'Tissue')
+                             row_id = 'Lipid', col_id = 'Sample') %>%
+  dplyr::select(c('Lipid', 'Sample', 'Value')) %>%
+  dplyr::mutate(Sample_type = 'Tissue', Sample = paste0('Tissue_', Sample))
 
 # Plasma Lipidomics
 lipPlasma4Plot <- summExp2df(lipPlasma, assay = 'vsnAbundance',
-                             row_id = 'Lipidomics', col_id = 'Sample') %>%
-  dplyr::select(c('Lipidomics', 'Sample', 'Value')) %>%
-  dplyr::mutate(Sample_type = 'Plasma')
+                             row_id = 'Lipid', col_id = 'Sample') %>%
+  dplyr::select(c('Lipid', 'Sample', 'Value')) %>%
+  dplyr::mutate(Sample_type = 'Plasma', Sample = paste0('Plasma_', Sample))
 
 # Concatenate two tables
 lipTab4Plot <- rbind(lipTissue4Plot, lipPlasma4Plot)
@@ -2765,7 +2808,7 @@ lipTab4Plot <- rbind(lipTissue4Plot, lipPlasma4Plot)
 ggplot(lipTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
   geom_boxplot(width = 0.7) +
   labs(y = 'Lipid abundance', title = 'Lipidomics', col = 'Sample type') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 The overall metabolite and lipid levels of Plasma samples are higher than those
 of Tissue samples.

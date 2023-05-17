@@ -132,6 +132,7 @@ metaPlasmaNorm4Plot <- summExp2df(metaPlasmaNorm, assay = 'Abundance',
                                   row_id = 'Metabolite', col_id = 'Sample')
 ggplot(metaPlasmaNorm4Plot, aes(x=Sample, y=Value)) +
   geom_boxplot() +
+  labs(x = 'Sample ID', y = 'Metabolite abundance') +
   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
@@ -646,7 +647,7 @@ colData(proTissue)$Recurrence[which(ids == 'smp29')] <- 'Yes'
 
 exprMat <- as.matrix(assay(proTissue))
 sampleAnno <- tibble::as_tibble(colData(proTissue))
-featAnni <- tibble::as_tibble(rowData(proTissue), rownames = 'Feature')
+featAnno <- tibble::as_tibble(rowData(proTissue), rownames = 'Feature')
 proTissueMediTab <- limma::normalizeBetweenArrays(exprMat, method = 'scale') %>%
   tibble::as_tibble(rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
