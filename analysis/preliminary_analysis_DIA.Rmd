@@ -11,7 +11,7 @@ output:
 <font size='4'> Description: </font>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10)#, warning = F)
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
 knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
 ```
 
@@ -966,7 +966,7 @@ pcTopFeatTab$PC15
 # Summary
 Display proportions of significant features that can separate cancer recurrence
 and non-recurrence patient groups for all datasets we currently have. Numbers after
-bars indicate feature numbers.
+bars indicate total feature numbers.
 
 ```{r}
 # Specific functions for subsetting data
@@ -1221,8 +1221,12 @@ proportion <- c(metaBaseSigFeats_Hopf, metaFoloSigFeats_Hopf,
                 lipTumorSigFeats_Hopf, lipNormalSigFeats_Hopf,
                 proTumorSigFeats_Kri_DIA, proNormalSigFeats_Kri_DIA,
                 proTumorSigFeats_Kri_DDA, proNormalSigFeats_Kri_DDA)
-numFeat <- c(c('1406', NA), c('630', NA), c(NA, '2493'), c('505', NA), c('435', NA),
-             c('1387', NA), c('630', NA), c(NA, '2168'), c('6929', NA), c(NA, '5193'))
+numFeat <- c(c(nrow(metaBaseRes_Hopf$data), NA), c(nrow(metaBaseRes_Hell$data), NA),
+             c(NA, nrow(lipFoloRes_Hopf$data)), c(nrow(proBaseRes_Kri_DIA$data), NA),
+             c(nrow(proBaseRes_Kri_DDA$data), NA),
+             c(nrow(metaTumorRes_Hopf$data), NA), c(nrow(metaTumorRes_Hell$data), NA),
+             c(NA, nrow(lipNormalRes_Hopf$data)), c(nrow(proTumorRes_Kri_DIA$data), NA),
+             c(NA, nrow(proNormalRes_Kri_DDA$data)))
 sigFeatPropTab <- data.frame(Data = factor(dat, levels = unique(dat)),
                              Data_modality = datModal,
                              Data_of = datOf,
@@ -1231,17 +1235,17 @@ sigFeatPropTab <- data.frame(Data = factor(dat, levels = unique(dat)),
 
 ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill = Data_modality, label=Feature_number)) +
   geom_bar(stat = 'identity', position=position_dodge()) +
-  geom_text(vjust = -0.7) +
+  geom_text(size = 5, vjust = -0.5) +
   facet_wrap(~Data_of) +
-  labs(x = 'Data', y = 'Percentage (%)',
-       title = 'Proportion of Cancer Recurrence-Related Features') +
+  labs(x = 'Data', y = 'Percentage (%)') + #, title = 'Proportion of Cancer Recurrence-Related Features') +
   scale_fill_discrete(name = 'Sample Condition') +
-  theme(strip.text = element_text(size = 16), axis.title = element_text(size = 17),
-        axis.text.x = element_text(size = 11.5, angle = 60, vjust = 1, hjust = 1), axis.text.y = element_text(size = 12),
-        legend.title = element_text(size = 15), legend.text = element_text(size = 15),
-        panel.grid.major.x = element_blank())
-# ggsave('./output/percentage_sigFeats.png', device = 'png', dpi = 400, height = 8, width = 18)
+  theme(strip.text = element_text(size = 26), axis.title = element_text(size = 26),
+        axis.text.x = element_text(size = 11.5, angle = 60, vjust = 1, hjust = 1), axis.text.y = element_text(size = 22),
+        legend.title = element_text(size = 24), legend.text = element_text(size = 24),
+        panel.background = element_blank(), axis.line = element_line(color = 'black'))
+ggsave('./output/percentage_sigFeats.png', device = 'png', dpi = 400, height = 8, width = 18)
 ```
+
 ```{r include = F, eval = F}
 # Prepare needed information for barplot
 dat <- rev(c('Baseline Plasma Untargeted Metabolomics', 'Follow-up Plasma Untargeted Metabolomics',

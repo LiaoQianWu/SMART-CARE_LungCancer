@@ -13,10 +13,12 @@ by Karim Aljakouch from AG Krijgsveld, simply including data cleansing and data
 normalization (VSN). All needed information of each dataset (2 in total) was then
 stored in SummarizedExperiment objects for further analyses.\
 Q: 12 samples from Patient N02PM0LW, FH49U7TY, and F04ERF3M are missing. Why? </font>
+Tumor and Normal Tissue samples cannot be nicely separated, bad quality.
+Append or change UniProt IDs to Gene names.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
-# knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
 ```
 
 Load libraries
@@ -28,6 +30,13 @@ library('SummarizedExperiment')
 library('tidyverse')
 # Load user-defined functions
 source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
 ```
 
 # Plasma Proteomics
@@ -82,7 +91,7 @@ ggplot(proPlasmaTab, aes(x=Sample, y=Abundance)) +
   geom_boxplot() +
   scale_y_log10() +
   labs(y = 'Protein abundance') +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
 Display data missingness
@@ -112,7 +121,7 @@ proPlasmaTabNorm <- summExp2df(proPlasmaNorm, assay = 'Abundance',
 ggplot(proPlasmaTabNorm, aes(x=Sample, y=Value)) +
   geom_boxplot() +
   labs(y = 'Normalized protein abundance') +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
 
@@ -171,7 +180,7 @@ ggplot(proTissueTab, aes(x=Sample, y=Abundance)) +
   geom_boxplot() +
   scale_y_log10() +
   labs(y = 'Protein abundance') +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
 Display data missingness
@@ -201,7 +210,7 @@ proTissueTabNorm <- summExp2df(proTissueNorm, assay = 'Abundance',
 ggplot(proTissueTabNorm, aes(x=Sample, y=Value)) +
   geom_boxplot() +
   labs(y = 'Normalized protein abundance') +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
 
@@ -233,5 +242,5 @@ proTab <- rbind(proPlasmaTabNorm, proTissueTabNorm)
 ggplot(proTab, aes(x=Sample, y=Value, col=Sample.Type)) +
   geom_boxplot(width = 0.7) +
   labs(y = 'Protein abundance', col = 'Sample type') +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```

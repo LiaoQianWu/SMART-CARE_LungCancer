@@ -32,7 +32,7 @@ data normalization techniques (log2-transformation, VSN, and median normalizatio
 
 ### 1.1 [Plasma and Tissue Targeted Metabolomics and DDA Proteomics](preprocessing_targeted_DDA.html)
 ### 1.2 [Plasma and Tissue Untargeted Metabolomics and Lipidomics](preprocessing_untargeted.html)
-### 1.3 [Plasma and Tissue DIA Proteomics (COMING SOON)](preprocessing_DIA.html)
+### 1.3 [Plasma and Tissue DIA Proteomics](preprocessing_DIA.html)
 
 ---
 
@@ -48,7 +48,7 @@ Tissue samples, which also indicates that Tissue samples are more noisy.
 
 ### 2.1 [Plasma and Tissue Targeted Metabolomics and DDA Proteomics](preliminary_analysis_targeted_DDA.html)
 ### 2.2 [Plasma and Tissue Untargeted Metabolomics and Lipidomics](preliminary_analysis_untargeted.html)
-### 2.3 [Plasma and Tissue DIA Proteomics (COMING SOON)](preliminary_analysis_DIA.html)
+### 2.3 [Plasma and Tissue DIA Proteomics](preliminary_analysis_DIA.html)
 
 ---
 
