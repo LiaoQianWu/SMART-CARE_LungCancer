@@ -167,18 +167,6 @@ tTestIter <- function(data, metadata, cmn_col) {
     lapply(seq(numVar2), function(j) {
       var1 <- combinedTab[[i]]
       var2 <- combinedTab[[numVar1+j]]
-      # THIS CHUNK IS OLD WAY
-      # Ensure each sample group contains at least two numeric values
-      # if (any(is.na(var1))) {
-      #   smpGroups <- split(x = var1, f = var2)
-      #   if (sum(!is.na(smpGroups[[1]])) < 2 | sum(!is.na(smpGroups[[2]])) < 2) {
-      #     return(data.frame(Var1 = colnames(combinedTab)[i],
-      #                       Var2 = colnames(combinedTab)[numVar1+j],
-      #                       pVal = NA, Group1 = NA, Group2 = NA,
-      #                       Mu1 = NA, Mu2 = NA, stringsAsFactors = F
-      #     ))
-      #   }
-      # }
       
       # Perform t-test and extract p-value and group means
       # var.equal = F (default) => Welch's t-test
@@ -241,26 +229,6 @@ normTest <- function(data) {
     } else {
       NA
       }}) %>% data.frame(Feature = rownames(data), Normality = .)
-  
-  # THE FOLLOWING IS OLD WAY
-  # Check completeness of data
-  # naFeats <- complete.cases(data)
-  # Run normality test if there is no missing value
-  # if (all(naFeats)) {
-  #   normRes <- sapply(seq_len(nrow(data)), function(i) {
-  #     featVals <- data[i,]
-  #     normality <- shapiro.test(featVals)$p.value > 0.05
-  #   }) %>% data.frame(Feature = rownames(data),
-  #                     Normality = .)
-  # } else {
-  #   # Remove features with missing values
-  #   dataSub <- data[naFeats,]
-  #   normRes <- sapply(seq_len(nrow(dataSub)), function(i) {
-  #     featVals <- dataSub[i,]
-  #     normality <- shapiro.test(featVals)$p.value > 0.05
-  #   }) %>% data.frame(Feature = rownames(dataSub),
-  #                     Normality = .)
-  # }
   return(normRes)
 }
 
@@ -299,21 +267,23 @@ subData <- function(summ_exp, split_by, factors, suffixes, smp_anno) {
 }
 
 
-SOA <- function(summ_exp, factor, num_feats = NULL) {
+SOA <- function(summ_exp, fac, fac4uni = NULL, num_feats = NULL) {
   # To-do: Expand function to e.g., MultiAssayExperiment object and association
   # test for more than two groups e.g., ANOVA
   
   #' Perform single-omics analysis on preprocessed data stored in SE container to
-  #' identify potential biomarkers for certain questions, e.g., predicting patient
-  #' cancer recurrences. This function mainly includes univariate and multivariate
-  #' analysis (PCA), where feature lists answering our questions are captured by
-  #' association test
+  #' identify potential biomarkers for certain scientific questions, e.g., predicting
+  #' patient cancer recurrences. This function mainly includes univariate association
+  #' test and PCA, which attempts to capture significant features and PCs.
   #' 
   #' Parameters
   #' summ_exp: A SummarizedExperiment object containing data and metadata
-  #' factor: A character or a vector of characters indicating the sample metadata
-  #' from a SE object, separating samples into the groups for conducting association
+  #' fac: A character or a vector of characters indicating the sample metadata from
+  #' a SE object, separating samples into the groups for conducting association
   #' test (t-test)
+  #' fac4uni: Similar to 'fac'. If NULL (default), all single-omics analysis uses
+  #' 'fac'. Specify 'fac4uni' only if different factors are used for univariate
+  #' analysis of each feature.
   #' num_feats: A numeric value specifying the number of potential PCs' top features
   #' with highest absolute loadings to extract. If NULL (default), the extraction
   #' of lists of features is skipped
@@ -324,12 +294,12 @@ SOA <- function(summ_exp, factor, num_feats = NULL) {
   #' smpMetadata: A table storing sample metadata, e.g., cancer recurrence or not
   #' normRes: A table indicating the normality of features
   #' tFeatSigRes: A table showing significant association test results between
-  #' features and our questions (defined by parameter 'factor')
+  #' features and our questions (defined by parameter 'fac')
   #' tFeatRes: A table showing all association test results between features and
-  #' our questions (defined by parameter 'factor')
+  #' our questions (defined by parameter 'fac')
   #' pcaRes: A complete PCA result obtained using 'prcomp'
   #' tPCASigRes: A table showing significant association test results between PCs
-  #' and our questions (defined by parameter 'factor')
+  #' and our questions (defined by parameter 'fac')
   #' pcTopFeatTab: A list containing lists of top features (determined by parameter
   #' 'num_feats') of potential PCs
   #' pcTab: A PC table containing sample representations and metadata
@@ -338,8 +308,15 @@ SOA <- function(summ_exp, factor, num_feats = NULL) {
   if (!is(summ_exp, 'SummarizedExperiment')) {
     stop("This function takes only 'SummarizedExperiment' object for now.")
   }
-  if (!is(factor, 'character')) {
-    stop("Argument for 'factor' should be class 'character'.")
+  if (!is(fac, 'character')) {
+    stop("Argument for 'fac' should be class 'character'.")
+  }
+  if (is.null(fac4uni)) {
+    fac4uni <- fac
+  } else {
+    if(!is(fac4uni, 'character')) {
+      stop("Argument for 'fac4uni' should be class 'character'.")
+    }
   }
   
   # Retrieve data matrix from SE object
@@ -356,22 +333,12 @@ SOA <- function(summ_exp, factor, num_feats = NULL) {
       dplyr::rename(Sample = tmp_Sample)
   }
   
-  # Check normality of features for parametric association test
-  normRes <- normTest(datMat)
-  # Conduct association test between features and factors
-  featTab <- as_tibble(t(datMat), rownames = 'Sample')
-  metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(factor)))
-  tFeatRes <- tTestIter(featTab, metaTab, cmn_col = 'Sample')
-  # Extract features that can significantly separate groups of samples
-  tFeatSigRes <- dplyr::filter(tFeatRes, pVal <= 0.05) %>%
-    dplyr::select(-c(Group1, Group2, Mu1, Mu2))
-  
   # Perform PCA
   pcaRes <- PCA(datMat)
   # Conduct association test between PCs and factors
   pcTab <- pcaRes$x %>%
     tibble::as_tibble(rownames = 'Sample')
-  metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(factor)))
+  metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(fac)))
   tPCASigRes <- tTestIter(pcTab, metaTab, cmn_col = 'Sample') %>%
     dplyr::filter(pVal <= 0.05) %>%
     dplyr::select(-c(Group1, Group2, Mu1, Mu2))
@@ -392,6 +359,16 @@ SOA <- function(summ_exp, factor, num_feats = NULL) {
   } else {
     pcTopFeatTab <- NULL
   }
+  
+  # Check normality of features for parametric association test
+  normRes <- normTest(datMat)
+  # Conduct association test between features and factors
+  featTab <- as_tibble(t(datMat), rownames = 'Sample')
+  metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(fac4uni)))
+  tFeatRes <- tTestIter(featTab, metaTab, cmn_col = 'Sample')
+  # Extract features that can significantly separate groups of samples
+  tFeatSigRes <- dplyr::filter(tFeatRes, pVal <= 0.05) %>%
+    dplyr::select(-c(Group1, Group2, Mu1, Mu2))
   
   return(list(data = datMat, smpMetadata = smpMetadat, normRes = normRes,
               tFeatSigRes = tFeatSigRes, tFeatRes = tFeatRes, pcaRes = pcaRes,
