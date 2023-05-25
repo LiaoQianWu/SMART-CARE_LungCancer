@@ -57,8 +57,9 @@ recurAnno <- readxl::read_excel(
   dplyr::select(-Condition)
 # Clean up patient metadata information (adjuvant chemotherapy can be used later)
 metadataTab <- readr::read_tsv('./data/patient_metadata.tsv') %>%
-  dplyr::select(Code, Gender, `Smoking status`, `Pathological stage`) %>%
-  dplyr::rename(Patient = Code, Smoking = `Smoking status`, Stage = `Pathological stage`) %>%
+  dplyr::select(Code, Gender, `Age at diagnosis`, `Smoking status`, `Pathological stage`) %>%
+  dplyr::rename(Patient = Code, Age = `Age at diagnosis`, Smoking = `Smoking status`,
+                Stage = `Pathological stage`) %>%
   dplyr::filter(Patient %in% recurAnno$Patient) %>%
   dplyr::mutate(Gender = dplyr::case_when(Gender == 'MALE' ~ 'Male',
                                           Gender == 'FEMALE' ~ 'Female'),
@@ -95,7 +96,7 @@ metaPlasmaTab <- readxl::read_excel(
 metaPlasma <- df2SummExp(metaPlasmaTab, row_id = 'Metabolite', col_id = 'Sample',
                          values = 'Abundance', col_anno = c('Condition', 'Patient',
                                                             'Recurrence', 'Gender',
-                                                            'Smoking', 'Stage',
+                                                            'Age', 'Smoking', 'Stage',
                                                             'Identifier'))
 ```
 
@@ -155,7 +156,7 @@ ggplot(metaPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
 metaPlasmaMedi <- df2SummExp(metaPlasmaMediTab, row_id = 'Feature', col_id = 'Sample',
                              values = 'mediAbundance', col_anno = c('Condition', 'Patient',
                                                                     'Recurrence', 'Gender',
-                                                                    'Smoking', 'Stage',
+                                                                    'Age', 'Smoking', 'Stage',
                                                                     'Identifier'))
 # saveRDS(metaPlasmaMedi, './data/AG_Hell/metaPlasmaMedi.rds')
 ```
@@ -225,7 +226,7 @@ metaTissueTab <- readxl::read_excel(
 metaTissue <- df2SummExp(metaTissueTab, row_id = 'Metabolite', col_id = 'Sample',
                          values = 'Abundance', col_anno = c('Condition', 'Patient',
                                                             'Recurrence', 'Gender',
-                                                            'Smoking', 'Stage',
+                                                            'Age', 'Smoking', 'Stage',
                                                             'Identifier'))
 ```
 
@@ -293,7 +294,7 @@ ggplot(metaTissueMediTab, aes(x=Sample, y=mediAbundance)) +
 metaTissueMedi <- df2SummExp(metaTissueMediTab, row_id = 'Feature', col_id = 'Sample',
                              values = 'mediAbundance', col_anno = c('Condition', 'Patient',
                                                                     'Recurrence', 'Gender',
-                                                                    'Smoking', 'Stage',
+                                                                    'Age', 'Smoking', 'Stage',
                                                                     'Identifier'))
 # saveRDS(metaTissueMedi, './data/AG_Hell/metaTissueMedi.rds')
 ```
@@ -421,7 +422,7 @@ proPlasmaTab <- left_join(proPlasmaTab, proPlasmaAnno, by = 'Sample_IDs')
 proPlasma <- df2SummExp(proPlasmaTab, row_id = 'PG.ProteinGroups', col_id = 'Sample',
                         values = 'Abundance', row_anno = 'PG.Genes',
                         col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                     'Smoking', 'Stage', 'Identifier'))
+                                     'Age', 'Smoking', 'Stage', 'Identifier'))
 dim(proPlasma)
 ```
 
@@ -475,7 +476,7 @@ ggplot(proPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
 proPlasmaMedi <- df2SummExp(proPlasmaMediTab, row_id = 'Feature', col_id = 'Sample',
                             values = 'mediAbundance', row_anno = 'PG.Genes',
                             col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                         'Smoking', 'Stage', 'Identifier'))
+                                         'Age', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(proPlasmaMedi, './data/AG_Krijgsveld/proPlasmaMedi.rds')
 ```
 
@@ -548,7 +549,7 @@ proTissueTab <- dplyr::left_join(proTissueTab, proTissueAnno, by = 'Sample_IDs')
 proTissue <- df2SummExp(proTissueTab, row_id = 'PG.ProteinGroups', col_id = 'id',
                         values = 'Abundance', row_anno = 'PG.Genes',
                         col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                     'Smoking', 'Stage', 'Sample', 'Identifier'))
+                                     'Age', 'Smoking', 'Stage', 'Sample', 'Identifier'))
 dim(proTissue)
 ```
 
@@ -628,6 +629,7 @@ colnames(proTissueNorm)[which(ids == 'smp29')] <- 'F04ERF3M_TG'
 colData(proTissueNorm)$Sample <- colnames(proTissueNorm)
 colData(proTissueNorm)$Patient[which(ids == 'smp29')] <- 'F04ERF3M'
 colData(proTissueNorm)$Recurrence[which(ids == 'smp29')] <- 'Yes'
+colData(proTissueNorm)$Age[which(ids == 'smp29')] <- 68
 # Remove redundant Sample column in column annotation table
 colData(proTissueNorm) <- colData(proTissueNorm)[, -which(colnames(colData(proTissueNorm)) == 'Sample')]
 
@@ -644,6 +646,7 @@ colnames(proTissue)[which(ids == 'smp29')] <- 'F04ERF3M_TG'
 colData(proTissue)$Sample <- colnames(proTissue)
 colData(proTissue)$Patient[which(ids == 'smp29')] <- 'F04ERF3M'
 colData(proTissue)$Recurrence[which(ids == 'smp29')] <- 'Yes'
+colData(proTissue)$Age[which(ids == 'smp29')] <- 68
 
 exprMat <- as.matrix(assay(proTissue))
 sampleAnno <- tibble::as_tibble(colData(proTissue))
@@ -664,7 +667,7 @@ ggplot(proTissueMediTab, aes(x=Sample, y=mediAbundance)) +
 proTissueMedi <- df2SummExp(proTissueMediTab, row_id = 'Feature', col_id = 'Sample',
                             values = 'mediAbundance', row_anno = 'PG.Genes',
                             col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                         'Smoking', 'Stage', 'Identifier'))
+                                         'Age', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(proTissueMedi, './data/AG_Krijgsveld/proTissueMedi.rds')
 ```
 

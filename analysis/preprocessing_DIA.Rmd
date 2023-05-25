@@ -61,7 +61,7 @@ proPlasmaTab <- dplyr::left_join(proPlasmaTab, smpAnno, by = 'Identifier')
 proPlasma <- df2SummExp(proPlasmaTab, row_id = 'Protein.Group', col_id = 'Sample',
                         values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
                         col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                     'Smoking', 'Stage', 'Identifier'))
+                                     'Age', 'Smoking', 'Stage', 'Identifier'))
 ```
 
 Display dimensions of data (34 samples and 505 features)
@@ -131,7 +131,7 @@ ggplot(proPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
 proPlasmaMedi <- df2SummExp(proPlasmaMediTab, row_id = 'Feature', col_id = 'Sample',
                             values = 'mediAbundance', row_anno = c('Protein.Names', 'Genes'),
                             col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                         'Smoking', 'Stage', 'Identifier'))
+                                         'Age', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(proPlasmaMedi, './data/AG_Krijgsveld/proPlasmaMedi_DIA.rds')
 ```
 
@@ -162,7 +162,7 @@ proTissueTab <- dplyr::left_join(proTissueTab, smpAnno, by = 'Identifier')
 proTissue <- df2SummExp(proTissueTab, row_id = 'Protein.Group', col_id = 'Sample',
                         values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
                         col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                     'Smoking', 'Stage', 'Identifier'))
+                                     'Age', 'Smoking', 'Stage', 'Identifier'))
 ```
 
 Display dimensions of data (34 samples and 6929 features)
@@ -232,7 +232,7 @@ ggplot(proTissueMediTab, aes(x=Sample, y=mediAbundance)) +
 proTissueMedi <- df2SummExp(proTissueMediTab, row_id = 'Feature', col_id = 'Sample',
                             values = 'mediAbundance', row_anno = c('Protein.Names', 'Genes'),
                             col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                         'Smoking', 'Stage', 'Identifier'))
+                                         'Age', 'Smoking', 'Stage', 'Identifier'))
 # saveRDS(proTissueMedi, './data/AG_Krijgsveld/proTissueMedi_DIA.rds')
 ```
 

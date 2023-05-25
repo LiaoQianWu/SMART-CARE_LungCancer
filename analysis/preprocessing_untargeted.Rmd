@@ -746,8 +746,9 @@ metaPlasmaVsn <- df2SummExp(merge_metaPlasmaVsnTab,
                             values = 'vsnAbundance',
                             row_anno = 'm/z_RT',
                             col_anno = c('Patient', 'Condition', 'Recurrence',
-                                         'Gender', 'Smoking', 'Stage', 'Identifier'))
-# saveRDS(metaPlasmaVsn, './data/AG_Hopf/metaPlasmaVsn.rds')
+                                         'Gender', 'Age', 'Smoking', 'Stage',
+                                         'Identifier'))
+saveRDS(metaPlasmaVsn, './data/AG_Hopf/metaPlasmaVsn.rds')
 ```
 
 PCA
@@ -881,8 +882,9 @@ metaPlasmaMedi <- df2SummExp(merge_metaPlasmaMediTab,
                              values = 'mediAbundance',
                              row_anno = 'm/z_RT',
                              col_anno = c('Patient', 'Condition', 'Recurrence',
-                                          'Gender', 'Smoking', 'Stage', 'Identifier'))
-# saveRDS(metaPlasmaMedi, './data/AG_Hopf/metaPlasmaMedi.rds')
+                                          'Age', 'Gender', 'Smoking', 'Stage',
+                                          'Identifier'))
+saveRDS(metaPlasmaMedi, './data/AG_Hopf/metaPlasmaMedi.rds')
 ```
 
 ```{r eval = F}
@@ -1582,8 +1584,9 @@ lipPlasmaVsn <- df2SummExp(merge_lipPlasmaVsnTab,
                            values = 'vsnAbundance',
                            row_anno = 'm/z_RT',
                            col_anno = c('Patient', 'Condition', 'Recurrence',
-                                        'Gender', 'Smoking', 'Stage', 'Identifier'))
-# saveRDS(lipPlasmaVsn, './data/AG_Hopf/lipPlasmaVsn.rds')
+                                        'Age', 'Gender', 'Smoking', 'Stage',
+                                        'Identifier'))
+saveRDS(lipPlasmaVsn, './data/AG_Hopf/lipPlasmaVsn.rds')
 ```
 
 PCA
@@ -1716,8 +1719,9 @@ lipPlasmaMedi <- df2SummExp(merge_lipPlasmaMediTab,
                             values = 'mediAbundance',
                             row_anno = 'm/z_RT',
                             col_anno = c('Patient', 'Condition', 'Recurrence',
-                                         'Gender', 'Smoking', 'Stage', 'Identifier'))
-# saveRDS(lipPlasmaMedi, './data/AG_Hopf/lipPlasmaMedi.rds')
+                                         'Age', 'Gender', 'Smoking', 'Stage',
+                                         'Identifier'))
+saveRDS(lipPlasmaMedi, './data/AG_Hopf/lipPlasmaMedi.rds')
 ```
 
 ```{r eval = F}
@@ -2129,8 +2133,9 @@ metaTissueVsn <- df2SummExp(merge_metaTissueVsnTab,
                             values = 'vsnAbundance',
                             row_anno = 'MZ/RT',
                             col_anno = c('Patient', 'Condition', 'Recurrence',
-                                         'Gender', 'Smoking', 'Stage', 'Identifier'))
-# saveRDS(metaTissueVsn, './data/AG_Hopf/metaTissueVsn.rds')
+                                         'Age', 'Gender', 'Smoking', 'Stage',
+                                         'Identifier'))
+saveRDS(metaTissueVsn, './data/AG_Hopf/metaTissueVsn.rds')
 ```
 
 PCA
@@ -2206,8 +2211,9 @@ metaTissueMedi <- df2SummExp(merge_metaTissueMediTab,
                              values = 'mediAbundance',
                              row_anno = 'MZ/RT',
                              col_anno = c('Patient', 'Condition', 'Recurrence',
-                                          'Gender', 'Smoking', 'Stage', 'Identifier'))
-# saveRDS(metaTissueMedi, './data/AG_Hopf/metaTissueMedi.rds')
+                                          'Age', 'Gender', 'Smoking', 'Stage',
+                                          'Identifier'))
+saveRDS(metaTissueMedi, './data/AG_Hopf/metaTissueMedi.rds')
 ```
 
 
@@ -2668,8 +2674,9 @@ lipTissueVsn <- df2SummExp(merge_lipTissueVsnTab,
                            values = 'vsnAbundance',
                            row_anno = 'MZ/RT',
                            col_anno = c('Patient', 'Condition', 'Recurrence',
-                                        'Gender', 'Smoking', 'Stage', 'Identifier'))
-# saveRDS(lipTissueVsn, './data/AG_Hopf/lipTissueVsn.rds')
+                                        'Age', 'Gender', 'Smoking', 'Stage',
+                                        'Identifier'))
+saveRDS(lipTissueVsn, './data/AG_Hopf/lipTissueVsn.rds')
 ```
 
 PCA
@@ -2743,8 +2750,9 @@ lipTissueMedi <- df2SummExp(merge_lipTissueMediTab,
                              values = 'mediAbundance',
                              row_anno = 'MZ/RT',
                              col_anno = c('Patient', 'Condition', 'Recurrence',
-                                          'Gender', 'Smoking', 'Stage', 'Identifier'))
-# saveRDS(lipTissueMedi, './data/AG_Hopf/lipTissueMedi.rds')
+                                          'Age', 'Gender', 'Smoking', 'Stage',
+                                          'Identifier'))
+saveRDS(lipTissueMedi, './data/AG_Hopf/lipTissueMedi.rds')
 ```
 
 
