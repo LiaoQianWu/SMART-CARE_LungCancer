@@ -97,46 +97,131 @@ summExp2df <- function(summ_exp, assay = NULL,
 }
 
 
-PCA <- function(data) {
-  #' Perform PCA (using prcomp) on input data matrix
+rmCorrFeats <- function(data, cutoff = 0.8, distance_method = "pearson",
+                        cluster_method = "ward.D2") {
+  #' Perform agglomerative hierarchical clustering to cluster features into correlated
+  #' feature groups and remove most of correlated features in a group from data,
+  #' i.e., only one representative of a group is kept
   #' 
   #' Parameter
   #' data: A Feature x Sample data matrix
+  #' cutoff: A numeric value specifying where the tree is cut to determine the
+  #' number of clusters. The cutoff is applied to the height (distance of a merge)
+  #' of the tree and corresponds to feature correlations and should be greater than 0.
+  #' distance_method: A character specifying the method for computing a distance
+  #' matrix
+  #' cluster_method: A character specifying the linkage method for combining clusters
   #' 
   #' Return
-  #' pcaRes: A list containing the components described in prcomp documentation
+  #' A list containing the following components:
+  #' reducedData: A matrix where only individual representatives of feature clusters
+  #' are kept, i.e., the other correlated features are removed
+  #' corrFeats: A list storing clusters of correlated features for latter retrieval
   
-  # Check completeness of data
-  naFeats <- complete.cases(data)
-  # Run PCA if there is no missing value
-  if (all(naFeats)) {
+  # Check argument
+  if (!is(cutoff, 'numeric') | cutoff < 0) {
+    stop("Cutoff should be class 'numeric' and greater than 0.")
+  }
+  
+  # Calculate distance matrix
+  if (distance_method == 'pearson') {
+    distMat <- stats::as.dist(1 - stats::cor(t(data), method = 'pearson',
+                                             use = 'pairwise.complete.obs'))
+  } else if (distance_method == 'euclidean') {
+    distMat <- stats::dist(data, method = 'euclidean')
+  } else if (distance_method == 'binary') { #for sparse matrix
+    distMat <- stats::dist(data, method = 'binary')
+  }
+  
+  # Perform hierarchical clustering
+  hierClust <- stats::hclust(distMat, method = cluster_method)
+  clusters <- stats::cutree(hierClust, h = 1 - cutoff)
+  reduData <- data[!duplicated(clusters),]
+  
+  # Record removed correlated feature group for latter retrieval
+  corrFeatList <- lapply(rownames(reduData), function(feat) {
+    corrFeats <- names(clusters[clusters == clusters[feat]])
+    corrFeats[corrFeats != feat]
+  })
+  names(corrFeatList) <- rownames(reduData)
+  
+  return(list(reducedData = reduData,
+              corrFeats = corrFeatList))
+}
+
+
+doPCA <- function(data, pca_method = 'pca', num_PCs = 20) {
+  #' Perform conventional PCA or its extensions, probabilistic PCA and Bayesian
+  #' PCA, on MS-based data such as proteomics, metabolomics, etc. If missing values
+  #' exist, those features with any missingness are removed for running conventional
+  #' PCA, leading to loss of information. In this case, PPCA and BPCA can be considered.
+  #' 
+  #' Parameter
+  #' data: A vsn (variance stabilization) normalized Feature x Sample abundance
+  #' data matrix since parameter 'scale' is not used for all sorts of PCA methods
+  #' pca_method: A character specifying the PCA method to use, which should be one
+  #' of 'pca' (default), 'ppca', or 'bpca'
+  #' num_PCs: A numeric value specifying the number of PCs to estimate. The preciseness
+  #' of the estimation of missing values depends on the number of PCs
+  #' 
+  #' Return
+  #' pcaRes: A list or object containing the components described in 'prcomp' or
+  #' 'pcaMethods::pcaRes' documentation
+  
+  if (pca_method == 'pca') {
+    # Run conventional PCA
     # center = T => centering is done by subtracting corresponding column (feature)
     # means of data, which shifts features to be zero centered
     # scale. = T => scaling is done by dividing standard deviation of (centered)
     # columns, which scales features to have unit variance
-    pcaRes <- prcomp(t(data), center = T, scale. = F)
+    # Spot complete features to remove features with any missing values
+    completeFeats <- complete.cases(data)
+    if (!all(completeFeats)) {
+      message("Missing values exist in data and features with missingness are removed
+              for running conventional PCA.")
+    }
+    pcaRes <- prcomp(t(data[completeFeats,]), center = T, scale. = F)
+  } else if (pca_method == 'ppca') {
+    # Run probabilistic PCA
+    # Convert missing values from NaN to NA for performing PCA in 'pcaMethods' package
+    data[is.nan(data)] <- NA
+    pcaRes <- pcaMethods::pca(t(data), method = 'ppca', nPcs = num_PCs, seed = 123,
+                              center = T, scale = 'none')
+  } else if (pca_method == 'bpca') {
+    # Run Bayesian PCA
+    data[is.nan(data)] <- NA
+    pcaRes <- pcaMethods::pca(t(data), method = 'bpca', nPcs = num_PCs,
+                              center = T, scale = 'none')
   } else {
-    # Remove features with missing values
-    dataSub <- data[naFeats,]
-    pcaRes <- prcomp(t(dataSub), center = T, scale. = F)
+    stop("Argument for 'pca_method' should be one of 'pca', 'ppca', or 'bpca'.")
   }
   return(pcaRes)
 }
 
 
-tTestIter <- function(data, metadata, cmn_col) {
-  #' Iterate t-test on features or representations grouped by varied categorical
-  #' variables. For instance, t-test is systematically performed on tissue samples
-  #' grouped by sample conditions (i.e, tumor and normal) across PCs
+testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
+                            var_equal = T) {
+  #' Iterate association tests between dependent and independent variables whose
+  #' information is stored in data and metadata tables, respectively. Data table
+  #' should contain numerical values of samples (e.g., protein abundances or PCs)
+  #' and metadata table contains sample's metadata (Patient genders or ages).
+  #' Depending on types of independent variables, varied tests are performed. That
+  #' is, if independent variable is numerical, correlation is computed; if independent
+  #' variable is categorical, t-test or ANOVA is used.
   #'
   #' Parameters
-  #' data: A data frame containing numeric values of samples in the column
+  #' data: A normalized Sample x Feature numerical data frame
   #' metadata: A data frame containing sample metadata in the column
   #' cmn_col: A character specifying the common column (e.g., sample names) between
-  #' data and metadata tables for combining information from them
+  #' data and metadata tables for combining them to match the information
+  #' cor_method: A character specifying the correlation method to use, which should
+  #' be one of 'pearson' (default), 'spearman', or 'kendall'
+  #' var_equal: A logical variable indicating whether to treat the variances of
+  #' two groups as being equal. If TRUE (default), Student's t-test is performed,
+  #' otherwise Welch's t-test is used
   #' 
   #' Return
-  #' resTab: A data frame collecting all t-test results
+  #' resTab: A data frame collecting all association test results
   #' 
   #' Try to simply silently return NA for errors due to limited number (one in
   #' each group) or zero variation of observations when function is called multiple
@@ -148,182 +233,158 @@ tTestIter <- function(data, metadata, cmn_col) {
   
   # Check arguments
   if (!(is(data, 'data.frame') & is(metadata, 'data.frame'))) {
-    stop("Both tables should be class 'data.frame', 'tbl', or 'tbl_df'.")
+    stop("Both input tables should be class 'data.frame', 'tbl', or 'tbl_df'.")
   }
-  # Check completeness of metadata tables
-  naVals <- complete.cases(metadata)
-  if (!all(naVals)) {
-    stop("Metadata table is not complete. Please remove samples with missing values.")
+  if (!(cor_method %in% c('pearson', 'spearman', 'kendall'))) {
+    stop("Argument for 'cor_method' should be one of 'pearson', 'spearman', or 'kendall'.")
+  }
+  if (!is.character(cmn_col)) {
+    stop("Argument for 'cmn_col' should be class 'character'.")
+  }
+  if (!is.logical(var_equal)) {
+    stop("Argument for 'var_equal' should be class 'logical'.")
+  }
+  # Check completeness of metadata and data variable type (for myself aware of everything)
+  completeMetadata <- complete.cases(metadata)
+  if (!all(completeMetadata)) {
+    stop("Not all sample's metadata is complete.")
+  }
+  varTypeData <- apply(data[,-which(colnames(data) == cmn_col)], 2, is.numeric)
+  if (!all(varTypeData)) {
+    stop("Not all data variables are numeric.")
   }
   
-  # Combine data and metadata tables to ensure matched information
+  # Combine data and metadata by a common column to ensure matched information
   combinedTab <- dplyr::left_join(data, metadata, by = cmn_col) %>%
     dplyr::select(-all_of(cmn_col))
-  # Iterate all possible association tests
+  # Conduct all possible association tests
   numVar1 <- ncol(data) - 1
   numVar2 <- ncol(metadata) - 1
-  # CHECK combn FUNCTION THAT CAN GENERATE ALL POSSIBLE COMBINATIONS
   resTab <- lapply(seq(numVar1), function(i) {
     lapply(seq(numVar2), function(j) {
       var1 <- combinedTab[[i]]
       var2 <- combinedTab[[numVar1+j]]
-      
-      # Perform t-test and extract p-value and group means
-      # var.equal = F (default) => Welch's t-test
-      # var.equal = T => Student's t-test
-      tStatRes <- try(t.test(var1 ~ factor(var2), paired = F, var.equal = T),
-                      silent = T)
-      if (!is(tStatRes, 'try-error')) {
-        pVal <- tStatRes$p.value
-        estimates <- tStatRes$estimate
-        tStats <- tStatRes$statistic
-        
-        # Create data frame for summarizing results 
+      # Perform corresponding tests depending on types of independent variables
+      singleRes <- try(
+        if (is.numeric(var2)) {
+          # Perform correlation test if independent variable is numerical
+          test <- 'Correlation'
+          corrRes <- cor.test(var1, var2, method = cor_method,
+                              use = "pairwise.complete.obs")
+          pValue <- corrRes$p.value
+          statistic <- corrRes$estimate
+        } else if ((is.character(var2) | is.factor(var2)) &
+                   length(unique(var2)) == 2) {
+          # Perform t-test if independent variable is categorical and has 2 levels
+          test <- 'T-test'
+          tStatRes <- t.test(var1 ~ var2, paired = F, var.equal = var_equal)
+          pValue <- tStatRes$p.value
+          statistic <- tStatRes$statistic
+        } else if ((is.character(var2) | is.factor(var2)) &
+                   length(unique(var2)) > 2) {
+          # Perform ANOVA if independent variable is categorical and has more than 2 levels
+          test <- 'ANOVA'
+          anovaRes <- summary(aov(var1 ~ var2))
+          pValue <- anovaRes[[1]][['Pr(>F)']][1]
+          statistic <- anovaRes[[1]][['F value']][1]
+        },
+        silent = T
+      )
+      # Create data frame for summarizing results
+      if (!is(singleRes, 'try-error')) {
+        # Prevent error in creating data frame due to differing number of rows,
+        # i.e., p-value and statistic are NULL and fail to be retrieved (e.g., 20
+        # samples and 20 groups in ANOVA)
+        if (is.null(statistic)) {
+          pValue <- NA
+          statistic <- NA
+        }
         data.frame(Var1 = colnames(combinedTab)[i],
                    Var2 = colnames(combinedTab)[numVar1+j],
-                   pVal = pVal,
-                   tStats = tStats,
-                   Group1 = stringr::str_remove(names(estimates)[1],
-                                                'mean in group '),
-                   Group2 = stringr::str_remove(names(estimates)[2],
-                                                'mean in group '),
-                   Mu1 = estimates[1],
-                   Mu2 = estimates[2],
-                   stringsAsFactors = F)
+                   pVal = pValue, Stat = statistic, Test = test,
+                   stringsAsFactors = F, row.names = c())
       } else {
         data.frame(Var1 = colnames(combinedTab)[i],
                    Var2 = colnames(combinedTab)[numVar1+j],
-                   pVal = NA, tStats = NA, Group1 = NA, Group2 = NA,
-                   Mu1 = NA, Mu2 = NA, stringsAsFactors = F)
-        }
+                   pVal = NA, Stat = NA, Test = test,
+                   stringsAsFactors = F, row.names = c())
+      }
     }) %>% dplyr::bind_rows()
   }) %>% dplyr::bind_rows() %>%
     dplyr::arrange(pVal)
   
   # Compute adjusted p-value
-  resTab <- dplyr::mutate(resTab, pValAdj = p.adjust(pVal, method = 'BH'))
-  rownames(resTab) <- c()
+  resTab <- dplyr::mutate(resTab, pValAdj = p.adjust(pVal, method = 'BH')) %>%
+    dplyr::relocate(pValAdj, .after = pVal)
   return(resTab)
 }
 
 
-normTest <- function(data) {
-  #' Perform Shapiro-Wilk's normality test on row of input data matrix
-  #' 
-  #' Parameter
-  #' data: A Feature x Sample data matrix
-  #' 
-  #' Return
-  #' normRes: A data frame storing the normality of features
-  
-  # Check argument
-  if (!is(data, 'matrix')) {
-    stop("Data should be class 'matrix'. Please change it with 'as.matrix()'.")
-  }
-  
-  normRes <- sapply(seq_len(nrow(data)), function(i) {
-    featVals <- data[i,]
-    normality <- try(shapiro.test(featVals), silent = T)
-    if (!is(normality, 'try-error')) {
-      normality$p.value > 0.05
-    } else {
-      NA
-      }}) %>% data.frame(Feature = rownames(data), Normality = .)
-  return(normRes)
-}
-
-
-subData <- function(summ_exp, split_by, factors, suffixes, smp_anno) {
-  #' IF SUFFIXES IS SPECIFIED AND THEN?
-  #' Parameter
-  #' split_by: A character specifying the column of sample metadata
-  #' factors: A vector of characters indicating factors
-  #' suffixes: A vector of characters indicating suffixes to be removed, corresponding to factors
-  #' smp_anno: A character or a vector of characters specifying the column of sample
-  #' metadata
-  
-  # Subset samples
-  smpAnno <- as.data.frame(colData(summ_exp))
-  se1 <- summ_exp[, smpAnno[[split_by]] == factors[1]]
-  se2 <- summ_exp[, smpAnno[[split_by]] == factors[2]]
-  # Modify column names for matching two matrices
-  colnames(se1) <- stringr::str_remove(colnames(se1), suffixes[1])
-  colnames(se2) <- stringr::str_remove(colnames(se2), suffixes[2])
-  # Retrieve data matrix
-  Mat1 <- SummarizedExperiment::assay(se1)
-  Mat2 <- SummarizedExperiment::assay(se2)
-  # Subtract tumor matrix by normal matrix
-  if (identical(colnames(Mat1), colnames(Mat2)) &
-      identical(rownames(Mat1), rownames(Mat2))) {
-    diffMat <- Mat1 - Mat2
-  } else {
-    stop("Align samples or features first.")
-  }
-  # Retrieve samples metadata for creating SE object
-  smpAnno <- dplyr::select(as.data.frame(colData(se1)), all_of(smp_anno))
-  diffSE <- SummarizedExperiment(assays = diffMat, colData = smpAnno)
-  
-  return(list(SE1 = se1, SE2 = se2, diffSE = diffSE))
-}
-
-
-SOA <- function(summ_exp, fac, fac4uni = NULL, num_feats = NULL) {
-  # To-do: Expand function to e.g., MultiAssayExperiment object and association
-  # test for more than two groups e.g., ANOVA
+doSOA <- function(summ_exp, meta_var, pca_method = 'pca', alpha = 0.05,
+                  num_PCfeats = NULL, do_onlyPCA = F, ...) {
+  # To-do: Expand function to e.g., MultiAssayExperiment object and add proDA
   
   #' Perform single-omics analysis on preprocessed data stored in SE container to
-  #' identify potential biomarkers for certain scientific questions, e.g., predicting
-  #' patient cancer recurrences. This function mainly includes univariate association
-  #' test and PCA, which attempts to capture significant features and PCs.
+  #' have initial look at data properties and data power in terms of certain scientific
+  #' questions, e.g., identifying biomarkers for predicting patient cancer recurrences.
+  #' This function mainly includes PCA and association test between two variables,
+  #' which attempts to capture significant PCs and features.
   #' 
   #' Parameters
-  #' summ_exp: A SummarizedExperiment object containing data and metadata
-  #' fac: A character or a vector of characters indicating the sample metadata from
-  #' a SE object, separating samples into the groups for conducting association
-  #' test (t-test)
-  #' fac4uni: Similar to 'fac'. If NULL (default), all single-omics analysis uses
-  #' 'fac'. Specify 'fac4uni' only if different factors are used for univariate
-  #' analysis of each feature.
-  #' num_feats: A numeric value specifying the number of potential PCs' top features
+  #' summ_exp: A SummarizedExperiment object containing normalized Feature x Sample
+  #' data and metadata
+  #' meta_var: A character or a vector of characters indicating the variable(S)
+  #' in sample metadata from a SE object for association tests. Categorical variable
+  #' (factor) is used as grouping factor to separate samples into two or several
+  #' groups for conducting t-test or ANOVA; numerical variable (covariate) can be
+  #' used to compute correlation coefficient
+  #' pca_method: A character specifying the PCA method to use, which should be one
+  #' of 'pca' (default), 'ppca', or 'bpca'
+  #' alpha: A numeric value specifying the cutoff for statistic significance. Default
+  #' is 0.05
+  #' num_PCfeats: A numeric value specifying the number of potential PCs' top features
   #' with highest absolute loadings to extract. If NULL (default), the extraction
   #' of lists of features is skipped
+  #' do_onlyPCA: A logical variable indicating whether only PCA and its association
+  #' tests between PCs and metadata variables are performed. If FALSE (default),
+  #' univariate association tests between features (e.g., protein abundances) and
+  #' metadata variables are also conducted
+  #' ...: Further arguments to be passed to, such as 'var_equal' to 'testAssociation'
   #' 
   #' Return
   #' A list containing the following components:
   #' data: A data matrix from the SE object
-  #' smpMetadata: A table storing sample metadata, e.g., cancer recurrence or not
-  #' normRes: A table indicating the normality of features
-  #' tFeatSigRes: A table showing significant association test results between
-  #' features and our questions (defined by parameter 'fac')
-  #' tFeatRes: A table showing all association test results between features and
-  #' our questions (defined by parameter 'fac')
-  #' pcaRes: A complete PCA result obtained using 'prcomp'
+  #' smpMetadata: A table storing sample metadata, e.g., patient genders, ages, etc.
+  #' pcaRes: A complete PCA result obtained using 'prcomp' or 'pcaMethods::pca'
   #' tPCASigRes: A table showing significant association test results between PCs
-  #' and our questions (defined by parameter 'fac')
+  #' and metadata variables (defined by parameter 'meta_var')
   #' pcTopFeatTab: A list containing lists of top features (determined by parameter
-  #' 'num_feats') of potential PCs
+  #' 'num_PCfeats') of potential PCs
   #' pcTab: A PC table containing sample representations and metadata
+  #' tFeatSigRes: A table showing significant association test results between
+  #' features and metadata variables (defined by parameter 'meta_var')
+  #' tFeatRes: A table showing all association test results between features and
+  #' metadata variables (defined by parameter 'meta_var')
   
   # Check arguments
   if (!is(summ_exp, 'SummarizedExperiment')) {
     stop("This function takes only 'SummarizedExperiment' object for now.")
   }
-  if (!is(fac, 'character')) {
-    stop("Argument for 'fac' should be class 'character'.")
+  if (!is(meta_var, 'character') & !all(meta_var %in% colnames(colData(summ_exp)))) {
+    stop("Argument for 'meta_var' should be class 'character' and included in sample metadata.")
   }
-  if (is.null(fac4uni)) {
-    fac4uni <- fac
-  } else {
-    if(!is(fac4uni, 'character')) {
-      stop("Argument for 'fac4uni' should be class 'character'.")
-    }
+  if (!(pca_method %in% c('pca', 'ppca', 'bpca'))) {
+    stop("Argument for 'pca_method' should be one of 'pca', 'ppca', or 'bpca'.")
+  }
+  if (!is(do_onlyPCA, 'logical')) {
+    stop("Argument for 'do_onlyPCA' should be class 'logical'.")
   }
   
-  # Retrieve data matrix from SE object
+  # Extract data matrix from SE object
   datMat <- SummarizedExperiment::assay(summ_exp) %>%
     as.matrix()
-  # Retrieve sample metadata from SE object and ensure 'Sample' column exists and
-  # contains sample names of data matrix for further operations (tTestIter)
+  # Extract sample metadata from SE object and ensure 'Sample' column exists and
+  # contains sample names of data matrix for further association tests
   smpMetadat <- colData(summ_exp)
   if (!'Sample' %in% colnames(smpMetadat)) {
     smpMetadat <- tibble::as_tibble(smpMetadat, rownames = 'Sample')
@@ -334,22 +395,30 @@ SOA <- function(summ_exp, fac, fac4uni = NULL, num_feats = NULL) {
   }
   
   # Perform PCA
-  pcaRes <- PCA(datMat)
+  pcaRes <- doPCA(datMat, pca_method = pca_method, ...)
   # Conduct association test between PCs and factors
-  pcTab <- pcaRes$x %>%
-    tibble::as_tibble(rownames = 'Sample')
-  metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(fac)))
-  tPCASigRes <- tTestIter(pcTab, metaTab, cmn_col = 'Sample') %>%
-    dplyr::filter(pVal <= 0.05) %>%
-    dplyr::select(-c(Group1, Group2, Mu1, Mu2))
+  if (pca_method == 'pca') {
+    pcTab <- pcaRes$x %>%
+      tibble::as_tibble(rownames = 'Sample')
+  } else if (pca_method == 'ppca' | pca_method == 'bpca') {
+    pcTab <- pcaRes@scores %>%
+      tibble::as_tibble(rownames = 'Sample')
+  }
+  metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(meta_var)))
+  tPCASigRes <- testAssociation(pcTab, metaTab, cmn_col = 'Sample', ...) %>%
+    dplyr::filter(pVal <= alpha)
   # Create complete PC table containing sample representations and metadata
   pcTab <- dplyr::left_join(pcTab, smpMetadat, by = 'Sample')
   # Extract top features with highest absolute loadings of significant PCs
-  if (!is.null(num_feats)) {
+  if (!is.null(num_PCfeats)) {
     sigPCs <- tPCASigRes[['Var1']]
     pcTopFeatTab <- lapply(sigPCs, function(pc) {
-      featLoad <- pcaRes$rotation[, pc]
-      topFeatLoad <- sort(abs(featLoad), decreasing = T)[1:num_feats]
+      if (pca_method == 'pca') {
+        featLoad <- pcaRes$rotation[, pc]
+      } else if (pca_method == 'ppca' | pca_method == 'bpca') {
+        featLoad <- pcaRes@loadings[, pc]
+      }
+      topFeatLoad <- sort(abs(featLoad), decreasing = T)[1:num_PCfeats]
       topFeatIDs <- names(topFeatLoad)
       data.frame(Feature = topFeatIDs,
                  Loading = topFeatLoad,
@@ -360,21 +429,67 @@ SOA <- function(summ_exp, fac, fac4uni = NULL, num_feats = NULL) {
     pcTopFeatTab <- NULL
   }
   
-  # Check normality of features for parametric association test
-  normRes <- normTest(datMat)
-  # Conduct association test between features and factors
-  featTab <- as_tibble(t(datMat), rownames = 'Sample')
-  metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(fac4uni)))
-  tFeatRes <- tTestIter(featTab, metaTab, cmn_col = 'Sample')
-  # Extract features that can significantly separate groups of samples
-  tFeatSigRes <- dplyr::filter(tFeatRes, pVal <= 0.05) %>%
-    dplyr::select(-c(Group1, Group2, Mu1, Mu2))
+  # Conduct univariate association test between features and factors
+  if (do_onlyPCA == F) {
+    featTab <- as_tibble(t(datMat), rownames = 'Sample')
+    metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(meta_var)))
+    tFeatRes <- testAssociation(featTab, metaTab, cmn_col = 'Sample', ...)
+    # Extract features that can significantly separate groups of samples
+    tFeatSigRes <- dplyr::filter(tFeatRes, pVal <= alpha)
+  } else {
+    tFeatRes <- NULL
+    tFeatSigRes <- NULL
+  }
   
-  return(list(data = datMat, smpMetadata = smpMetadat, normRes = normRes,
-              tFeatSigRes = tFeatSigRes, tFeatRes = tFeatRes, pcaRes = pcaRes,
-              tPCASigRes = tPCASigRes, pcTopFeatTab = pcTopFeatTab, pcTab = pcTab
-  ))
+  return(list(data = datMat, smpMetadata = smpMetadat, pcaRes = pcaRes,
+              tPCASigRes = tPCASigRes, pcTopFeatTab = pcTopFeatTab,
+              pcTab = pcTab, tFeatSigRes = tFeatSigRes, tFeatRes = tFeatRes))
 }
+
+
+corrIter <- function(tabX, tabY, cmn_col, cor_method = 'pearson') {
+  # Combine two input tables by a common column to ensure matched information
+  combinedTab <- dplyr::left_join(tabX, tabY, by = cmn_col) %>%
+    dplyr::select(-all_of(cmn_col))
+  # Conduct all possible correlation tests
+  numVar1 <- ncol(tabX) - 1
+  numVar2 <- ncol(tabY) - 1
+  resTab <- lapply(seq(numVar1), function(i) {
+    lapply(seq(numVar2), function(j) {
+      var1 <- combinedTab[[i]]
+      var2 <- combinedTab[[numVar1+j]]
+      # Compute correlation and extract correlation coefficient and p-value
+      # use = 'complete.obs' (casewise) => remove all cases with missing data
+      # and calculate correlation on remaining data
+      # use = 'pairwise.complete.obs' => remove cases with missing data for each
+      # correlation calculation
+      corrRes <- try(cor.test(var1, var2, method = cor_method,
+                              use = "pairwise.complete.obs"),
+                     silent = T)
+      if (!is(corrRes, 'try-error')) {
+        corr <- corrRes$estimate
+        pVal <- corrRes$p.value
+        # Create data frame for summarizing results
+        data.frame(Var1 = colnames(combinedTab)[i],
+                   Var2 = colnames(combinedTab)[numVar1+j],
+                   Corr = corr, pVal = pVal,
+                   stringsAsFactors = F, row.names = c())
+      }
+    }) %>% dplyr::bind_rows()
+  }) %>% dplyr::bind_rows() %>%
+    dplyr::arrange(pVal)
+  
+  # Compute adjusted p-value
+  resTab <- dplyr::mutate(resTab, pValAdj = p.adjust(pVal, method = 'BH')) %>%
+    dplyr::relocate(pValAdj, .after = pVal)
+  return(resTab)
+}
+
+
+
+
+
+
 
 
 effSize <- function(mofaObj, gp = NULL, fac, abs_es = T) {
@@ -641,144 +756,61 @@ unique_features <- function(weight_mat, factor, feat_anno, g_col) {
 }
 
 
-rmCorrFeats <- function(data, cutoff = 0.8, distance_method = "pearson",
-                        cluster_method = "ward.D2") {
-  #' Perform agglomerative hierarchical clustering to cluster features into correlated
-  #' feature groups and remove most of correlated features in a group from data,
-  #' i.e., only one representative of a group is kept
+subData <- function(summ_exp, split_by, factors, suffixes, smp_anno) {
+  #' IF SUFFIXES IS SPECIFIED AND THEN?
+  #' Parameter
+  #' split_by: A character specifying the column of sample metadata
+  #' factors: A vector of characters indicating factors
+  #' suffixes: A vector of characters indicating suffixes to be removed, corresponding to factors
+  #' smp_anno: A character or a vector of characters specifying the column of sample
+  #' metadata
+  
+  # Subset samples
+  smpAnno <- as.data.frame(colData(summ_exp))
+  se1 <- summ_exp[, smpAnno[[split_by]] == factors[1]]
+  se2 <- summ_exp[, smpAnno[[split_by]] == factors[2]]
+  # Modify column names for matching two matrices
+  colnames(se1) <- stringr::str_remove(colnames(se1), suffixes[1])
+  colnames(se2) <- stringr::str_remove(colnames(se2), suffixes[2])
+  # Retrieve data matrix
+  Mat1 <- SummarizedExperiment::assay(se1)
+  Mat2 <- SummarizedExperiment::assay(se2)
+  # Subtract tumor matrix by normal matrix
+  if (identical(colnames(Mat1), colnames(Mat2)) &
+      identical(rownames(Mat1), rownames(Mat2))) {
+    diffMat <- Mat1 - Mat2
+  } else {
+    stop("Align samples or features first.")
+  }
+  # Retrieve samples metadata for creating SE object
+  smpAnno <- dplyr::select(as.data.frame(colData(se1)), all_of(smp_anno))
+  diffSE <- SummarizedExperiment(assays = diffMat, colData = smpAnno)
+  
+  return(list(SE1 = se1, SE2 = se2, diffSE = diffSE))
+}
+
+
+normTest <- function(data) {
+  #' Perform Shapiro-Wilk's normality test on row of input data matrix
   #' 
   #' Parameter
   #' data: A Feature x Sample data matrix
-  #' cutoff: A numeric value specifying where the tree is cut to determine the
-  #' number of clusters. The cutoff is applied to the height (distance of a merge)
-  #' of the tree and corresponds to feature correlations and should be greater than 0.
-  #' distance_method: A character specifying the method for computing a distance
-  #' matrix
-  #' cluster_method: A character specifying the linkage method for combining clusters
   #' 
   #' Return
-  #' A list containing the following components:
-  #' reducedData: A matrix where only individual representatives of feature clusters
-  #' are kept, i.e., the other correlated features are removed
-  #' corrFeats: A list storing clusters of correlated features for latter retrieval
+  #' normRes: A data frame storing the normality of features
   
   # Check argument
-  if (!is(cutoff, 'numeric') | cutoff < 0) {
-    stop("Cutoff should be class 'numeric' and greater than 0.")
+  if (!is(data, 'matrix')) {
+    stop("Data should be class 'matrix'. Please change it with 'as.matrix()'.")
   }
   
-  # Calculate distance matrix
-  if (distance_method == 'pearson') {
-    distMat <- stats::as.dist(1 - stats::cor(t(data), method = 'pearson',
-                                             use = 'pairwise.complete.obs'))
-  } else if (distance_method == 'euclidean') {
-    distMat <- stats::dist(data, method = 'euclidean')
-  } else if (distance_method == 'binary') { #for sparse matrix
-    distMat <- stats::dist(data, method = 'binary')
-  }
-  
-  # Perform hierarchical clustering
-  hierClust <- stats::hclust(distMat, method = cluster_method)
-  clusters <- stats::cutree(hierClust, h = 1 - cutoff)
-  reduData <- data[!duplicated(clusters),]
-  
-  # Record removed correlated feature group for latter retrieval
-  corrFeatList <- lapply(rownames(reduData), function(feat) {
-    corrFeats <- names(clusters[clusters == clusters[feat]])
-    corrFeats[corrFeats != feat]
-  })
-  names(corrFeatList) <- rownames(reduData)
-  
-  return(list(reducedData = reduData,
-              corrFeats = corrFeatList))
-}
-
-
-corrIter <- function(tabX, tabY, cmn_col) {
-  #' 
-  
-  # Combine Table X and Table Y to ensure matched information
-  combinedTab <- dplyr::left_join(tabX, tabY, by = cmn_col) %>%
-    dplyr::select(-all_of(cmn_col))
-  
-  # Iterate all possible association tests
-  numVar1 <- ncol(tabX) - 1
-  numVar2 <- ncol(tabY) - 1
-  resTab <- lapply(seq(numVar1), function(i) {
-    lapply(seq(numVar2), function(j) {
-      var1 <- combinedTab[[i]]
-      var2 <- combinedTab[[numVar1+j]]
-      
-      # Count number of non-NA value pairs, which means none of pair values from
-      # pair features is NA
-      nonNACount <- 0
-      for (p in seq_len(length(var1))) {
-        if (!is.na(var1[p]) & !is.na(var2[p])) {
-          nonNACount <- nonNACount + 1
-        }
-      }
-      
-      # Compute correlations and extract p-value
-      if (nonNACount >= 3) {
-        # use = 'complete.obs' (casewise) => remove all cases with missing data
-        # and calculate correlation on remaining data
-        # use = 'pairwise.complete.obs' => remove cases with missing data for each
-        # correlation calculation
-        corrRes <- stats::cor.test(var1, var2, method = 'pearson',
-                                   use = "pairwise.complete.obs")
-        corr <- corrRes$estimate
-        pVal <- corrRes$p.value
-        
-        # Create data frame for summarizing results 
-        data.frame(Var1 = colnames(combinedTab)[i],
-                   Var2 = colnames(combinedTab)[numVar1+j],
-                   pVal = pVal,
-                   Corr = corr,
-                   stringsAsFactors = F)
-      }
-    }) %>% dplyr::bind_rows()
-  }) %>% dplyr::bind_rows()
-  
-  # Compute adjusted p-value
-  resTab <- dplyr::mutate(resTab, pValAdj = p.adjust(pVal, method = 'BH'))
-  rownames(resTab) <- c()
-  return(resTab)
-}
-
-
-# To-do: Extend the function to different classes of variables
-associationTest <- function(tabX, tabY, cmn_col) {
-  #' Conduct association test between columns (variables) from two tables, e.g.,
-  #' Table X contains dependent variables and Table Y contains independent variables.
-  #' One-way ANOVA can be used to assess whether an independent variable has a
-  #' real impact on dependent variables.
-  #' 
-  #' Parameters:
-  #' 
-  
-  # Combine Table X and Table Y to ensure matched information
-  combinedTab <- dplyr::left_join(tabX, tabY, by = cmn_col) %>%
-    dplyr::select(-all_of(cmn_col))
-  
-  # Iterate all possible association tests
-  numVar1 <- ncol(tabX) - 1
-  numVar2 <- ncol(tabY) - 1
-  resTab <- lapply(seq(numVar1), function(i) {
-    lapply(seq(numVar2), function(j) {
-      var1 <- combinedTab[[i]]
-      var2 <- combinedTab[[numVar1+j]]
-      
-      # Perform ANOVA and extract p-value
-      pVal <- summary(aov(var1 ~ factor(var2)))[[1]][['Pr(>F)']][1]
-      
-      # Create data frame for summarizing results 
-      data.frame(Var1 = colnames(combinedTab)[i],
-                 Var2 = colnames(combinedTab)[numVar1+j],
-                 pVal = pVal,
-                 stringsAsFactors = F)
-    }) %>% dplyr::bind_rows()
-  }) %>% dplyr::bind_rows() %>%
-    dplyr::arrange(pVal)
-  
-  return(resTab)
+  normRes <- sapply(seq_len(nrow(data)), function(i) {
+    featVals <- data[i,]
+    normality <- try(shapiro.test(featVals), silent = T)
+    if (!is(normality, 'try-error')) {
+      normality$p.value > 0.05
+    } else {
+      NA
+      }}) %>% data.frame(Feature = rownames(data), Normality = .)
+  return(normRes)
 }
