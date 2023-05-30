@@ -16,10 +16,25 @@ to provide evidence for latter multi-omics analyses. Association test between ea
 feature (metabolite and protein level) and cancer recurrence was performed to capture
 significant features that can separate recurrence and non-recurrence patients. PCA
 was performed to see if there is any significant PC that can separate recurrence
-and non-recurrence patients. </font>
+and non-recurrence patients.\
+
+Update: Perform association tests between PCs and some other metadata variables,
+such as patient genders, diagnosis ages, etc. </font>
+
+**Metadata variables**\
+Patient:\
+Gender -> Male:Female = 13:7\
+Age -> Diagnosis ages ranging from 56 to 84\
+Smoking -> Smoker:Ex-smoker:Non-Smoker = 3:14:3\
+Recurrence -> Cancer recurrences, Yes:No = 1:1\
+Stage -> Pathological stages, IB:IIA:IIB = 16:1:3\
+Metastasis -> Derived from stages, whether cancer cells spread to lymph nodes, Yes:No = 3:17\
+Sample:\
+Condition -> Baseline:Follow-up:Recurrence = 2:1:1, Tumor:Normal = 1:1\
+TimePoint -> Time points that samples were collected at, Baseline:2 years later = 1:1
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F, message = F)
 knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
 ```
 
@@ -51,41 +66,40 @@ not. Therefore, we decided to analyze Baseline and Follow-up samples separately.
 ```{r}
 # Load normalized data
 metaPlasmaNorm <- readRDS('./data/AG_Hell/metaPlasmaNorm.rds')
-# Manually modify metadata information (time point, smoking, stage)
+# Manually modify metadata information (time point, smoking, metastasis)
 tmp_metadata <- as.data.frame(colData(metaPlasmaNorm)) %>%
   dplyr::mutate(
     TimePoint = dplyr::case_when(
       Condition == 'Baseline' ~ 'Baseline',
       Condition != 'Baseline' ~ '2 years later'
       ),
-    everSmo_nonSmo = case_when(
-      Smoking == 'Smoker' ~ 'Smoker',
-      Smoking == 'Ex-smoker' ~ 'Smoker',
-      Smoking == 'Non-smoker' ~ 'Non-smoker'
-      ),
-    Smo_exSmo = case_when(
-      Smoking == 'Smoker' ~ 'Smoker',
-      Smoking == 'Ex-smoker' ~ 'Ex-smoker'
-      ),
-    ToLymph = case_when(
+    # EverSmoking = case_when(
+    #   Smoking == 'Smoker' ~ 'Yes',
+    #   Smoking == 'Ex-smoker' ~ 'Yes',
+    #   Smoking == 'Non-smoker' ~ 'No'
+    #   ),
+    Metastasis = case_when(
       Stage == 'IIB' ~ 'Yes',
       Stage != 'IIB' ~ 'No'
     ))
 colData(metaPlasmaNorm)['TimePoint'] <- tmp_metadata$TimePoint
-colData(metaPlasmaNorm)['everSmo_nonSmo'] <- tmp_metadata$everSmo_nonSmo
-colData(metaPlasmaNorm)['Smo_exSmo'] <- tmp_metadata$Smo_exSmo
-colData(metaPlasmaNorm)['ToLymph'] <- tmp_metadata$ToLymph
+# colData(metaPlasmaNorm)['EverSmoking'] <- tmp_metadata$EverSmoking
+colData(metaPlasmaNorm)['Metastasis'] <- tmp_metadata$Metastasis
 
 # Perform analysis
-metaPlasmaRes <- SOA(metaPlasmaNorm, fac = c('Recurrence', 'TimePoint', 'Gender'))
+metaPlasmaRes <- doSOA(metaPlasmaNorm, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                    'Condition', 'TimePoint', 'Smoking',
+                                                    'Stage', 'Metastasis'),
+                       do_onlyPCA = T)
 tPCASigRes <- metaPlasmaRes$tPCASigRes
 pcaRes <- metaPlasmaRes$pcaRes
 pcTab <- metaPlasmaRes$pcTab
 ```
 
-Display associations between learned PCs (Var1) and factors (Var2). Basically
-t-test was performed to test significance of difference between two groups, e.g.,
-recurrence and non-recurrence patient groups or baseline and follow-up sample groups.
+Display significant associations between learned PCs (Var1) and metadata variables
+(Var2). Note that each patient has two samples that have same patient annotations,
+so association test results may have additive effects. Besides, some patient annotations
+are only meaningful at Baseline time point, such as diagnosis ages, pathological stages, etc.
 ```{r}
 # Display PCs of interest
 tPCASigRes
@@ -122,16 +136,25 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
 
 ## Baseline samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset baseline samples
 smpBaseIdx <- which(colData(metaPlasmaNorm)$Condition == 'Baseline')
 metaBase <- metaPlasmaNorm[, smpBaseIdx]
 
+# Display significant associations between PCs and metadata variables
+metaBaseAssoRes <- doSOA(metaBase, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                'Smoking', 'Stage', 'Metastasis'),
+                         do_onlyPCA = T)
+metaBaseAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-metaBaseRes <- SOA(metaBase, fac = c('Recurrence', 'Gender'), fac4uni = 'Recurrence', num_feats = 30)
+metaBaseRes <- doSOA(metaBase, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- metaBaseRes$data
 smpAnno <- metaBaseRes$smpMetadata
 tFeatSigRes <- metaBaseRes$tFeatSigRes
@@ -146,7 +169,7 @@ tFeatSigRes
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -186,8 +209,7 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
 ```{r}
-# Display PCs that can significantly separate recurrence and non-recurrence
-# patients
+# Display PCs that can significantly separate recurrence and non-recurrence patients
 tPCASigRes
 
 # Display proportion of total variance captured by all PCs explained by each PC
@@ -283,16 +305,24 @@ pcTopFeatTab$PC15
 
 ## Follow-up samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset follow-up samples
 smpFoloIdx <- which(colData(metaPlasmaNorm)$Condition != 'Baseline')
 metaFolo <- metaPlasmaNorm[, smpFoloIdx]
 
+# Display significant associations between PCs and metadata variables
+metaFoloAssoRes <- doSOA(metaFolo, meta_var = c('Recurrence', 'Gender'),
+                         do_onlyPCA = T)
+metaFoloAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-metaFoloRes <- SOA(metaFolo, fac = 'Recurrence', num_feats = 30)
+metaFoloRes <- doSOA(metaFolo, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- metaFoloRes$data
 smpAnno <- metaFoloRes$smpMetadata
 tFeatSigRes <- metaFoloRes$tFeatSigRes
@@ -305,7 +335,7 @@ tFeatSigRes
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -391,7 +421,7 @@ colAnno <- dplyr::select(as.data.frame(colData(metaBase)), Patient, Recurrence)
 metaDiff <- SummarizedExperiment(assays = metaDiffMat, colData = colAnno)
 
 # Perform analysis
-metaPlasmaDiffRes <- SOA(metaDiff, fac = 'Recurrence', num_feats = 30)
+metaPlasmaDiffRes <- doSOA(metaDiff, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- metaPlasmaDiffRes$data
 smpAnno <- metaPlasmaDiffRes$smpMetadata
 tFeatSigRes <- metaPlasmaDiffRes$tFeatSigRes
@@ -406,7 +436,7 @@ tFeatSigRes
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -508,17 +538,28 @@ and Normal samples separately.
 ```{r}
 # Load normalized data
 metaTissueNorm <- readRDS('./data/AG_Hell/metaTissueNorm.rds')
+# Manually modify metadata information (metastasis)
+tmp_metadata <- as.data.frame(colData(metaTissueNorm)) %>%
+  dplyr::mutate(
+    Metastasis = case_when(
+      Stage == 'IIB' ~ 'Yes',
+      Stage != 'IIB' ~ 'No'
+    ))
+colData(metaTissueNorm)['Metastasis'] <- tmp_metadata$Metastasis
 
 # Perform analysis
-metaTissueRes <- SOA(metaTissueNorm, fac = c('Recurrence', 'Condition', 'Gender'))
+metaTissueRes <- doSOA(metaTissueNorm, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                    'Condition', 'Smoking', 'Stage',
+                                                    'Metastasis'),
+                       do_onlyPCA = T)
 tPCASigRes <- metaTissueRes$tPCASigRes
 pcaRes <- metaTissueRes$pcaRes
 pcTab <- metaTissueRes$pcTab
 ```
 
-Display associations between learned PCs (Var1) and factors (Var2). Basically
-t-test was performed to test significance of difference between two groups, e.g.,
-recurrence and non-recurrence patient groups or tumor and normal sample groups.
+Display significant associations between learned PCs (Var1) and metadata variables
+(Var2). Note that each patient has two samples that have same patient annotations,
+so association test results may have additive effects.
 ```{r}
 # Display PCs of interest
 tPCASigRes
@@ -579,16 +620,25 @@ ggplot(pcTab, aes(x=Recurrence, y=PC15, col=Recurrence, fill=Recurrence)) +
 
 ## Tumor Samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset tumor samples
 smpTumorIdx <- which(colData(metaTissueNorm)$Condition == 'Tumor')
 metaTumor <- metaTissueNorm[, smpTumorIdx]
 
+# Display significant associations between PCs and metadata variables
+metaTumorAssoRes <- doSOA(metaTumor, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                  'Smoking', 'Stage', 'Metastasis'),
+                         do_onlyPCA = T)
+metaTumorAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-metaTumorRes <- SOA(metaTumor, fac = 'Recurrence', num_feats = 30)
+metaTumorRes <- doSOA(metaTumor, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- metaTumorRes$data
 smpAnno <- metaTumorRes$smpMetadata
 tFeatSigRes <- metaTumorRes$tFeatSigRes
@@ -603,7 +653,7 @@ tFeatSigRes
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -701,16 +751,25 @@ pcTopFeatTab$PC16
 
 ## Normal samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset normal samples
 smpNormalIdx <- which(colData(metaTissueNorm)$Condition == 'Normal')
 metaNormal <- metaTissueNorm[, smpNormalIdx]
 
+# Display significant associations between PCs and metadata variables
+metaNormalAssoRes <- doSOA(metaNormal, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                    'Smoking', 'Stage', 'Metastasis'),
+                         do_onlyPCA = T)
+metaNormalAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-metaNormalRes <- SOA(metaNormal, fac = 'Recurrence', num_feats = 30)
+metaNormalRes <- doSOA(metaNormal, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- metaNormalRes$data
 smpAnno <- metaNormalRes$smpMetadata
 tFeatSigRes <- metaNormalRes$tFeatSigRes
@@ -725,7 +784,7 @@ tFeatSigRes
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -895,7 +954,7 @@ metaDiff <- SummarizedExperiment(assays = metaDiffMat, colData = colAnno,
                                  rowData = rowAnno)
 
 # Perform analysis
-metaTissueDiffRes <- SOA(metaDiff, fac = 'Recurrence', num_feats = 30)
+metaTissueDiffRes <- doSOA(metaDiff, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- metaTissueDiffRes$data
 smpAnno <- metaTissueDiffRes$smpMetadata
 tFeatSigRes <- metaTissueDiffRes$tFeatSigRes
@@ -910,7 +969,7 @@ tFeatSigRes
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -1006,23 +1065,35 @@ pcTopFeatTab$PC18
 
 # Plasma Proteomics
 As described in Plasma Metabolomics section, we analyzed Baseline and Follow-up
-samples separately.
+samples separately.\
 
+Note that each patient has two samples that have same patient annotations, so association
+test results may have additive effects. Besides, some patient annotations are only
+meaningful at Baseline time point, such as diagnosis ages, pathological stages, etc.
 ```{r}
 # Load normalized data
 proPlasmaNorm <- readRDS('./data/AG_Krijgsveld/proPlasmaNorm.rds')
 # Prepare protein-gene table for changing protein names to gene names
 featInfo <- tibble::as_tibble(rowData(proPlasmaNorm), rownames = 'PG.Groups')
-# Add time point information into data
-timePoint <- as.data.frame(colData(proPlasmaNorm)) %>%
-  dplyr::mutate(TimePoint = dplyr::case_when(
-    Condition == 'Baseline' ~ 'Baseline',
-    Condition != 'Baseline' ~ '2 years later')) %>%
-  dplyr::select(TimePoint)
-colData(proPlasmaNorm)['TimePoint'] <- timePoint
+# Manually modify metadata information (time point, smoking, metastasis)
+tmp_metadata <- as.data.frame(colData(proPlasmaNorm)) %>%
+  dplyr::mutate(
+    TimePoint = dplyr::case_when(
+      Condition == 'Baseline' ~ 'Baseline',
+      Condition != 'Baseline' ~ '2 years later'
+      ),
+    Metastasis = case_when(
+      Stage == 'IIB' ~ 'Yes',
+      Stage != 'IIB' ~ 'No'
+    ))
+colData(proPlasmaNorm)['TimePoint'] <- tmp_metadata$TimePoint
+colData(proPlasmaNorm)['Metastasis'] <- tmp_metadata$Metastasis
 
 # Perform analysis
-proPlasmaRes <- SOA(proPlasmaNorm, fac = c('Recurrence', 'TimePoint', 'Gender'))
+proPlasmaRes <- doSOA(proPlasmaNorm, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                  'Condition', 'TimePoint', 'Smoking',
+                                                  'Stage', 'Metastasis'),
+                      do_onlyPCA = T)
 tPCASigRes <- proPlasmaRes$tPCASigRes
 pcaRes <- proPlasmaRes$pcaRes
 pcTab <- proPlasmaRes$pcTab
@@ -1062,16 +1133,25 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
 
 ## Baseline samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset baseline samples
 smpBaseIdx <- which(colData(proPlasmaNorm)$Condition == 'Baseline')
 proBase <- proPlasmaNorm[, smpBaseIdx]
 
+# Display significant associations between PCs and metadata variables
+proBaseAssoRes <- doSOA(proBase, meta_var = c('Recurrence', 'Gender', 'Age',
+                                              'Smoking', 'Stage', 'Metastasis'),
+                        do_onlyPCA = T)
+proBaseAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-proBaseRes <- SOA(proBase, fac = 'Recurrence', num_feats = 30)
+proBaseRes <- doSOA(proBase, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- proBaseRes$data
 smpAnno <- proBaseRes$smpMetadata
 tFeatSigRes <- proBaseRes$tFeatSigRes
@@ -1085,11 +1165,12 @@ pcTopFeatTab <- proBaseRes$pcTopFeatTab
 dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
                                                   from = featInfo$PG.Groups,
                                                   to = featInfo$PG.Genes,
-                                                  warn_missing = F))
+                                                  warn_missing = F)) %>%
+  dplyr::select(-Test)
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -1227,16 +1308,24 @@ dplyr::mutate(pcTopFeatTab$PC13, Gene = plyr::mapvalues(Feature,
 
 ## Follow-up samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset follow-up samples
 smpFoloIdx <- which(colData(proPlasmaNorm)$Condition != 'Baseline')
 proFolo <- proPlasmaNorm[, smpFoloIdx]
 
+# Display significant associations between PCs and metadata variables
+proFoloAssoRes <- doSOA(proFolo, meta_var = c('Recurrence', 'Gender'),
+                        do_onlyPCA = T)
+proFoloAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-proFoloRes <- SOA(proFolo, fac = 'Recurrence', num_feats = 30)
+proFoloRes <- doSOA(proFolo, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- proFoloRes$data
 smpAnno <- proFoloRes$smpMetadata
 tFeatSigRes <- proFoloRes$tFeatSigRes
@@ -1254,7 +1343,7 @@ dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -1396,7 +1485,7 @@ proDiff <- SummarizedExperiment(assays = proDiffMat, colData = colAnno,
                                 rowData = rowAnno)
 
 # Perform analysis
-proPlasmaDiffRes <- SOA(proDiff, fac = 'Recurrence', num_feats = 30)
+proPlasmaDiffRes <- doSOA(proDiff, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- proPlasmaDiffRes$data
 smpAnno <- proPlasmaDiffRes$smpMetadata
 tFeatSigRes <- proPlasmaDiffRes$tFeatSigRes
@@ -1414,7 +1503,7 @@ dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -1557,16 +1646,29 @@ dplyr::mutate(pcTopFeatTab$PC8, Gene = plyr::mapvalues(Feature,
 
 # Tissue Proteomics
 As described in Tissue Metabolomics section, we analyzed Tumor and Normal samples
-separately.
+separately.\
 
+Note that each patient has two samples that have same patient annotations, so association
+test results may have additive effects.
 ```{r}
 # Load normalized data
 proTissueNorm <- readRDS('./data/AG_Krijgsveld/proTissueNorm.rds')
 # Prepare protein-gene table for changing protein names to gene names
 featInfo <- tibble::as_tibble(rowData(proTissueNorm), rownames = 'PG.Groups')
+# Manually modify metadata information (metastasis)
+tmp_metadata <- as.data.frame(colData(proTissueNorm)) %>%
+  dplyr::mutate(
+    Metastasis = case_when(
+      Stage == 'IIB' ~ 'Yes',
+      Stage != 'IIB' ~ 'No'
+    ))
+colData(proTissueNorm)['Metastasis'] <- tmp_metadata$Metastasis
 
 # Perform analysis
-proTissueRes <- SOA(proTissueNorm, fac = c('Recurrence', 'Condition', 'Gender'))
+proTissueRes <- doSOA(proTissueNorm, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                  'Condition', 'Smoking', 'Stage',
+                                                  'Metastasis'),
+                      do_onlyPCA = T)
 tPCASigRes <- proTissueRes$tPCASigRes
 pcaRes <- proTissueRes$pcaRes
 pcTab <- proTissueRes$pcTab
@@ -1607,16 +1709,25 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
 
 ## Tumor Samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset tumor samples
 smpTumorIdx <- which(colData(proTissueNorm)$Condition == 'Tumor')
 proTumor <- proTissueNorm[, smpTumorIdx]
 
+# Display significant associations between PCs and metadata variables
+proTumorAssoRes <- doSOA(proTumor, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                'Smoking', 'Stage', 'Metastasis'),
+                         do_onlyPCA = T)
+proTumorAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-proTumorRes <- SOA(proTumor, fac = 'Recurrence', num_feats = 30)
+proTumorRes <- doSOA(proTumor, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- proTumorRes$data
 smpAnno <- proTumorRes$smpMetadata
 tFeatSigRes <- proTumorRes$tFeatSigRes
@@ -1634,7 +1745,7 @@ dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -1734,16 +1845,25 @@ dplyr::mutate(pcTopFeatTab$PC14, Gene = plyr::mapvalues(Feature,
 
 ## Normal samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset normal samples
 smpNormalIdx <- which(colData(proTissueNorm)$Condition == 'Normal')
 proNormal <- proTissueNorm[, smpNormalIdx]
 
+# Display significant associations between PCs and metadata variables
+proNormalAssoRes <- doSOA(proNormal, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                  'Smoking', 'Stage', 'Metastasis'),
+                          do_onlyPCA = T)
+proNormalAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-proNormalRes <- SOA(proNormal, fac = 'Recurrence', num_feats = 30)
+proNormalRes <- doSOA(proNormal, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- proNormalRes$data
 smpAnno <- proNormalRes$smpMetadata
 tFeatSigRes <- proNormalRes$tFeatSigRes
@@ -1757,11 +1877,12 @@ pcTopFeatTab <- proNormalRes$pcTopFeatTab
 dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
                                                   from = featInfo$PG.Groups,
                                                   to = featInfo$PG.Genes,
-                                                  warn_missing = F))
+                                                  warn_missing = F)) %>%
+  dplyr::select(-Test)
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -1938,7 +2059,7 @@ proDiff <- SummarizedExperiment(assays = proDiffMat, colData = colAnno,
                                 rowData = rowAnno)
 
 # Perform analysis
-proTissueDiffRes <- SOA(proDiff, fac = 'Recurrence', num_feats = 30)
+proTissueDiffRes <- doSOA(proDiff, meta_var = 'Recurrence', num_PCfeats = 30)
 datMat <- proTissueDiffRes$data
 smpAnno <- proTissueDiffRes$smpMetadata
 tFeatSigRes <- proTissueDiffRes$tFeatSigRes
@@ -1950,11 +2071,12 @@ pcaRes <- proTissueDiffRes$pcaRes
 dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
                                                   from = featInfo$PG.Groups,
                                                   to = featInfo$PG.Genes,
-                                                  warn_missing = F))
+                                                  warn_missing = F)) %>%
+  dplyr::select(-Test)
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
