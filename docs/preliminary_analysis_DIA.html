@@ -397,9 +397,9 @@ aria-hidden="true"></span> </a>
 </p>
 <p>
 <strong>Checks:</strong> <span
-class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 5
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
 <span class="glyphicon glyphicon-exclamation-sign text-danger"
-aria-hidden="true"></span> 2
+aria-hidden="true"></span> 1
 </p>
 <p>
 <strong>Knit directory:</strong>
@@ -423,21 +423,18 @@ versions</em> tab lists the development history.
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges">
-<span class="glyphicon glyphicon-exclamation-sign text-danger"
-aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted
-changes </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
 </p>
 </div>
-<div id="strongRMarkdownfilestronguncommittedchanges"
+<div id="strongRMarkdownfilestronguptodate"
 class="panel-collapse collapse">
 <div class="panel-body">
-<p>The R Markdown file has unstaged changes. To know which version of
-the R Markdown file created these results, you’ll want to first commit
-it to the Git repo. If you’re still working on the analysis, you can
-ignore this warning. When you’re finished, you can run
-<code>wflow_publish</code> to commit the R Markdown file and build the
-HTML.</p>
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
 </div>
 </div>
 </div>
@@ -554,15 +551,15 @@ relative
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree63c17dd5edc05dd087aedbacf9d0bea94fe32100targetblank63c17dda">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree53325e13fea07b57d11f79086c63b40af1ea19f6targetblank53325e1a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/63c17dd5edc05dd087aedbacf9d0bea94fe32100" target="_blank">63c17dd</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/53325e13fea07b57d11f79086c63b40af1ea19f6" target="_blank">53325e1</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree63c17dd5edc05dd087aedbacf9d0bea94fe32100targetblank63c17dda"
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree53325e13fea07b57d11f79086c63b40af1ea19f6targetblank53325e1a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -572,7 +569,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/63c17dd5edc05dd087aedbacf9d0bea94fe32100" target="_blank">63c17dd</a>.
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/53325e13fea07b57d11f79086c63b40af1ea19f6" target="_blank">53325e1</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -610,16 +607,6 @@ Untracked files:
     Untracked:  data/stats/
     Untracked:  output/TAC_2023/
     Untracked:  output/preliminary_analysis_DIA.html
-
-Unstaged changes:
-    Deleted:    analysis/about.Rmd
-    Modified:   analysis/comparisons_targeted_untargeted.Rmd
-    Deleted:    analysis/license.Rmd
-    Modified:   analysis/mofa_varied_omics_combinations.Rmd
-    Modified:   analysis/preliminary_analysis_DIA.Rmd
-    Modified:   analysis/preliminary_analysis_untargeted.Rmd
-    Modified:   analysis/preprocessing_DIA.Rmd
-    Modified:   code/misc.R
 
 </code></pre>
 <p>
@@ -666,6 +653,42 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/analysis/preliminary_analysis_DIA.Rmd" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+<td>
+Filter out features with massive missingness and run PPCA instead of
+conventional PCA
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/3959bda2b761e6042f9d33c2e48b406617714006/docs/preliminary_analysis_DIA.html" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+<td>
+Filter out features with massive missingness and run PPCA instead of
+conventional PCA
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -837,6 +860,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-3-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-3-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -877,6 +911,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-3-2.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-3-2.png" target="_blank">2f62f8a</a>
@@ -926,6 +971,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-3-3.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-3-3.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -972,6 +1028,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-4-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-4-1.png" target="_blank">2f62f8a</a>
@@ -1099,6 +1166,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-6-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-6-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -1196,6 +1274,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-7-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-7-1.png" target="_blank">2f62f8a</a>
@@ -1341,6 +1430,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-11-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-11-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -1424,6 +1524,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-12-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-12-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -1489,6 +1600,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-13-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-13-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -1542,6 +1664,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-14-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-14-1.png" target="_blank">2f62f8a</a>
@@ -1620,6 +1753,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-16-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-16-1.png" target="_blank">2f62f8a</a>
@@ -1783,6 +1927,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-18-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-18-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -1941,6 +2096,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-24-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-24-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -2003,6 +2169,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-25-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-25-1.png" target="_blank">2f62f8a</a>
@@ -2290,6 +2467,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-27-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-27-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -2525,6 +2713,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-28-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-28-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -2588,6 +2787,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-29-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-29-1.png" target="_blank">2f62f8a</a>
@@ -2658,6 +2868,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-31-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-31-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -2717,6 +2938,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-32-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-32-1.png" target="_blank">2f62f8a</a>
@@ -2991,6 +3223,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-35-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-35-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -3173,6 +3416,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-36-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-36-1.png" target="_blank">2f62f8a</a>
@@ -3554,6 +3808,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-41-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-41-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -3609,6 +3874,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-42-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-42-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
@@ -3658,6 +3934,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-43-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-43-1.png" target="_blank">2f62f8a</a>
@@ -3822,6 +4109,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-47-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-47-1.png" target="_blank">2f62f8a</a>
@@ -4172,35 +4470,36 @@ other attached packages:
 [17] GenomicRanges_1.52.0        GenomeInfoDb_1.36.0        
 [19] IRanges_2.34.0              S4Vectors_0.38.1           
 [21] BiocGenerics_0.45.3         MatrixGenerics_1.12.0      
-[23] matrixStats_1.0.0          
+[23] matrixStats_1.0.0           workflowr_1.7.0            
 
 loaded via a namespace (and not attached):
  [1] tidyselect_1.2.0        farver_2.1.1            bitops_1.0-7           
  [4] fastmap_1.1.1           RCurl_1.98-1.12         promises_1.2.0.1       
  [7] digest_0.6.31           timechange_0.2.0        lifecycle_1.0.3        
-[10] magrittr_2.0.3          compiler_4.3.0          rlang_1.1.1            
-[13] sass_0.4.6              tools_4.3.0             utf8_1.2.3             
-[16] yaml_2.3.7              knitr_1.43              ggsignif_0.6.4         
-[19] S4Arrays_1.0.4          labeling_0.4.2          DelayedArray_0.26.3    
-[22] RColorBrewer_1.1-3      plyr_1.8.8              abind_1.4-5            
-[25] workflowr_1.7.0         withr_2.5.0             grid_4.3.0             
+[10] processx_3.8.1          magrittr_2.0.3          compiler_4.3.0         
+[13] rlang_1.1.1             sass_0.4.6              tools_4.3.0            
+[16] utf8_1.2.3              yaml_2.3.7              ggsignif_0.6.4         
+[19] knitr_1.43              S4Arrays_1.0.4          labeling_0.4.2         
+[22] DelayedArray_0.26.3     RColorBrewer_1.1-3      plyr_1.8.8             
+[25] abind_1.4-5             withr_2.5.0             grid_4.3.0             
 [28] fansi_1.0.4             ggpubr_0.6.0            git2r_0.32.0           
 [31] colorspace_2.1-0        scales_1.2.1            cli_3.6.1              
 [34] rmarkdown_2.22          crayon_1.5.2            generics_0.1.3         
-[37] rstudioapi_0.14         tzdb_0.4.0              cachem_1.0.8           
-[40] zlibbioc_1.46.0         XVector_0.40.0          vctrs_0.6.2            
-[43] Matrix_1.5-4.1          carData_3.0-5           jsonlite_1.8.4         
-[46] car_3.1-2               hms_1.1.3               rstatix_0.7.2          
-[49] jquerylib_0.1.4         glue_1.6.2              stringi_1.7.12         
-[52] gtable_0.3.3            later_1.3.1             munsell_0.5.0          
-[55] pillar_1.9.0            pcaMethods_1.92.0       htmltools_0.5.5        
-[58] GenomeInfoDbData_1.2.10 R6_2.5.1                rprojroot_2.0.3        
-[61] evaluate_0.21           lattice_0.21-8          extraDistr_1.9.1       
-[64] highr_0.10              backports_1.4.1         pheatmap_1.0.12        
-[67] broom_1.0.4             httpuv_1.6.11           bslib_0.4.2            
-[70] Rcpp_1.0.10             zip_2.3.0               gridExtra_2.3          
-[73] whisker_0.4.1           xfun_0.39               fs_1.6.2               
-[76] pkgconfig_2.0.3        </code></pre>
+[37] rstudioapi_0.14         httr_1.4.6              tzdb_0.4.0             
+[40] cachem_1.0.8            zlibbioc_1.46.0         XVector_0.40.0         
+[43] vctrs_0.6.2             Matrix_1.5-4.1          carData_3.0-5          
+[46] jsonlite_1.8.4          car_3.1-2               callr_3.7.3            
+[49] hms_1.1.3               rstatix_0.7.2           jquerylib_0.1.4        
+[52] glue_1.6.2              ps_1.7.5                stringi_1.7.12         
+[55] gtable_0.3.3            later_1.3.1             munsell_0.5.0          
+[58] pillar_1.9.0            pcaMethods_1.92.0       htmltools_0.5.5        
+[61] GenomeInfoDbData_1.2.10 R6_2.5.1                rprojroot_2.0.3        
+[64] evaluate_0.21           lattice_0.21-8          extraDistr_1.9.1       
+[67] highr_0.10              backports_1.4.1         pheatmap_1.0.12        
+[70] broom_1.0.4             httpuv_1.6.11           bslib_0.4.2            
+[73] Rcpp_1.0.10             zip_2.3.0               gridExtra_2.3          
+[76] whisker_0.4.1           xfun_0.39               fs_1.6.2               
+[79] getPass_0.2-2           pkgconfig_2.0.3        </code></pre>
 </div>
 </div>
 
