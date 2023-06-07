@@ -1,0 +1,129 @@
+---
+title: "Comparisons between DIA and DDA proteomics datasets"
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+<font size='4'> Description: Compare DIA and DDA Plasma and Tissue Proteomics generated
+by AG Krijgsveld. Basically, correlations of common features between DIA and DDA
+Proteomics were computed to see data reproducibility using different data acquisition
+methods. </font>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+```
+
+Load libraries
+```{r library loading, message = F}
+library(SummarizedExperiment)
+library(ggrepel)
+library(igraph)
+library(ggraph)
+library(tidyverse)
+# Load user-defined functions
+source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
+```
+
+# Plasma Proteomics
+Compute Pearson correlations of all common features (351) between DIA and DDA Plasma
+Proteomics. DIA and DDA Plasma Proteomics got 445 and 435 features, respectively.
+Note that both Baseline and Follow-up samples were used.
+
+```{r}
+# Load preprocessed data
+proPlasma_DIA <- readRDS('./data/AG_Krijgsveld/proPlasmaNorm_DIA.rds')
+proPlasma_DDA <- readRDS('./data/AG_Krijgsveld/proPlasmaNorm.rds')
+# Extract data matrix
+datMat_DIA <- SummarizedExperiment::assay(proPlasma_DIA)
+datMat_DDA <- SummarizedExperiment::assay(proPlasma_DDA)
+# Make two matrices share same sample and feature spaces and in same row and column order
+# Remove patient samples not measured in DIA proteomics from DDA proteomics
+commonSmps <- colnames(datMat_DIA)
+datMat_DIA <- datMat_DIA[, commonSmps]
+datMat_DDA <- datMat_DDA[, commonSmps]
+# Keep only common features between DIA and DDA proteomics
+# Select first protein as representative if there are more than one
+rownames(datMat_DIA) <- stringr::str_remove(rownames(datMat_DIA), ';.*')
+rownames(datMat_DDA) <- stringr::str_remove(rownames(datMat_DDA), ';.*')
+commonFeats <- rownames(datMat_DIA)[rownames(datMat_DIA) %in% rownames(datMat_DDA)]
+datMat_DIA <- datMat_DIA[commonFeats,]
+datMat_DDA <- datMat_DDA[commonFeats,]
+
+# Compute feature correlations between DIA and DDA proteomics
+if (identical(rownames(datMat_DIA), rownames(datMat_DDA)) &
+    identical(colnames(datMat_DIA), colnames(datMat_DDA))) {
+  corrs <- sapply(seq_len(nrow(datMat_DIA)), function(i) {
+    corr <- cor.test(datMat_DIA[i,], datMat_DDA[i,], method = 'pearson',
+                     use = "pairwise.complete.obs")
+    corr$estimate
+  })
+  corrRes <- data.frame(Feature = rownames(datMat_DIA), Correlation = corrs) %>%
+    dplyr::arrange(Correlation) %>%
+    dplyr::mutate(Feature = factor(Feature, levels = Feature))
+}
+
+ggplot(corrRes, aes(x=Feature, y=Correlation)) +
+  geom_point(size = 2, color = 'grey60') +
+  geom_hline(yintercept = 0.7, color = 'red', linewidth = 0.7) +
+  geom_text(x=-7, y=0.7, label = '0.7', size = 4.5, color = 'red') +
+  coord_cartesian(clip = 'off') +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+             panel.grid.major.x = element_blank())
+```
+
+# Tissue Proteomics
+Compute Pearson correlations of all common features (4636) between DIA and DDA Tissue
+Proteomics. DIA and DDA Tissue Proteomics got 5658 and 5193 features, respectively.
+Note that both Baseline and Follow-up samples were used.
+
+```{r}
+# Load preprocessed data
+proTissue_DIA <- readRDS('./data/AG_Krijgsveld/proTissueNorm_DIA.rds')
+proTissue_DDA <- readRDS('./data/AG_Krijgsveld/proTissueNorm.rds')
+# Extract data matrix
+datMat_DIA <- SummarizedExperiment::assay(proTissue_DIA)
+datMat_DDA <- SummarizedExperiment::assay(proTissue_DDA)
+# Make two matrices share same sample and feature spaces and in same row and column order
+# Remove patient samples not measured in DIA proteomics from DDA proteomics
+commonSmps <- colnames(datMat_DIA)
+datMat_DIA <- datMat_DIA[, commonSmps]
+datMat_DDA <- datMat_DDA[, commonSmps]
+# Keep only common features between DIA and DDA proteomics
+# Select first protein as representative if there are more than one
+rownames(datMat_DIA) <- stringr::str_remove(rownames(datMat_DIA), ';.*')
+rownames(datMat_DDA) <- stringr::str_remove(rownames(datMat_DDA), ';.*')
+commonFeats <- rownames(datMat_DIA)[rownames(datMat_DIA) %in% rownames(datMat_DDA)]
+datMat_DIA <- datMat_DIA[commonFeats,]
+datMat_DDA <- datMat_DDA[commonFeats,]
+
+# Compute feature correlations between DIA and DDA proteomics
+if (identical(rownames(datMat_DIA), rownames(datMat_DDA)) &
+    identical(colnames(datMat_DIA), colnames(datMat_DDA))) {
+  corrs <- sapply(seq_len(nrow(datMat_DIA)), function(i) {
+    corr <- cor.test(datMat_DIA[i,], datMat_DDA[i,], method = 'pearson',
+                     use = "pairwise.complete.obs")
+    corr$estimate
+  })
+  corrRes <- data.frame(Feature = rownames(datMat_DIA), Correlation = corrs) %>%
+    dplyr::arrange(Correlation) %>%
+    dplyr::mutate(Feature = factor(Feature, levels = Feature))
+}
+
+ggplot(corrRes, aes(x=Feature, y=Correlation)) +
+  geom_point(size = 2, color = 'grey60') +
+  coord_cartesian(clip = 'off') +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+             panel.grid.major.x = element_blank())
+```
