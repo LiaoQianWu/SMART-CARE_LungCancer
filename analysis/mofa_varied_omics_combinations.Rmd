@@ -373,6 +373,7 @@ mofaObject3V2G <- readRDS('./data/mofa/Hopf_mofa_3V2G_10Fac.rds')
 
 # Overview data in MOFA object
 plot_data_overview(mofaObject3V2G)
+# ggsave('./output/mofa_setup_UntarBPM_UntarBPL_DDABPP.png', device = 'png', dpi = 400, height = 8, width = 10)
 
 
 # Train MOFA model
@@ -461,6 +462,27 @@ plot_factor(mofaObject3V2G, factors = 6, color_by = 'Recurrence',
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 12))
 # ggsave(paste0(result_path, 'Hopf_3V2G_baseline_factor6.png'), device = 'png', dpi = 400)
+```
+
+```{r eval = F}
+facTab <- get_factors(mofaObject3V2G)[['Baseline Plasma']] %>%
+  as_tibble(rownames = 'sample')
+metaTab <- dplyr::select(samples_metadata(mofaObject3V2G), sample, Recurrence)
+tab4Plot <- left_join(facTab, metaTab, by = 'sample')
+
+ggplot(tab4Plot, aes(x=Recurrence, y=Factor8, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 4, show.legend = F) +
+  # geom_text_repel(aes(label=sample)) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F, size = 10) +
+  theme(axis.title = element_text(size = 28), axis.text = element_text(size = 22),
+        legend.title = element_text(size = 24), legend.text = element_text(size = 24),
+        panel.background = element_blank(), axis.line = element_line(color = 'black'))
+# ggsave('./output/mofa_boxplot_UntarBPM_UntarBPL_DDABPP.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 ```{r eval = F}
@@ -1220,6 +1242,7 @@ mofaObject4V2G <- readRDS('./data/mofa/Hopf_mofa_4V2G-NTP_10Fac.rds')
 
 # Overview data in MOFA object
 plot_data_overview(mofaObject4V2G)
+# ggsave('./output/mofa_setup_UntarBPM_UntarBPL_DDABPP_TarTTP.png', device = 'png', dpi = 400, height = 8, width = 10)
 
 # Train MOFA model
 # data_opts <- get_default_data_options(mofaObject4V2G)
@@ -1336,6 +1359,28 @@ plot_factor(mofaObject4V2G, factors = 7, color_by = 'Recurrence',
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 12))
 ```
+
+```{r eval = F}
+facTab <- get_factors(mofaObject4V2G)[['Baseline Group']] %>%
+  as_tibble(rownames = 'sample')
+metaTab <- dplyr::select(samples_metadata(mofaObject4V2G), sample, Recurrence)
+tab4Plot <- left_join(facTab, metaTab, by = 'sample')
+
+ggplot(tab4Plot, aes(x=Recurrence, y=Factor9, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 4, show.legend = F) +
+  # geom_text_repel(aes(label=sample)) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F, size = 10, hjust = 0) +
+  theme(axis.title = element_text(size = 28), axis.text = element_text(size = 22),
+        legend.title = element_text(size = 24), legend.text = element_text(size = 24),
+        panel.background = element_blank(), axis.line = element_line(color = 'black'))
+# ggsave('./output/mofa_boxplot_UntarBPM_UntarBPL_DDABPP_TarTTP.png', device = 'png', dpi = 400, height = 8, width = 10)
+```
+
 **Follow-up group**
 ```{r}
 # Follow-up
@@ -2540,11 +2585,15 @@ tRes <- tTestIter(combinedTab, metaTab, cmn_col = 'sample') %>%
   dplyr::mutate(Factor = factor(Factor, levels = Factor))
 
 # Visualize t-test results
-ggplot(tRes, aes(x=Factor, y=pVal)) +
+ggplot(tRes, aes(x=Factor, y=-log10(pVal))) +
   geom_bar(stat='identity') +
-  geom_text(aes(label=round(pVal, 5)), vjust = -1, size=3.5) +
-  labs(x = 'Recurrence-related factor', y = 'P-value') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  # geom_text(aes(label=round(-log10(pVal), 2)), vjust = -1, size=5) +
+  labs(x = 'Recurrence-related factor', y = '-log10(pVal)') +
+  theme(axis.title = element_text(size = 28),
+        axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
+        axis.text = element_text(size = 22),
+        panel.background = element_blank(), axis.line = element_line(color = 'black'))
+# ggsave('./output/mofa_barplot_performance.png', device = 'png', dpi = 400, height = 8, width = 14)
 ```
 Hopf_3V_Factor8 -> PM (Hopf) + PL + PP\
 Hopf_4V_Tumor_Factor9 -> PM (Hopf) + PL + PP + TTP\

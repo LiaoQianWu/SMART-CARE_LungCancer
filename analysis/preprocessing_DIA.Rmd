@@ -12,7 +12,11 @@ output:
 by Karim Aljakouch from AG Krijgsveld, simply including data cleansing and data
 normalization (VSN). All needed information of each dataset (2 in total) was then
 stored in SummarizedExperiment objects for further analyses.\
-Q: All samples from Patient N02PM0LW, FH49U7TY, and F04ERF3M are missing. </font>
+Q: All samples from Patient N02PM0LW, FH49U7TY, and F04ERF3M are missing? A: They
+were dropped out from study.\
+
+Update: Remove features quantified in less than 2/3 of samples in all sample groups
+of interest before conducting VSN. </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
@@ -52,7 +56,9 @@ proPlasmaTab <- readr::read_tsv('./data/AG_Krijgsveld/20230104_MarcS_Method_Esta
 # Load sample metadata from preprocessed Targeted Metabolomics SE object
 smpAnno <- colData(readRDS('./data/AG_Hell/metaPlasmaNorm.rds')) %>%
   tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'),
+                TimePoint = dplyr::case_when(Condition == 'Baseline' ~ 'Bseline',
+                                             Condition != 'Baseline' ~ '2 years later'))
 
 # Combine all information into a table
 proPlasmaTab <- dplyr::left_join(proPlasmaTab, smpAnno, by = 'Identifier')
@@ -69,6 +75,17 @@ Display dimensions of data (34 samples and 505 features)
 dim(proPlasma)
 ```
 
+Display data missingness
+```{r}
+exprMat <- SummarizedExperiment::assay(proPlasma)
+vis_miss(exprMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0, size = 11, face = 'bold'),
+        axis.text.y = element_blank(),
+        axis.title.y = element_text(size = 13, face = 'bold'),
+        legend.text = element_text(size = 12, face = 'bold'))
+```
+
 Display distribution of original data
 ```{r}
 ggplot(proPlasmaTab, aes(x=Sample, y=Abundance)) +
@@ -76,6 +93,35 @@ ggplot(proPlasmaTab, aes(x=Sample, y=Abundance)) +
   scale_y_log10() +
   labs(y = 'Protein abundance') +
   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+**Remove features quantified in less than 2/3 of samples in all four sample groups**
+**of interest (Baseline/Follow-up Recurrence/Non-recurrence) for more reliable data normalization**\
+Missing data is more likely to happen in proteins with small abundances due to detection
+limit. Image comparison between two sample groups, certain proteins are highly missing
+in one group and present in the other
+```{r message = F}
+# Remove features quantified in less than 2/3 of samples in all sample groups of interest
+rmFeats <- dplyr::group_by(proPlasmaTab, Protein.Group, TimePoint, Recurrence) %>%
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(frac_nonNA < 0.67) %>%
+  dplyr::group_by(Protein.Group) %>%
+  dplyr::summarise(Count = length(Protein.Group)) %>%
+  dplyr::filter(Count == 4) %>%
+  dplyr::pull(Protein.Group)
+proPlasmaTab <- dplyr::filter(proPlasmaTab, !Protein.Group %in% rmFeats)
+
+# Convert long data to SE object
+proPlasma <- df2SummExp(proPlasmaTab, row_id = 'Protein.Group', col_id = 'Sample',
+                        values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
+                        col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
+                                     'Age', 'Smoking', 'Stage', 'Identifier'))
+```
+
+Display dimensions of filtered data (34 samples and 445 features)
+```{r}
+dim(proPlasma)
 ```
 
 Display data missingness
@@ -87,6 +133,15 @@ vis_miss(exprMat, cluster = T, sort_miss = T) +
         axis.text.y = element_blank(),
         axis.title.y = element_text(size = 13, face = 'bold'),
         legend.text = element_text(size = 12, face = 'bold'))
+```
+
+Display distribution of filtered data
+```{r}
+ggplot(proPlasmaTab, aes(x=Sample, y=Abundance)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(y = 'Protein abundance') +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
 Perform VSN and display distribution of normalized data
@@ -170,6 +225,17 @@ Display dimensions of data (34 samples and 6929 features)
 dim(proTissue)
 ```
 
+Display data missingness
+```{r}
+exprMat <- SummarizedExperiment::assay(proTissue)
+vis_miss(exprMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0, size = 11, face = 'bold'),
+        axis.text.y = element_blank(),
+        axis.title.y = element_text(size = 13, face = 'bold'),
+        legend.text = element_text(size = 12, face = 'bold'))
+```
+
 Display distribution of original data
 ```{r}
 ggplot(proTissueTab, aes(x=Sample, y=Abundance)) +
@@ -177,6 +243,32 @@ ggplot(proTissueTab, aes(x=Sample, y=Abundance)) +
   scale_y_log10() +
   labs(y = 'Protein abundance') +
   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+**Remove features quantified in less than 2/3 of samples in all four sample groups**
+**of interest (Baseline/Follow-up Recurrence/Non-recurrence) for more reliable data normalization**
+```{r message = F}
+# Remove features quantified in less than 2/3 of samples in all sample groups of interest
+rmFeats <- dplyr::group_by(proTissueTab, Protein.Group, Condition, Recurrence) %>%
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(frac_nonNA < 0.67) %>%
+  dplyr::group_by(Protein.Group) %>%
+  dplyr::summarise(Count = length(Protein.Group)) %>%
+  dplyr::filter(Count == 4) %>%
+  dplyr::pull(Protein.Group)
+proTissueTab <- dplyr::filter(proTissueTab, !Protein.Group %in% rmFeats)
+
+# Convert long data to SE object
+proTissue <- df2SummExp(proTissueTab, row_id = 'Protein.Group', col_id = 'Sample',
+                        values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
+                        col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
+                                     'Age', 'Smoking', 'Stage', 'Identifier'))
+```
+
+Display dimensions of filtered data (34 samples and 5658 features)
+```{r}
+dim(proTissue)
 ```
 
 Display data missingness
@@ -188,6 +280,15 @@ vis_miss(exprMat, cluster = T, sort_miss = T) +
         axis.text.y = element_blank(),
         axis.title.y = element_text(size = 13, face = 'bold'),
         legend.text = element_text(size = 12, face = 'bold'))
+```
+
+Display distribution of filtered data
+```{r}
+ggplot(proTissueTab, aes(x=Sample, y=Abundance)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(y = 'Protein abundance') +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
 Perform VSN and display distribution of normalized data

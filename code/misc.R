@@ -177,8 +177,7 @@ doPCA <- function(data, pca_method = 'pca', num_PCs = 20) {
     # Spot complete features to remove features with any missing values
     completeFeats <- complete.cases(data)
     if (!all(completeFeats)) {
-      message("Missing values exist in data and features with missingness are removed
-              for running conventional PCA.")
+      message("Message: Missing values exist and are removed for running conventional PCA.")
     }
     pcaRes <- prcomp(t(data[completeFeats,]), center = T, scale. = F)
   } else if (pca_method == 'ppca') {
@@ -320,7 +319,7 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
 }
 
 
-doSOA <- function(summ_exp, meta_var, pca_method = 'pca', alpha = 0.05,
+doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 0.05,
                   num_PCfeats = NULL, do_onlyPCA = F, ...) {
   # To-do: Expand function to e.g., MultiAssayExperiment object and add proDA
   
@@ -340,6 +339,8 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', alpha = 0.05,
   #' used to compute correlation coefficient
   #' pca_method: A character specifying the PCA method to use, which should be one
   #' of 'pca' (default), 'ppca', or 'bpca'
+  #' num_PCs: A numeric value specifying the number of PCs to estimate. The preciseness
+  #' of the estimation of missing values depends on the number of PCs
   #' alpha: A numeric value specifying the cutoff for statistic significance. Default
   #' is 0.05
   #' num_PCfeats: A numeric value specifying the number of potential PCs' top features
@@ -395,7 +396,7 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', alpha = 0.05,
   }
   
   # Perform PCA
-  pcaRes <- doPCA(datMat, pca_method = pca_method, ...)
+  pcaRes <- doPCA(datMat, pca_method = pca_method, num_PCs = num_PCs)
   # Conduct association test between PCs and factors
   if (pca_method == 'pca') {
     pcTab <- pcaRes$x %>%

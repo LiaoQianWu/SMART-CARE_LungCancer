@@ -405,8 +405,7 @@ corrMat <- dplyr::select(corrMetaPlasmaRes_Hopf_Hell, Var1, Var2, Corr) %>%
 a <- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    breaks = seq(-1, 1, by = 0.02))
-# ggsave(paste0(result_path, 'metaPlasma_heatmap_feat_corr_Hopf_Hell.png'), a,
-#        device = 'png', dpi = 400)
+# ggsave('./output/heatmap_tar_untar_PM.png', a, device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 Show only highly positively correlated feature pairs through network plot. Cutoff
@@ -810,9 +809,8 @@ corrMat <- dplyr::select(corrMetaTissueRes_Hopf_Hell, Var1, Var2, Corr) %>%
 # Make heatmap
 a <- pheatmap::pheatmap(corrMat, show_rownames = F, show_colnames = F,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
-                   breaks = seq(-1, 1, by = 0.02))
-# ggsave(paste0(result_path, 'diffMethod_metaTissue_featCorr_heatmap.png'), a,
-#        device = 'png', dpi = 400, height = 8, width = 10)
+                   breaks = seq(-1, 1, by = 0.02), fontsize = 14)
+# ggsave('./output/heatmap_tar_untar_TM.png', a, device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 Show only highly positively correlated feature pairs through network plot. Cutoff
@@ -825,8 +823,8 @@ edges <- dplyr::filter(corrMetaTissueRes_Hopf_Hell, Corr > 0.9, pVal < 0.05) %>%
 # Prepare node table
 feats <- unique(c(edges$Var1, edges$Var2))
 nodes <- data.frame(id = seq_len(length(feats)), Feature = feats,
-                    From = c(rep('AG Hopf', length(unique(edges$Var1))),
-                             rep('AG Hell', length(unique(edges$Var2)))))
+                    Method = c(rep('Untargeted', length(unique(edges$Var1))),
+                               rep('Targeted', length(unique(edges$Var2)))))
 
 # Map features in edge table to corresponding IDs
 edges$Var1 <- plyr::mapvalues(edges$Var1, from = nodes$Feature, to = nodes$id,
@@ -847,12 +845,12 @@ g <- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE
 ggraph(g, layout = 'fr') + #layout = 'auto'
   geom_edge_link(aes(alpha=Corr), edge_width = 1) +
   geom_node_point(size = 3) +
-  geom_node_text(aes(label=Feature, color=From), repel = T, size = 3.5) +
+  geom_node_text(aes(label=Feature, color=Method), repel = T, size = 4.5) +
   theme_void() +
   scale_edge_alpha_continuous(name = 'Correlation') +
-  scale_color_manual(values = c('firebrick', 'steelblue'))
-# ggsave(paste0(result_path, 'diffMethod_metaTissue_featCorr_network.png'),
-#        height = 9, width = 9, device = 'png', dpi = 400)
+  scale_color_manual(values = c('firebrick', 'steelblue')) +
+  theme(legend.title = element_text(size = 18), legend.text = element_text(size = 18))
+# ggsave('./output/network_tar_untar_TM.png', device = 'png', dpi = 400, height = 10, width = 10)
 ```
 
 <font size='5'> **Untargeted Tissue Metabolites** </font>\

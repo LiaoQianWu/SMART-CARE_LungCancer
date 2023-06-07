@@ -26,6 +26,7 @@ knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_Met
 Load libraries
 ```{r library loading, message = F}
 library('SummarizedExperiment')
+library('pcaMethods')
 library('proDA')
 library('limma')
 library('ggrepel')
@@ -34,6 +35,13 @@ library('openxlsx')
 library('tidyverse')
 # Load user-defined functions
 source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
 ```
 
 # Plasma Metabolomics
@@ -49,15 +57,6 @@ metaPlasmaVsn <- readRDS('./data/AG_Hopf/metaPlasmaVsn.rds')
 # Retrieve feature information for making significant feature table
 featInfo <- tibble::as_tibble(rowData(metaPlasmaVsn), rownames = 'Feature')
 
-# Load Plasma Metabolomics data from AG Hell for changing sample names
-metaPlasma_Hell <- readRDS('./data/AG_Hell/metaPlasmaNorm.rds')
-smpNames <- tibble::as_tibble(colData(metaPlasma_Hell), rownames = 'Sample') %>%
-  dplyr::select(Sample, Identifier) %>%
-  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
-# Change sample names
-colnames(metaPlasmaVsn) <- plyr::mapvalues(colnames(metaPlasmaVsn),
-                                           from = smpNames$Identifier,
-                                           to = smpNames$Sample)
 # Add time point information into data
 timePoint <- as.data.frame(colData(metaPlasmaVsn)) %>%
   dplyr::mutate(TimePoint = dplyr::case_when(
@@ -71,6 +70,26 @@ metaPlasmaRes <- SOA(metaPlasmaVsn, fac = c('Recurrence', 'TimePoint'))
 tPCASigRes <- metaPlasmaRes$tPCASigRes
 pcaRes <- metaPlasmaRes$pcaRes
 pcTab <- metaPlasmaRes$pcTab
+```
+
+```{r}
+datMat <- as.matrix(assay(metaPlasmaVsn))
+datMat[is.nan(datMat)] <- NA
+bpcaRes <- pca(t(datMat), method = 'bpca', nPcs = 20)
+bpcaTab <- bpcaRes@scores
+tabX <- as_tibble(bpcaTab, rownames = 'Sample')
+tabY <- as_tibble(colData(metaPlasmaVsn), rownames = 'Sample') %>%
+  dplyr::select(-c(Identifier))
+testAssociation(tabX, tabY, cmn_col = 'Sample') %>%
+  filter(pVal < 0.05)
+
+ppcaRes <- pca(t(datMat), method = 'ppca', nPcs = 20)
+ppcaTab <- ppcaRes@loadings
+tabX <- as_tibble(ppcaRes@scores, rownames = 'Sample')
+tabY <- as_tibble(colData(metaPlasmaVsn), rownames = 'Sample') %>%
+  dplyr::select(-c(Identifier))
+testAssociation(tabX, tabY, cmn_col = 'Sample') %>%
+  filter(pVal < 0.05)
 ```
 
 Display associations between learned PCs (Var1) and factors (Var2). Basically
@@ -149,7 +168,7 @@ sigFeatTab
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
@@ -223,14 +242,19 @@ topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') 
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  facet_wrap(vars(Feature), scales = 'free') +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F)
+  facet_wrap(vars(Feature), scales = 'free_y') +
+  theme(strip.text = element_text(size = 14),
+        axis.title = element_text(size = 17), axis.text = element_text(size = 12),
+        legend.title = element_text(size = 15), legend.text = element_text(size = 15),
+        panel.grid.major.x = element_blank())
+  # ggpubr::stat_compare_means(method = 't.test', paired = F,
+  #                            method.args = list(var.equal = T),
+  #                            show.legend = F)
+# ggsave('./output/AG_Hopf/boxplot_proDA_topSigFeats_BPM.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 There is no significant association between PCs (Var1) and cancer recurrence (Var2).
@@ -639,11 +663,14 @@ tPCASigRes
 PC1 and PC2 explain most variation in data and separate patient samples by time point.
 ```{r}
 ggplot(pcTab, aes(x=PC1, y=PC2, col=TimePoint, shape=Recurrence, group=Patient)) +
-  geom_point(size = 3) +
+  geom_point(size = 5) +
   geom_line(col = 'grey50', linetype = 'dashed') +
   scale_color_discrete(name = 'Time point',
-                       labels = c('Baseline', '2 years later'))
-ggsave('./output/AG_Hopf/pca_PL.png', device = 'png', dpi = 400, height = 8, width = 10)
+                       labels = c('Baseline', '2 years later')) +
+  theme(axis.title = element_text(size = 20), axis.text = element_text(size = 20),
+        legend.title = element_text(size = 18), legend.text = element_text(size = 18),
+        panel.background = element_blank(), axis.line = element_line(color = 'black'))
+# ggsave('./output/AG_Hopf/pca_PL.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 Display variance explained by each PC
@@ -1165,11 +1192,13 @@ smpOrder <- c(which(smpAnno$Recurrence == 'No'),
 # Prepare recurrence table for annotating samples in heatmap
 smpRecur <- dplyr::select(smpAnno, Sample, Recurrence) %>%
   tibble::column_to_rownames('Sample')
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+a <- pheatmap::pheatmap(datMat[featOrder, smpOrder],
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F, show_rownames = T,
-                   scale = 'row', main = 'Tumor tissue metabolomics')
+                   fontsize = 14, fontsize_col = 10,
+                   scale = 'row')#, main = 'Tumor tissue metabolomics')
+# ggsave('./output/AG_Hopf/heatmap_sigFeats_TTM.png', a, device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 Use probabilistic dropout model to account for missing values and identify differentially
@@ -1202,9 +1231,9 @@ a <- pheatmap::pheatmap(datMat[featOrder, smpOrder],
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
-                   scale = 'row', main = 'Tumor tissue metabolomics (proDA)')
-# ggsave(paste0(result_path, 'AG_Hopf/metaTumor_sigFeats.png'), plot = a, device = 'png', dpi = 400,
-#        height = 8, width = 10)
+                   fontsize = 18, fontsize_col = 14,
+                   scale = 'row')#, main = 'Tumor tissue metabolomics (proDA)')
+# ggsave('./output/AG_Hopf/heatmap_proDA_sigFeats_TTM.png', a, device = 'png', dpi = 400, height = 8, width = 10)
 
 # Store table in list for creating Excel file
 sigFeatSheet <- append(sigFeatSheet, list(TumorTissueMetab_Feats = proDAMetaTumorRes))
@@ -1227,16 +1256,19 @@ topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') 
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  facet_wrap(vars(Feature), scales = 'free') +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F)
-# ggsave(paste0(result_path, 'AG_Hopf/metaTumor_topSigFeats.png'), device = 'png', dpi = 400,
-#        height = 8, width = 10)
+  facet_wrap(vars(Feature), scales = 'free_y') +
+  theme(strip.text = element_text(size = 14),
+        axis.title = element_text(size = 17), axis.text = element_text(size = 12),
+        legend.title = element_text(size = 15), legend.text = element_text(size = 15),
+        panel.grid.major.x = element_blank())
+  # ggpubr::stat_compare_means(method = 't.test', paired = F,
+  #                            method.args = list(var.equal = T),
+  #                            show.legend = F)
+# ggsave('./output/AG_Hopf/boxplot_proDA_topSigFeats_TTM.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -1258,20 +1290,21 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
 
 PC5 potentially separates recurrence and non-recurrence patients.
 ```{r}
+# ggplot2::autoplot(pcaRes, x = 5, y = 6)
 # Visualize PCs
 ggplot(pcTab, aes(x=Recurrence, y=PC5, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  # labs(title = 'Tumor tissue metabolomics') +
+  labs(y = 'PC5 (5.39%)') +#title = 'Tumor tissue metabolomics') +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 6,
-                             method.args = list(var.equal = T), hjust = 0.65,
-                             show.legend = F) +
-  theme(axis.title = element_text(size = 16),
-        legend.title = element_text(size = 14), legend.text = element_text(size = 12))
-# ggsave(paste0(result_path, 'AG_Hopf/metaTumor_pca.png'), device = 'png', dpi = 400,
-#        height = 8, width = 10)
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F, size = 7, hjust = 0) +
+  theme(axis.title = element_text(size = 17), axis.text = element_text(size = 12),
+        legend.title = element_text(size = 15), legend.text = element_text(size = 15),
+        panel.grid.major.x = element_blank())
+# ggsave('./output/AG_Hopf/boxplot_pc5_TTM.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 Plot molecular signatures captured by PC5 in input data. We took a look at top
@@ -2575,12 +2608,15 @@ label4SigFeats <- volTab$MZ.RT[volTab$DE != 'Not significant']
 volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
 
 ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
-  geom_point() +
-  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.2) +
-  geom_vline(xintercept = c(-0.7, 0.7), col = 'red', linewidth = 0.2) +
-  geom_text_repel(size = 3, show.legend = F) +
+  geom_point(size = 3) +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.4) +
+  geom_vline(xintercept = c(-0.7, 0.7), col = 'red', linewidth = 0.4) +
+  geom_text_repel(size = 5, show.legend = F) +
   scale_color_manual(values = c('navy', 'grey', 'red')) +
-  labs(x = 'log2(FC)', title = 'Baseline Plasma Lipidomics')
+  labs(x = 'log2(FC)') + #, title = 'Baseline Plasma Lipidomics') +
+  theme(axis.title = element_text(size = 20), axis.text = element_text(size = 20),
+        legend.title = element_text(size = 18), legend.text = element_text(size = 18),
+        panel.background = element_blank(), axis.line = element_line(color = 'black'))
 # ggsave('./output/AG_Hopf/volcano_BPL.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
@@ -2621,7 +2657,10 @@ ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
   geom_vline(xintercept = c(-0.5, 0.5), col = 'red', linewidth = 0.2) +
   geom_text_repel(size = 3, show.legend = F) +
   scale_color_manual(values = c('navy', 'grey', 'red')) +
-  labs(x = 'log2(FC)', title = 'Tumor Tissue Metabolomics')
+  labs(x = 'log2(FC)', title = 'Tumor Tissue Metabolomics') +
+  theme(axis.title = element_text(size = 17), axis.text = element_text(size = 12),
+        legend.title = element_text(size = 15), legend.text = element_text(size = 15))
+# ggsave('./output/AG_Hopf/volcano_TTM.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 Log2-FC cutoffs are 0.5 (FC=1.4) and -0.5 (FC=0.7).

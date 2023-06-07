@@ -10,6 +10,18 @@ output:
 
 <font size='4'> Description: </font>
 
+**Metadata variables**\
+Patient:\
+Gender -> Male:Female = 13:7\
+Age -> Diagnosis ages ranging from 56 to 84\
+Smoking -> Smoker:Ex-smoker:Non-Smoker = 3:14:3\
+Recurrence -> Cancer recurrences, Yes:No = 1:1\
+Stage -> Pathological stages, IB:IIA:IIB = 16:1:3\
+Metastasis -> Derived from stages, whether cancer cells spread to lymph nodes, Yes:No = 3:17\
+Sample:\
+Condition -> Baseline:Follow-up:Recurrence = 2:1:1, Tumor:Normal = 1:1\
+TimePoint -> Time points that samples were collected at, Baseline:2 years later = 1:1
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
 knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
@@ -25,6 +37,13 @@ library('openxlsx')
 library('tidyverse')
 # Load user-defined functions
 source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
 ```
 
 # Plasma Proteomics
@@ -33,82 +52,99 @@ ADD COMMENT!
 ```{r}
 # Load normalized data
 proPlasma <- readRDS('./data/AG_Krijgsveld/proPlasmaNorm_DIA.rds')
-
-# Add time point information into data
-timePoint <- as.data.frame(colData(proPlasma)) %>%
-  dplyr::mutate(TimePoint = dplyr::case_when(
-    Condition == 'Baseline' ~ 'Baseline',
-    Condition != 'Baseline' ~ '2 years later')) %>%
-  dplyr::select(TimePoint)
-colData(proPlasma)['TimePoint'] <- timePoint
+# Prepare protein-gene table for changing protein names to gene names
+featInfo <- tibble::as_tibble(rowData(proPlasma), rownames = 'Protein.Groups')
+# Manually modify metadata information (time point, metastasis)
+tmp_metadata <- as.data.frame(colData(proPlasma)) %>%
+  dplyr::mutate(
+    TimePoint = dplyr::case_when(
+      Condition == 'Baseline' ~ 'Baseline',
+      Condition != 'Baseline' ~ '2 years later'
+      ),
+    Metastasis = case_when(
+      Stage == 'IIB' ~ 'Yes',
+      Stage != 'IIB' ~ 'No'
+    ))
+colData(proPlasma)['TimePoint'] <- tmp_metadata$TimePoint
+colData(proPlasma)['Metastasis'] <- tmp_metadata$Metastasis
 
 # Perform analysis
-proPlasmaRes <- SOA(proPlasma, fac = c('Recurrence', 'TimePoint'))
+proPlasmaRes <- doSOA(proPlasma, meta_var = c('Recurrence', 'Gender', 'Age',
+                                              'Condition', 'TimePoint', 'Smoking',
+                                              'Stage', 'Metastasis'),
+                      do_onlyPCA = T, pca_method = 'ppca')
 tPCASigRes <- proPlasmaRes$tPCASigRes
 pcaRes <- proPlasmaRes$pcaRes
 pcTab <- proPlasmaRes$pcTab
 ```
 
-Display associations between learned PCs (Var1) and factors (Var2). Basically
-t-test was performed to test significance of difference between two groups, e.g.,
-recurrence and non-recurrence patient groups or baseline and follow-up sample groups.
+Display significant associations between learned PCs (Var1) and metadata variables
+(Var2). Note that each patient has two samples that have same patient annotations,
+so association test results may have additive effects. Besides, some patient annotations
+are only meaningful at Baseline time point, such as diagnosis ages, pathological stages, etc.
 ```{r}
 # Display PCs of interest
 tPCASigRes
 ```
 
-PC10 and PC15 can significantly separate recurrence and non-recurrence patient
-groups while both Baseline and Follow-up samples are used for PCA.
+Visualize some significant PCs
 ```{r}
-ggplot(pcTab, aes(x=PC10, y=PC15, col=Recurrence, group=Patient)) +
+ggplot(pcTab, aes(x=PC1, y=PC2, col=Gender, shape=Metastasis, group=Patient)) +
   geom_point(size = 4) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  geom_line(col = 'grey50', linetype = 'dashed')
+  geom_line(col = 'grey50', linetype = 'dashed') +
+  th
 
-ggplot(pcTab, aes(x=Recurrence, y=PC10, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+ggplot(pcTab, aes(x=PC1, y=PC4, col=Metastasis, group=Patient)) +
+  geom_point(size = 4) +
+  geom_line(col = 'grey50', linetype = 'dashed') +
+  th
+
+ggplot(pcTab, aes(x=Recurrence, y=PC11, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F)
-
-ggplot(pcTab, aes(x=Recurrence, y=PC15, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F)
+                             show.legend = F) +
+  th
 ```
 
 Display variance explained by each PC
 ```{r}
 # Display proportion of total variance captured by all PCs explained by each PC
-varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
+varExplained <- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
 PC <- paste0('PC', seq(length(varExplained)))
 varTab <- data.frame(PC = factor(PC, levels = PC),
                      Var_explained = varExplained)
 ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = '', y = 'Variance explained (%)') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 ## Baseline samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset baseline samples
 smpBaseIdx <- which(colData(proPlasma)$Condition == 'Baseline')
 proBase <- proPlasma[, smpBaseIdx]
 
+# Display significant associations between PCs and metadata variables
+proBaseAssoRes <- doSOA(proBase, meta_var = c('Recurrence', 'Gender', 'Age',
+                                              'Smoking', 'Stage', 'Metastasis'),
+                        do_onlyPCA = T, pca_method = 'ppca', num_PCs = 15)
+proBaseAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-proBaseRes <- SOA(proBase, fac = 'Recurrence', num_feats = 30)
+proBaseRes <- doSOA(proBase, meta_var = 'Recurrence', pca_method = 'ppca',
+                    num_PCs = 15, num_PCfeats = 30)
 datMat <- proBaseRes$data
 smpAnno <- proBaseRes$smpMetadata
 tFeatSigRes <- proBaseRes$tFeatSigRes
@@ -116,18 +152,27 @@ tPCASigRes <- proBaseRes$tPCASigRes
 
 # Display features that can significantly separate recurrence and non-recurrence
 # patients
-tFeatSigRes
+dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
+                                                  from = featInfo$Protein.Groups,
+                                                  to = featInfo$Genes,
+                                                  warn_missing = F))
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
 # Prepare recurrence table for annotating samples in heatmap
 smpRecur <- dplyr::select(smpAnno, Sample, Recurrence) %>%
   tibble::column_to_rownames('Sample')
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[featOrder, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
@@ -136,10 +181,10 @@ pheatmap::pheatmap(datMat[featOrder, smpOrder],
 ```
 
 Owing to missing values, there might be a situation that only few observations in
-sample groups, resulting in unreliable t-statistics. (e.g., proteins Q14103 and
-P16401 right above) We used probabilistic dropout model to account for data missingness
-and identify differentially abundant entities that are significantly associated
-with cancer recurrence. Note that features in heatmap are ordered by their t-statistics.
+one sample group, e.g., KRT17 right above, resulting in unreliable t-statistics.
+We used probabilistic dropout model to account for data missingness and identify
+differentially abundant entities that are significantly associated with cancer
+recurrence. Note that features in heatmap are ordered by their t-statistics.
 ```{r}
 # Fit linear probabilistic dropout model to normalized data
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -151,14 +196,24 @@ fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
 all_proDAProBaseRes <- proDA::test_diff(fit,
                                         contrast = Intercept + `smpAnno$RecurrenceYes` - Intercept,
                                         sort_by = 'pval')
-proDAProBaseRes <- dplyr::select(all_proDAProBaseRes, -c(diff, se, df, avg_abundance, n_approx)) %>%
-  dplyr::filter(pval < 0.05)
+proDAProBaseRes <- dplyr::select(all_proDAProBaseRes, -c(diff, se, df, avg_abundance, n_approx, n_obs)) %>%
+  dplyr::filter(pval < 0.05) %>%
+  dplyr::mutate(Gene = plyr::mapvalues(name,
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F))
 proDAProBaseRes
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
 featOrder <- dplyr::arrange(proDAProBaseRes, dplyr::desc(t_statistic))$name
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[featOrder, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
@@ -172,18 +227,26 @@ topSigFeats <- proDAProBaseRes$name[1:6]
 topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::mutate(Feature = plyr::mapvalues(Feature,
+                                          from = featInfo$Protein.Groups,
+                                          to = featInfo$Genes,
+                                          warn_missing = F),
+                Feature = factor(Feature, levels = plyr::mapvalues(topSigFeats,
+                                                                   from = featInfo$Protein.Groups,
+                                                                   to = featInfo$Genes,
+                                                                   warn_missing = F))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   facet_wrap(vars(Feature), scales = 'free') +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F)
+                             show.legend = F) +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
 ```
 -> ADD COMMENT!
 <br/>
@@ -198,16 +261,25 @@ tPCASigRes
 
 ## Follow-up samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset follow-up samples
 smpFoloIdx <- which(colData(proPlasma)$Condition != 'Baseline')
 proFolo <- proPlasma[, smpFoloIdx]
 
+# Display significant associations between PCs and metadata variables
+proFoloAssoRes <- doSOA(proFolo, meta_var = c('Recurrence', 'Gender'),
+                        do_onlyPCA = T, pca_method = 'ppca', num_PCs = 15)
+proFoloAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-proFoloRes <- SOA(proFolo, fac = 'Recurrence', num_feats = 30)
+proFoloRes <- doSOA(proFolo, meta_var = 'Recurrence', pca_method = 'ppca',
+                    num_PCs = 15, num_PCfeats = 30)
 datMat <- proFoloRes$data
 smpAnno <- proFoloRes$smpMetadata
 tFeatSigRes <- proFoloRes$tFeatSigRes
@@ -218,18 +290,28 @@ pcTopFeatTab <- proFoloRes$pcTopFeatTab
 
 # Display features that can significantly separate recurrence and non-recurrence
 # patients
-tFeatSigRes
+dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
+                                                  from = featInfo$Protein.Groups,
+                                                  to = featInfo$Genes,
+                                                  warn_missing = F)) %>%
+  dplyr::select(-Test)
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
 # Prepare recurrence table for annotating samples in heatmap
 smpRecur <- dplyr::select(smpAnno, Sample, Recurrence) %>%
   tibble::column_to_rownames('Sample')
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[featOrder, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
@@ -250,14 +332,24 @@ fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
 all_proDAProFoloRes <- proDA::test_diff(fit,
                                         contrast = Intercept + `smpAnno$RecurrenceYes` - Intercept,
                                         sort_by = 'pval')
-proDAProFoloRes <- dplyr::select(all_proDAProFoloRes, -c(diff, se, df, avg_abundance, n_approx)) %>%
-  dplyr::filter(pval < 0.05)
+proDAProFoloRes <- dplyr::select(all_proDAProFoloRes, -c(diff, se, df, avg_abundance, n_approx, n_obs)) %>%
+  dplyr::filter(pval < 0.05) %>%
+  dplyr::mutate(Gene = plyr::mapvalues(name,
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F))
 proDAProFoloRes
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
 featOrder <- dplyr::arrange(proDAProFoloRes, dplyr::desc(t_statistic))$name
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[featOrder, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
@@ -271,18 +363,26 @@ topSigFeats <- proDAProFoloRes$name[1:6]
 topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::mutate(Feature = plyr::mapvalues(Feature,
+                                          from = featInfo$Protein.Groups,
+                                          to = featInfo$Genes,
+                                          warn_missing = F),
+                Feature = factor(Feature, levels = plyr::mapvalues(topSigFeats,
+                                                                   from = featInfo$Protein.Groups,
+                                                                   to = featInfo$Genes,
+                                                                   warn_missing = F))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   facet_wrap(vars(Feature), scales = 'free') +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F)
+                             show.legend = F) +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -292,31 +392,33 @@ Display significant associations between PCs (Var1) and cancer recurrence (Var2)
 tPCASigRes
 
 # Display proportion of total variance captured by all PCs explained by each PC
-varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
+varExplained <- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
 PC <- paste0('PC', seq(length(varExplained)))
 varTab <- data.frame(PC = factor(PC, levels = PC),
                      Var_explained = varExplained)
 ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = '', y = 'Variance explained (%)',
-       title = 'Follow-up plasma proteomics')
+       title = 'Follow-up plasma proteomics') +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-PC11 potentially separates recurrence and non-recurrence patients.
+PC9 potentially separates recurrence and non-recurrence patients.
 ```{r}
 # Visualize PCs
-ggplot(pcTab, aes(x=Recurrence, y=PC11, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+ggplot(pcTab, aes(x=Recurrence, y=PC9, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   labs(title = 'Follow-up plasma proteomics') +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   ggpubr::stat_compare_means(method = 't.test', paired = F, size = 6,
                              method.args = list(var.equal = T), hjust = 0.65,
-                             show.legend = F)
+                             show.legend = F) +
+  th
 ```
 
-Plot molecular signatures captured by PC11 in input data. We took a look at top
+Plot molecular signatures captured by PC9 in input data. We took a look at top
 20 features with highest loadings and observed protein levels of these top features
 through heatmap. Note that features in heatmap are ordered by their loadings. There
 is no single feature that can decently hint if patients will suffer cancer recurrence
@@ -325,20 +427,38 @@ between recurrence and non-recurrence patients.
 ```{r}
 # Plot molecular signatures in input data
 # Extract top features with highest loadings
-topFeats <- pcTopFeatTab$PC11$Feature[1:20]
+topFeats <- pcTopFeatTab$PC9$Feature[1:20]
 # Order features by loadings
 topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
-pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[topFeatsIdx, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+
+# Manually shorten names
+rownames(datMatSub)[20] <- 'H2AC11;H2AC12'
+
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
-                   scale = 'row', main = 'Follow-up plasma proteomics - PC11')
+                   scale = 'row', main = 'Follow-up plasma proteomics - PC9')
 ```
 
-Display top features that build the PC11
+Display top features that build the PC9
 ```{r}
 # Display top features with highest loadings of PC of interest
-pcTopFeatTab$PC11
+pcTopFeatTab <- dplyr::mutate(pcTopFeatTab$PC9, Gene = plyr::mapvalues(Feature,
+                                                                       from = featInfo$Protein.Groups,
+                                                                       to = featInfo$Genes,
+                                                                       warn_missing = F))
+
+# Manually shorten names
+pcTopFeatTab$Feature[20] <- 'P0C0S8;P20671'
+pcTopFeatTab$Gene[20] <- 'H2AC11;H2AC12'
+pcTopFeatTab
 ```
 
 ## Changes in time course
@@ -372,7 +492,8 @@ colAnno <- dplyr::select(as.data.frame(colData(proBase)), Patient, Recurrence)
 proPlasmaDiff <- SummarizedExperiment(assays = proPlasmaDiffMat, colData = colAnno)
 
 # Perform analysis
-proPlasmaDiffRes <- SOA(proPlasmaDiff, fac = 'Recurrence', num_feats = 30)
+proPlasmaDiffRes <- doSOA(proPlasmaDiff, meta_var = 'Recurrence', pca_method = 'ppca',
+                          num_PCs = 15, num_PCfeats = 30)
 datMat <- proPlasmaDiffRes$data
 smpAnno <- proPlasmaDiffRes$smpMetadata
 tFeatSigRes <- proPlasmaDiffRes$tFeatSigRes
@@ -380,18 +501,27 @@ tPCASigRes <- proPlasmaDiffRes$tPCASigRes
 
 # Display features that can significantly separate recurrence and non-recurrence
 # patients
-tFeatSigRes
+dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
+                                                  from = featInfo$Protein.Groups,
+                                                  to = featInfo$Genes,
+                                                  warn_missing = F))
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
 # Prepare recurrence table for annotating samples in heatmap
 smpRecur <- dplyr::select(smpAnno, Sample, Recurrence) %>%
   tibble::column_to_rownames('Sample')
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[featOrder, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
@@ -411,8 +541,12 @@ fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
 # Identify significant differentially abundant entities
 proDAProPlasmaDiffRes <- proDA::test_diff(fit,
                                           contrast = Intercept + `smpAnno$RecurrenceYes` - Intercept,
-                                          sort_by = 'pval', n_max = 30) %>%
-  dplyr::select(-c(diff, se, df, avg_abundance, n_approx))
+                                          sort_by = 'pval', n_max = 20) %>%
+  dplyr::select(-c(diff, se, df, avg_abundance, n_approx, n_obs)) %>%
+  dplyr::mutate(Gene = plyr::mapvalues(name,
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F))
 proDAProPlasmaDiffRes
 ```
 
@@ -423,18 +557,26 @@ topSigFeats <- tFeatSigRes$Var1[1:6]
 topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::mutate(Feature = plyr::mapvalues(Feature,
+                                          from = featInfo$Protein.Groups,
+                                          to = featInfo$Genes,
+                                          warn_missing = F),
+                Feature = factor(Feature, levels = plyr::mapvalues(topSigFeats,
+                                                                   from = featInfo$Protein.Groups,
+                                                                   to = featInfo$Genes,
+                                                                   warn_missing = F))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   facet_wrap(vars(Feature), scales = 'free') +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F)
+                             show.legend = F) +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
 ```
 
 There is no significant association between PCs (Var1) and cancer recurrence (Var2).
@@ -448,88 +590,99 @@ tPCASigRes
 
 
 # Tissue Proteomics
-ADD COMMENT!
+**Tumor and Normal Tissue sample groups cannot be easily separated, bad data quality?**
 
 ```{r}
 # Load normalized data
 proTissue <- readRDS('./data/AG_Krijgsveld/proTissueNorm_DIA.rds')
+# Prepare protein-gene table for changing protein names to gene names
+featInfo <- tibble::as_tibble(rowData(proTissue), rownames = 'Protein.Groups')
+# Manually modify metadata information (time point, metastasis)
+tmp_metadata <- as.data.frame(colData(proTissue)) %>%
+  dplyr::mutate(
+    Metastasis = case_when(
+      Stage == 'IIB' ~ 'Yes',
+      Stage != 'IIB' ~ 'No'
+    ))
+colData(proTissue)['Metastasis'] <- tmp_metadata$Metastasis
 
 # Perform analysis
-proTissueRes <- SOA(proTissue, fac = c('Recurrence', 'Condition'))
+proTissueRes <- doSOA(proTissue, meta_var = c('Recurrence', 'Gender', 'Age',
+                                              'Condition', 'Smoking', 'Stage',
+                                              'Metastasis'),
+                      do_onlyPCA = T, pca_method = 'ppca')
 tPCASigRes <- proTissueRes$tPCASigRes
 pcaRes <- proTissueRes$pcaRes
 pcTab <- proTissueRes$pcTab
 ```
 
-Display associations between learned PCs (Var1) and factors (Var2). Basically
-t-test was performed to test significance of difference between two groups, e.g.,
-recurrence and non-recurrence patient groups or tumor and normal sample groups.
+Display significant associations between learned PCs (Var1) and metadata variables
+(Var2). Note that each patient has two samples that have same patient annotations,
+so association test results may have additive effects.
 ```{r}
 # Display PCs of interest
 tPCASigRes
 ```
 
-PC28, PC6, and PC5 can significantly separate recurrence and non-recurrence patient
-groups while both Tumor and Normal samples are used for PCA.
+Visualize some significant PCs
 ```{r}
-ggplot(pcTab, aes(x=Recurrence, y=PC28, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F)
-
-ggplot(pcTab, aes(x=PC6, y=PC5, col=Recurrence, group=Patient)) +
+ggplot(pcTab, aes(x=PC6, y=PC5, col=Condition, group=Patient)) +
   geom_point(size = 4) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  geom_line(col = 'grey50', linetype = 'dashed')
+  geom_line(col = 'grey50', linetype = 'dashed') +
+  th
 
-ggplot(pcTab, aes(x=Recurrence, y=PC6, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+ggplot(pcTab, aes(x=Condition, y=PC6, color=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F)
+                             show.legend = F) +
+  th
 
-ggplot(pcTab, aes(x=Recurrence, y=PC5, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+ggplot(pcTab, aes(x=Condition, y=PC5, color=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F)
+                             show.legend = F) +
+  th
 ```
 
 Display variance explained by each PC
 ```{r}
 # Display proportion of total variance captured by all PCs explained by each PC
-varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
+varExplained <- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
 PC <- paste0('PC', seq(length(varExplained)))
 varTab <- data.frame(PC = factor(PC, levels = PC),
                      Var_explained = varExplained)
 ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = '', y = 'Variance explained (%)') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 ## Tumor samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset tumor samples
 smpTumorIdx <- which(colData(proTissue)$Condition == 'Tumor')
 proTumor <- proTissue[, smpTumorIdx]
 
+# Display significant associations between PCs and metadata variables
+proTumorAssoRes <- doSOA(proTumor, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                'Smoking', 'Stage', 'Metastasis'),
+                         do_onlyPCA = T, pca_method = 'ppca', num_PCs = 15)
+proTumorAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-proTumorRes <- SOA(proTumor, fac = 'Recurrence', num_feats = 30)
+proTumorRes <- doSOA(proTumor, meta_var = 'Recurrence', pca_method = 'ppca',
+                     num_PCs = 15, num_PCfeats = 30)
 datMat <- proTumorRes$data
 smpAnno <- proTumorRes$smpMetadata
 tFeatSigRes <- proTumorRes$tFeatSigRes
@@ -540,18 +693,35 @@ pcTopFeatTab <- proTumorRes$pcTopFeatTab
 
 # Display features that can significantly separate recurrence and non-recurrence
 # patients
+tFeatSigRes <- dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
+                                                                 from = featInfo$Protein.Groups,
+                                                                 to = featInfo$Genes,
+                                                                 warn_missing = F)) %>%
+  dplyr::select(-Test)
+
+# Manually shorten names
+tFeatSigRes$Var1[127] <- 'P05496;P48201'
+tFeatSigRes$Gene[127] <- 'ATP5MC1;ATP5MC2'
 tFeatSigRes
+tFeatSigRes$Var1[127] <- 'P05496;P48201;Q06055'
+tFeatSigRes$Gene[127] <- 'ATP5MC1;ATP5MC2;ATP5MC3'
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
 # Prepare recurrence table for annotating samples in heatmap
 smpRecur <- dplyr::select(smpAnno, Sample, Recurrence) %>%
   tibble::column_to_rownames('Sample')
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[featOrder, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F, show_rownames = F,
@@ -575,14 +745,30 @@ fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
 all_proDAProTumorRes <- proDA::test_diff(fit,
                                          contrast = Intercept + `smpAnno$RecurrenceYes` - Intercept,
                                          sort_by = 'pval')
-proDAProTumorRes <- dplyr::select(all_proDAProTumorRes, -c(diff, se, df, avg_abundance, n_approx)) %>%
-  dplyr::filter(pval < 0.05)
+proDAProTumorRes <- dplyr::select(all_proDAProTumorRes, -c(diff, se, df, avg_abundance, n_approx, n_obs)) %>%
+  dplyr::filter(pval < 0.05) %>%
+  dplyr::mutate(Gene = plyr::mapvalues(name,
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F))
+
+# Manually shorten names
+proDAProTumorRes$name[107] <- 'P05496;P48201'
+proDAProTumorRes$Gene[107] <- 'ATP5MC1;ATP5MC2'
 proDAProTumorRes
+proDAProTumorRes$name[107] <- 'P05496;P48201;Q06055'
+proDAProTumorRes$Gene[107] <- 'ATP5MC1;ATP5MC2;ATP5MC3'
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
 featOrder <- dplyr::arrange(proDAProTumorRes, dplyr::desc(t_statistic))$name
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[featOrder, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F, show_rownames = F,
@@ -596,18 +782,26 @@ topSigFeats <- proDAProTumorRes$name[1:6]
 topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::mutate(Feature = plyr::mapvalues(Feature,
+                                          from = featInfo$Protein.Groups,
+                                          to = featInfo$Genes,
+                                          warn_missing = F),
+                Feature = factor(Feature, levels = plyr::mapvalues(topSigFeats,
+                                                                   from = featInfo$Protein.Groups,
+                                                                   to = featInfo$Genes,
+                                                                   warn_missing = F))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   facet_wrap(vars(Feature), scales = 'free') +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F)
+                             show.legend = F) +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -617,31 +811,33 @@ Display significant associations between PCs (Var1) and cancer recurrence (Var2)
 tPCASigRes
 
 # Display proportion of total variance captured by all PCs explained by each PC
-varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
+varExplained <- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
 PC <- paste0('PC', seq(length(varExplained)))
 varTab <- data.frame(PC = factor(PC, levels = PC),
                      Var_explained = varExplained)
 ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = '', y = 'Variance explained (%)',
-       title = 'Tumor tissue proteomics')
+       title = 'Tumor tissue proteomics') +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-PC13 potentially separates recurrence and non-recurrence patients.
+PC9 potentially separates recurrence and non-recurrence patients.
 ```{r}
 # Visualize PCs
-ggplot(pcTab, aes(x=Recurrence, y=PC13, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+ggplot(pcTab, aes(x=Recurrence, y=PC9, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   labs(title = 'Tumor Tissue proteomics') +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   ggpubr::stat_compare_means(method = 't.test', paired = F, size = 6,
                              method.args = list(var.equal = T), hjust = 0.65,
-                             show.legend = F)
+                             show.legend = F) +
+  th
 ```
 
-Plot molecular signatures captured by PC13 in input data. We took a look at top
+Plot molecular signatures captured by PC9 in input data. We took a look at top
 20 features with highest loadings and observed protein levels of these top features
 through heatmap. Note that features in heatmap are ordered by their loadings. There
 is no single feature that can decently hint if patients will suffer cancer recurrence
@@ -650,34 +846,53 @@ between recurrence and non-recurrence patients.
 ```{r}
 # Plot molecular signatures in input data
 # Extract top features with highest loadings
-topFeats <- pcTopFeatTab$PC13$Feature[1:20]
+topFeats <- pcTopFeatTab$PC9$Feature[1:20]
 # Order features by loadings
 topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
-pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[topFeatsIdx, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
-                   scale = 'row', main = 'Tumor Tissue proteomics - PC13')
+                   scale = 'row', main = 'Tumor Tissue proteomics - PC9')
 ```
 
 Display top features that build the PC13
 ```{r}
 # Display top features with highest loadings of PC of interest
-pcTopFeatTab$PC13
+dplyr::mutate(pcTopFeatTab$PC9, Gene = plyr::mapvalues(Feature,
+                                                       from = featInfo$Protein.Groups,
+                                                       to = featInfo$Genes,
+                                                       warn_missing = F))
 ```
 
 ## Normal samples
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset normal samples
 smpNormalIdx <- which(colData(proTissue)$Condition == 'Normal')
 proNormal <- proTissue[, smpNormalIdx]
 
+# Display significant associations between PCs and metadata variables
+proNormalAssoRes <- doSOA(proNormal, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                  'Smoking', 'Stage', 'Metastasis'),
+                          do_onlyPCA = T, pca_method = 'ppca', num_PCs = 15)
+proNormalAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
-proNormalRes <- SOA(proNormal, fac = 'Recurrence', num_feats = 30)
+proNormalRes <- doSOA(proNormal, meta_var = 'Recurrence', pca_method = 'ppca',
+                      num_PCs = 15, num_PCfeats = 30)
 datMat <- proNormalRes$data
 smpAnno <- proNormalRes$smpMetadata
 tFeatSigRes <- proNormalRes$tFeatSigRes
@@ -688,18 +903,39 @@ pcTopFeatTab <- proNormalRes$pcTopFeatTab
 
 # Display features that can significantly separate recurrence and non-recurrence
 # patients
+tFeatSigRes <- dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
+                                                                 from = featInfo$Protein.Groups,
+                                                                 to = featInfo$Genes,
+                                                                 warn_missing = F)) %>%
+  dplyr::select(-Test)
+
+# Manually shorten names
+tFeatSigRes$Var1[16] <- 'A0A075B6P5'
+tFeatSigRes$Gene[16] <- 'IGKV2-28'
+tFeatSigRes$Var1[100] <- 'A6NCE7'
+tFeatSigRes$Gene[100] <- 'MAP1LC3B'
 tFeatSigRes
+tFeatSigRes$Var1[16] <- 'A0A075B6P5;A0A087WW87;P01614;P01615'
+tFeatSigRes$Gene[16] <- 'IGKV2-28;IGKV2-40;IGKV2D-28;IGKV2D-40'
+tFeatSigRes$Var1[100] <- 'A6NCE7;Q9GZQ8'
+tFeatSigRes$Gene[100] <- 'MAP1LC3B;MAP1LC3B2'
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
 # Prepare recurrence table for annotating samples in heatmap
 smpRecur <- dplyr::select(smpAnno, Sample, Recurrence) %>%
   tibble::column_to_rownames('Sample')
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[featOrder, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F, show_rownames = F,
@@ -720,14 +956,30 @@ fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
 all_proDAProNormalRes <- proDA::test_diff(fit,
                                           contrast = Intercept + `smpAnno$RecurrenceYes` - Intercept,
                                           sort_by = 'pval')
-proDAProNormalRes <- dplyr::select(all_proDAProNormalRes, -c(diff, se, df, avg_abundance, n_approx)) %>%
-  dplyr::filter(pval < 0.05)
+proDAProNormalRes <- dplyr::select(all_proDAProNormalRes, -c(diff, se, df, avg_abundance, n_approx, n_obs)) %>%
+  dplyr::filter(pval < 0.05) %>%
+  dplyr::mutate(Gene = plyr::mapvalues(name,
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F))
+
+# Manually shorten names
+proDAProNormalRes$name[19] <- 'A0A075B6P5;A0A087WW87'
+proDAProNormalRes$Gene[19] <- 'IGKV2-28;IGKV2-40'
 proDAProNormalRes
+proDAProNormalRes$name[19] <- 'A0A075B6P5;A0A087WW87;P01614;P01615'
+proDAProNormalRes$Gene[19] <- 'IGKV2-28;IGKV2-40;IGKV2D-28;IGKV2D-40'
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
 featOrder <- dplyr::arrange(proDAProNormalRes, dplyr::desc(t_statistic))$name
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[featOrder, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F, show_rownames = F,
@@ -741,71 +993,33 @@ topSigFeats <- proDAProNormalRes$name[1:6]
 topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::mutate(Feature = plyr::mapvalues(Feature,
+                                          from = featInfo$Protein.Groups,
+                                          to = featInfo$Genes,
+                                          warn_missing = F),
+                Feature = factor(Feature, levels = plyr::mapvalues(topSigFeats,
+                                                                   from = featInfo$Protein.Groups,
+                                                                   to = featInfo$Genes,
+                                                                   warn_missing = F))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   facet_wrap(vars(Feature), scales = 'free') +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F)
+                             show.legend = F) +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
 ```
 
-Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+There is no significant association between PCs (Var1) and cancer recurrence (Var2).
 ```{r}
 # Display PCs that can significantly separate recurrence and non-recurrence
 # patients
 tPCASigRes
-
-# Display proportion of total variance captured by all PCs explained by each PC
-varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
-PC <- paste0('PC', seq(length(varExplained)))
-varTab <- data.frame(PC = factor(PC, levels = PC),
-                     Var_explained = varExplained)
-ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
-  geom_col() +
-  labs(x = '', y = 'Variance explained (%)',
-       title = 'Normal tissue proteomics')
-```
-
-PC5 potentially separates recurrence and non-recurrence patients.
-```{r}
-# Visualize PCs
-ggplot(pcTab, aes(x=Recurrence, y=PC5, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  labs(title = 'Normal tissue proteomics') +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_compare_means(method = 't.test', paired = F, size = 6,
-                             method.args = list(var.equal = T), hjust = 0.65,
-                             show.legend = F)
-```
-
-Plot molecular signatures captured by PC5 in input data. We took a look at top
-20 features with highest loadings and observed protein levels of these top features
-through heatmap. Note that features in heatmap are ordered by their loadings.
-```{r}
-# Plot molecular signatures in input data
-# Extract top features with highest loadings
-topFeats <- pcTopFeatTab$PC5$Feature[1:20]
-# Order features by loadings
-topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
-pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
-                   annotation_col = smpRecur,
-                   color = colorRampPalette(c('navy', 'white', 'red'))(100),
-                   cluster_rows = F, cluster_cols = F,
-                   scale = 'row', main = 'Normal tissue proteomics - PC5')
-```
-
-Display top features that build the PC5
-```{r}
-# Display top features with highest loadings of PC of interest
-pcTopFeatTab$PC5
 ```
 
 ## Difference in tissue conditions
@@ -831,6 +1045,8 @@ proNormalMat <- SummarizedExperiment::assay(proNormal)
 if (identical(colnames(proTumorMat), colnames(proNormalMat)) &
     identical(rownames(proTumorMat), rownames(proNormalMat))) {
   proTissueDiffMat <- proTumorMat - proNormalMat
+  allNAsIdx <- which(apply(proTissueDiffMat, 1, function(x) {all(is.na(x))}))
+  proTissueDiffMat <- proTissueDiffMat[-allNAsIdx,]
 } else {
   print('Align samples or features first.')
 }
@@ -839,7 +1055,8 @@ colAnno <- dplyr::select(as.data.frame(colData(proTumor)), Patient, Recurrence)
 proTissueDiff <- SummarizedExperiment(assays = proTissueDiffMat, colData = colAnno)
 
 # Perform analysis
-proTissueDiffRes <- SOA(proTissueDiff, fac = 'Recurrence', num_feats = 30)
+proTissueDiffRes <- doSOA(proTissueDiff, meta_var = 'Recurrence', pca_method = 'ppca',
+                          num_PCs = 15, num_PCfeats = 30)
 datMat <- proTissueDiffRes$data
 smpAnno <- proTissueDiffRes$smpMetadata
 tFeatSigRes <- proTissueDiffRes$tFeatSigRes
@@ -850,18 +1067,27 @@ pcTopFeatTab <- proTissueDiffRes$pcTopFeatTab
 
 # Display features that can significantly separate recurrence and non-recurrence
 # patients
-tFeatSigRes
+dplyr::mutate(tFeatSigRes, Gene = plyr::mapvalues(Var1,
+                                                  from = featInfo$Protein.Groups,
+                                                  to = featInfo$Genes,
+                                                  warn_missing = F))
 
 # Plot molecular signatures in input data
 # Order features according to t-statistics
-featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(tStats))$Var1
+featOrder <- dplyr::arrange(tFeatSigRes, dplyr::desc(Stat))$Var1
 # Arrange samples to make same groups in same clusters
 smpOrder <- c(which(smpAnno$Recurrence == 'No'),
               which(smpAnno$Recurrence == 'Yes'))
 # Prepare recurrence table for annotating samples in heatmap
 smpRecur <- dplyr::select(smpAnno, Sample, Recurrence) %>%
   tibble::column_to_rownames('Sample')
-pheatmap::pheatmap(datMat[featOrder, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[featOrder, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F, show_rownames = F,
@@ -881,8 +1107,12 @@ fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
 # Identify significant differentially abundant entities
 proDAProTissueDiffRes <- proDA::test_diff(fit,
                                           contrast = Intercept + `smpAnno$RecurrenceYes` - Intercept,
-                                          sort_by = 'pval', n_max = 30) %>%
-  dplyr::select(-c(diff, se, df, avg_abundance, n_approx))
+                                          sort_by = 'pval', n_max = 20) %>%
+  dplyr::select(-c(diff, se, df, avg_abundance, n_approx, n_obs)) %>%
+  dplyr::mutate(Gene = plyr::mapvalues(name,
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F))
 proDAProTissueDiffRes
 ```
 
@@ -893,18 +1123,26 @@ topSigFeats <- tFeatSigRes$Var1[1:6]
 topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::mutate(Feature = plyr::mapvalues(Feature,
+                                          from = featInfo$Protein.Groups,
+                                          to = featInfo$Genes,
+                                          warn_missing = F),
+                Feature = factor(Feature, levels = plyr::mapvalues(topSigFeats,
+                                                                   from = featInfo$Protein.Groups,
+                                                                   to = featInfo$Genes,
+                                                                   warn_missing = F))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   facet_wrap(vars(Feature), scales = 'free') +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F)
+                             show.legend = F) +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -914,28 +1152,30 @@ Display significant associations between PCs (Var1) and cancer recurrence (Var2)
 tPCASigRes
 
 # Display proportion of total variance captured by all PCs explained by each PC
-varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
+varExplained <- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
 PC <- paste0('PC', seq(length(varExplained)))
 varTab <- data.frame(PC = factor(PC, levels = PC),
                      Var_explained = varExplained)
 ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = '', y = 'Variance explained (%)',
-       title = 'Differential tissue proteomics')
+       title = 'Differential tissue proteomics') +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
 PC15 potentially separates recurrence and non-recurrence patients.
 ```{r}
 # Visualize PCs
 ggplot(pcTab, aes(x=Recurrence, y=PC15, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   labs(title = 'Differential tissue proteomics') +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   ggpubr::stat_compare_means(method = 't.test', paired = F, size = 6,
                              method.args = list(var.equal = T), hjust = 0.65,
-                             show.legend = F)
+                             show.legend = F) +
+  th
 ```
 
 Plot molecular signatures captured by PC15 in input data. We took a look at top
@@ -947,7 +1187,13 @@ through heatmap. Note that features in heatmap are ordered by their loadings.
 topFeats <- pcTopFeatTab$PC15$Feature[1:20]
 # Order features by loadings
 topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
-pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
+# Change protein names to gene names
+datMatSub <- datMat[topFeatsIdx, smpOrder]
+rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
@@ -957,17 +1203,110 @@ pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
 Display top features that build the PC15
 ```{r}
 # Display top features with highest loadings of PC of interest
-pcTopFeatTab$PC15
+dplyr::mutate(pcTopFeatTab$PC15, Gene = plyr::mapvalues(Feature,
+                                                        from = featInfo$Protein.Groups,
+                                                        to = featInfo$Genes,
+                                                        warn_missing = F))
 ```
 
 
 
 
 # Summary
-Display proportions of significant features that can separate cancer recurrence
-and non-recurrence patient groups for all datasets we currently have. Numbers after
-bars indicate total feature numbers.
 
+Visualize Recurrence-related features through volcano plots. Log2-FC (up and down)
+is recurrence to non-recurrence groups. To be clearer, entities on up side are more
+abundant in recurrence group than non-recurrence group, and so forth.
+```{r message = F}
+# Prepare protein-gene table for annotations
+proPlasmaFeatInfo <- tibble::as_tibble(rowData(proPlasma), rownames = 'Protein.Groups')
+
+# Compute log2(FC)
+# PP
+proPlasmaMedi <- readRDS('./data/AG_Krijgsveld/proPlasmaMedi_DIA.rds') %>%
+  summExp2df(assay = 'mediAbundance', row_id = 'Feature', col_id = 'Sample') %>%
+  dplyr::select(Feature, Value, Condition, Recurrence)
+# BPP
+proBaseLogFC <- dplyr::filter(proPlasmaMedi, Condition == 'Baseline') %>%
+  dplyr::group_by(Feature, Recurrence) %>%
+  dplyr::summarise(Mean = mean(Value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = 'Recurrence', values_from = 'Mean') %>%
+  dplyr::mutate(logFC = Yes - No) %>%
+  dplyr::select(Feature, logFC)
+# FPP
+proFoloLogFC <- dplyr::filter(proPlasmaMedi, Condition != 'Baseline') %>%
+  dplyr::group_by(Feature, Recurrence) %>%
+  dplyr::summarise(Mean = mean(Value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  tidyr::pivot_wider(names_from = 'Recurrence', values_from = 'Mean') %>%
+  dplyr::mutate(logFC = Yes - No) %>%
+  dplyr::select(Feature, logFC)
+
+# Collect all needed information for volcano plots
+# BPP
+proBaseVolTab <- dplyr::select(proBaseRes$tFeatRes, Var1, pVal) %>%
+  dplyr::rename(Feature = Var1) %>%
+  dplyr::left_join(proBaseLogFC, by = 'Feature') %>%
+  dplyr::mutate(Gene = plyr::mapvalues(Feature,
+                                       from = proPlasmaFeatInfo$Protein.Groups,
+                                       to = proPlasmaFeatInfo$Genes,
+                                       warn_missing = F))
+# FPP
+proFoloVolTab <- dplyr::select(proFoloRes$tFeatRes, Var1, pVal) %>%
+  dplyr::rename(Feature = Var1) %>%
+  dplyr::left_join(proFoloLogFC, by = 'Feature') %>%
+  dplyr::mutate(Gene = plyr::mapvalues(Feature,
+                                       from = proPlasmaFeatInfo$Protein.Groups,
+                                       to = proPlasmaFeatInfo$Genes,
+                                       warn_missing = F))
+```
+
+Log2-FC cutoffs are 0.5 (FC=1.41) and -0.5 (FC=0.71).
+```{r}
+# BPP
+volTab <- proBaseVolTab
+volTab['DE'] <- 'Not significant'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC > 0.5] <- 'Up'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC < -0.5] <- 'Down'
+volTab['Label'] <- NA
+label4SigFeats <- volTab$Gene[volTab$DE != 'Not significant']
+volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
+
+ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.4) +
+  geom_vline(xintercept = c(-0.5, 0.5), col = 'red', linewidth = 0.4) +
+  geom_text_repel(size = 4, show.legend = F) +
+  scale_color_manual(values = c('navy', 'grey', 'red')) +
+  labs(x = 'log2(FC)', title = 'Baseline Plasma Proteomics') +
+  th
+```
+
+Log2-FC cutoffs are 0.5 (FC=1.41) and -0.5 (FC=0.71).
+```{r}
+# FPP
+volTab <- proFoloVolTab
+volTab['DE'] <- 'Not significant'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC > 0.5] <- 'Up'
+volTab$DE[volTab$pVal <= 0.05 & volTab$logFC < -0.5] <- 'Down'
+volTab['Label'] <- NA
+label4SigFeats <- volTab$Gene[volTab$DE != 'Not significant']
+volTab$Label[volTab$DE != 'Not significant'] <- label4SigFeats
+
+ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = -log10(0.05), col = 'red', linewidth = 0.4) +
+  geom_vline(xintercept = c(-0.5, 0.5), col = 'red', linewidth = 0.4) +
+  geom_text_repel(size = 4, show.legend = F) +
+  scale_color_manual(values = c('navy', 'grey', 'red')) +
+  labs(x = 'log2(FC)', title = 'Follow-up Plasma Proteomics') +
+  th
+```
+
+Display proportions of significant features that can separate cancer recurrence
+and non-recurrence patient groups for all datasets we currently have. Numbers above
+bars indicate total feature numbers.
 ```{r}
 # Specific functions for subsetting data
 subPlasma <- function(summ_exp) {
@@ -1038,28 +1377,28 @@ proTumor_Kri_DIA <- subTissue(proTissue_Kri_DIA)$Tumor
 proNormal_Kri_DIA <- subTissue(proTissue_Kri_DIA)$Normal
 ```
 
-```{r}
+```{r message = F}
 # Prepare significant feature lists for all datasets
 # NO MISSINGNESS
 # Targeted Plasma Metabolomics
-metaBaseRes_Hell <- SOA(metaBase_Hell, factor = 'Recurrence')
-metaFoloRes_Hell <- SOA(metaFolo_Hell, factor = 'Recurrence')
+metaBaseRes_Hell <- doSOA(metaBase_Hell, meta_var = 'Recurrence')
+metaFoloRes_Hell <- doSOA(metaFolo_Hell, meta_var = 'Recurrence')
 
 # Targeted Tissue Metabolomics
-metaTumorRes_Hell <- SOA(metaTumor_Hell, factor = 'Recurrence')
-metaNormalRes_Hell <- SOA(metaNormal_Hell, factor = 'Recurrence')
+metaTumorRes_Hell <- doSOA(metaTumor_Hell, meta_var = 'Recurrence')
+metaNormalRes_Hell <- doSOA(metaNormal_Hell, meta_var = 'Recurrence')
 
 # DDA Plasma Proteomics
-proBaseRes_Kri_DDA <- SOA(proBase_Kri_DDA, factor = 'Recurrence')
-proFoloRes_Kri_DDA <- SOA(proFolo_Kri_DDA, factor = 'Recurrence')
+proBaseRes_Kri_DDA <- doSOA(proBase_Kri_DDA, meta_var = 'Recurrence')
+proFoloRes_Kri_DDA <- doSOA(proFolo_Kri_DDA, meta_var = 'Recurrence')
 
 # DDA Tissue Proteomics
-proTumorRes_Kri_DDA <- SOA(proTumor_Kri_DDA, factor = 'Recurrence')
-proNormalRes_Kri_DDA <- SOA(proNormal_Kri_DDA, factor = 'Recurrence')
+proTumorRes_Kri_DDA <- doSOA(proTumor_Kri_DDA, meta_var = 'Recurrence')
+proNormalRes_Kri_DDA <- doSOA(proNormal_Kri_DDA, meta_var = 'Recurrence')
 
 # WITH MISSINGNESS (use proDA)
 # Untargeted Plasma Metabolomics
-metaBaseRes_Hopf <- SOA(metaBase_Hopf, factor = 'Recurrence')
+metaBaseRes_Hopf <- doSOA(metaBase_Hopf, meta_var = 'Recurrence')
 datMat <- metaBaseRes_Hopf$data
 smpAnno <- metaBaseRes_Hopf$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1068,7 +1407,7 @@ all_proDAmetaBaseRes_Hopf <- proDA::test_diff(fit,
                                               sort_by = 'pval')
 proDAmetaBaseRes_Hopf <- dplyr::filter(all_proDAmetaBaseRes_Hopf, pval < 0.05)
 
-metaFoloRes_Hopf <- SOA(metaFolo_Hopf, factor = 'Recurrence')
+metaFoloRes_Hopf <- doSOA(metaFolo_Hopf, meta_var = 'Recurrence')
 datMat <- metaFoloRes_Hopf$data
 smpAnno <- metaFoloRes_Hopf$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1078,7 +1417,7 @@ all_proDAmetaFoloRes_Hopf <- proDA::test_diff(fit,
 proDAmetaFoloRes_Hopf <- dplyr::filter(all_proDAmetaFoloRes_Hopf, pval < 0.05)
 
 # Untargeted Tissue Metabolomics
-metaTumorRes_Hopf <- SOA(metaTumor_Hopf, factor = 'Recurrence')
+metaTumorRes_Hopf <- doSOA(metaTumor_Hopf, meta_var = 'Recurrence')
 datMat <- metaTumorRes_Hopf$data
 smpAnno <- metaTumorRes_Hopf$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1087,7 +1426,7 @@ all_proDAmetaTumorRes_Hopf <- proDA::test_diff(fit,
                                                sort_by = 'pval')
 proDAmetaTumorRes_Hopf <- dplyr::filter(all_proDAmetaTumorRes_Hopf, pval < 0.05)
 
-metaNormalRes_Hopf <- SOA(metaNormal_Hopf, factor = 'Recurrence')
+metaNormalRes_Hopf <- doSOA(metaNormal_Hopf, meta_var = 'Recurrence')
 datMat <- metaNormalRes_Hopf$data
 smpAnno <- metaNormalRes_Hopf$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1097,7 +1436,7 @@ all_proDAmetaNormalRes_Hopf <- proDA::test_diff(fit,
 proDAmetaNormalRes_Hopf <- dplyr::filter(all_proDAmetaNormalRes_Hopf, pval < 0.05)
 
 # Untargeted Plasma Lipidomics
-lipBaseRes_Hopf <- SOA(lipBase_Hopf, factor = 'Recurrence')
+lipBaseRes_Hopf <- doSOA(lipBase_Hopf, meta_var = 'Recurrence')
 datMat <- lipBaseRes_Hopf$data
 smpAnno <- lipBaseRes_Hopf$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1106,7 +1445,7 @@ all_proDAlipBaseRes_Hopf <- proDA::test_diff(fit,
                                              sort_by = 'pval')
 proDAlipBaseRes_Hopf <- dplyr::filter(all_proDAlipBaseRes_Hopf, pval < 0.05)
 
-lipFoloRes_Hopf <- SOA(lipFolo_Hopf, factor = 'Recurrence')
+lipFoloRes_Hopf <- doSOA(lipFolo_Hopf, meta_var = 'Recurrence')
 datMat <- lipFoloRes_Hopf$data
 smpAnno <- lipFoloRes_Hopf$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1116,7 +1455,7 @@ all_proDAlipFoloRes_Hopf <- proDA::test_diff(fit,
 proDAlipFoloRes_Hopf <- dplyr::filter(all_proDAlipFoloRes_Hopf, pval < 0.05)
 
 # Untargeted Tissue Lipidomics
-lipTumorRes_Hopf <- SOA(lipTumor_Hopf, factor = 'Recurrence')
+lipTumorRes_Hopf <- doSOA(lipTumor_Hopf, meta_var = 'Recurrence')
 datMat <- lipTumorRes_Hopf$data
 smpAnno <- lipTumorRes_Hopf$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1125,7 +1464,7 @@ all_proDAlipTumorRes_Hopf <- proDA::test_diff(fit,
                                               sort_by = 'pval')
 proDAlipTumorRes_Hopf <- dplyr::filter(all_proDAlipTumorRes_Hopf, pval < 0.05)
 
-lipNormalRes_Hopf <- SOA(lipNormal_Hopf, factor = 'Recurrence')
+lipNormalRes_Hopf <- doSOA(lipNormal_Hopf, meta_var = 'Recurrence')
 datMat <- lipNormalRes_Hopf$data
 smpAnno <- lipNormalRes_Hopf$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1135,7 +1474,7 @@ all_proDAlipNormalRes_Hopf <- proDA::test_diff(fit,
 proDAlipNormalRes_Hopf <- dplyr::filter(all_proDAlipNormalRes_Hopf, pval < 0.05)
 
 # DIA Plasma Proteomics
-proBaseRes_Kri_DIA <- SOA(proBase_Kri_DIA, factor = 'Recurrence')
+proBaseRes_Kri_DIA <- doSOA(proBase_Kri_DIA, meta_var = 'Recurrence')
 datMat <- proBaseRes_Kri_DIA$data
 smpAnno <- proBaseRes_Kri_DIA$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1144,7 +1483,7 @@ all_proDAproBaseRes_Kri_DIA <- proDA::test_diff(fit,
                                                 sort_by = 'pval')
 proDAproBaseRes_Kri_DIA <- dplyr::filter(all_proDAproBaseRes_Kri_DIA, pval < 0.05)
 
-proFoloRes_Kri_DIA <- SOA(proFolo_Kri_DIA, factor = 'Recurrence')
+proFoloRes_Kri_DIA <- doSOA(proFolo_Kri_DIA, meta_var = 'Recurrence')
 datMat <- proFoloRes_Kri_DIA$data
 smpAnno <- proFoloRes_Kri_DIA$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1154,7 +1493,7 @@ all_proDAproFoloRes_Kri_DIA <- proDA::test_diff(fit,
 proDAproFoloRes_Kri_DIA <- dplyr::filter(all_proDAproFoloRes_Kri_DIA, pval < 0.05)
 
 # DIA Tissue Proteomics
-proTumorRes_Kri_DIA <- SOA(proTumor_Kri_DIA, factor = 'Recurrence')
+proTumorRes_Kri_DIA <- doSOA(proTumor_Kri_DIA, meta_var = 'Recurrence')
 datMat <- proTumorRes_Kri_DIA$data
 smpAnno <- proTumorRes_Kri_DIA$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1163,7 +1502,7 @@ all_proDAproTumorRes_Kri_DIA <- proDA::test_diff(fit,
                                                  sort_by = 'pval')
 proDAproTumorRes_Kri_DIA <- dplyr::filter(all_proDAproTumorRes_Kri_DIA, pval < 0.05)
 
-proNormalRes_Kri_DIA <- SOA(proNormal_Kri_DIA, factor = 'Recurrence')
+proNormalRes_Kri_DIA <- doSOA(proNormal_Kri_DIA, meta_var = 'Recurrence')
 datMat <- proNormalRes_Kri_DIA$data
 smpAnno <- proNormalRes_Kri_DIA$smpMetadata
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -1226,7 +1565,7 @@ numFeat <- c(c(nrow(metaBaseRes_Hopf$data), NA), c(nrow(metaBaseRes_Hell$data), 
              c(nrow(proBaseRes_Kri_DDA$data), NA),
              c(nrow(metaTumorRes_Hopf$data), NA), c(nrow(metaTumorRes_Hell$data), NA),
              c(NA, nrow(lipNormalRes_Hopf$data)), c(nrow(proTumorRes_Kri_DIA$data), NA),
-             c(NA, nrow(proNormalRes_Kri_DDA$data)))
+             c(nrow(proNormalRes_Kri_DDA$data), NA))
 sigFeatPropTab <- data.frame(Data = factor(dat, levels = unique(dat)),
                              Data_modality = datModal,
                              Data_of = datOf,
@@ -1235,16 +1574,20 @@ sigFeatPropTab <- data.frame(Data = factor(dat, levels = unique(dat)),
 
 ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill = Data_modality, label=Feature_number)) +
   geom_bar(stat = 'identity', position=position_dodge()) +
-  geom_text(size = 5, vjust = -0.5) +
+  geom_text(size = 5, vjust = -0.3) +
   facet_wrap(~Data_of) +
-  labs(x = 'Data', y = 'Percentage (%)') + #, title = 'Proportion of Cancer Recurrence-Related Features') +
+  labs(x = 'Data', y = 'Percentage (%)',
+       title = 'Proportion of Cancer Recurrence-Related Features') +
   scale_fill_discrete(name = 'Sample Condition') +
-  theme(strip.text = element_text(size = 26), axis.title = element_text(size = 26),
-        axis.text.x = element_text(size = 11.5, angle = 60, vjust = 1, hjust = 1), axis.text.y = element_text(size = 22),
-        legend.title = element_text(size = 24), legend.text = element_text(size = 24),
-        panel.background = element_blank(), axis.line = element_line(color = 'black'))
-ggsave('./output/percentage_sigFeats.png', device = 'png', dpi = 400, height = 8, width = 18)
+  th + theme(axis.text.x = element_text(angle = 65, vjust = 1, hjust = 1),
+             strip.text = element_text(size = 16, face = 'bold'))
+  # theme(strip.text = element_text(size = 26), axis.title = element_text(size = 26),
+  #       axis.text.x = element_text(size = 11.5, angle = 60, vjust = 1, hjust = 1), axis.text.y = element_text(size = 22),
+  #       legend.title = element_text(size = 24), legend.text = element_text(size = 24),
+  #       panel.background = element_blank(), axis.line = element_line(color = 'black'))
+# ggsave('./output/percentage_sigFeats.png', device = 'png', dpi = 400, height = 8, width = 18)
 ```
+ADD COMMENT!
 
 ```{r include = F, eval = F}
 # Prepare needed information for barplot
@@ -1291,10 +1634,3 @@ ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill=Data_of, label=Feature_num
         axis.text.x = element_text(size = 13), axis.text.y = element_text(size = 12),
         legend.title = element_text(size = 14), legend.text = element_text(size = 14))
 ```
-
-
-
-
-
-
-

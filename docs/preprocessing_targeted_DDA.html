@@ -37,8 +37,8 @@
 <script src="site_libs/navigation-1.1/codefolding.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
-<link href="site_libs/font-awesome-6.2.1/css/all.min.css" rel="stylesheet" />
-<link href="site_libs/font-awesome-6.2.1/css/v4-shims.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
 
 <link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
 <!-- Add a small amount of space between sections. -->
@@ -393,13 +393,13 @@ aria-hidden="true"></span> </a>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2023-04-26
+<strong>Last updated:</strong> 2023-05-25
 </p>
 <p>
 <strong>Checks:</strong> <span
-class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 5
 <span class="glyphicon glyphicon-exclamation-sign text-danger"
-aria-hidden="true"></span> 1
+aria-hidden="true"></span> 2
 </p>
 <p>
 <strong>Knit directory:</strong>
@@ -423,18 +423,21 @@ versions</em> tab lists the development history.
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
-<span class="glyphicon glyphicon-ok text-success"
-aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
-</a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted
+changes </a>
 </p>
 </div>
-<div id="strongRMarkdownfilestronguptodate"
+<div id="strongRMarkdownfilestronguncommittedchanges"
 class="panel-collapse collapse">
 <div class="panel-body">
-<p>Great! Since the R Markdown file has been committed to the Git
-repository, you know the exact version of the code that produced these
-results.</p>
+<p>The R Markdown file has unstaged changes. To know which version of
+the R Markdown file created these results, you’ll want to first commit
+it to the Git repo. If you’re still working on the analysis, you can
+ignore this warning. When you’re finished, you can run
+<code>wflow_publish</code> to commit the R Markdown file and build the
+HTML.</p>
 </div>
 </div>
 </div>
@@ -551,15 +554,15 @@ relative
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtreed8a6936ee6f7db4d3c703528661b321827fc0aabtargetblankd8a6936a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree55ec72603cc06048ccc0894b7537dbd78345faa6targetblank55ec726a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/d8a6936ee6f7db4d3c703528661b321827fc0aab" target="_blank">d8a6936</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/55ec72603cc06048ccc0894b7537dbd78345faa6" target="_blank">55ec726</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtreed8a6936ee6f7db4d3c703528661b321827fc0aabtargetblankd8a6936a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree55ec72603cc06048ccc0894b7537dbd78345faa6targetblank55ec726a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -569,7 +572,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/d8a6936ee6f7db4d3c703528661b321827fc0aab" target="_blank">d8a6936</a>.
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/55ec72603cc06048ccc0894b7537dbd78345faa6" target="_blank">55ec726</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -585,28 +588,49 @@ were generated:
 <pre><code>
 Ignored files:
     Ignored:    .DS_Store
+    Ignored:    .RData
+    Ignored:    .Rhistory
     Ignored:    analysis/.DS_Store
     Ignored:    code/.DS_Store
     Ignored:    data/.DS_Store
+    Ignored:    output/.DS_Store
 
 Untracked files:
     Untracked:  code/about.Rmd
     Untracked:  code/feature_selection.Rmd
     Untracked:  code/license.Rmd
-    Untracked:  code/misc.R
     Untracked:  code/mofa_downstream_analysis.Rmd
     Untracked:  code/mofa_factors_investigation.Rmd
     Untracked:  code/workflowr_commands.R
     Untracked:  data/AG_Hell/
     Untracked:  data/AG_Hopf/
     Untracked:  data/AG_Krijgsveld/
-    Untracked:  data/corrMetaPlasmaRes_Hopf_Hell.rds
-    Untracked:  data/corrMetaTissueRes_Hopf_Hell.rds
     Untracked:  data/mofa/
+    Untracked:  data/patient_metadata.tsv
+    Untracked:  data/stats/
+    Untracked:  output/AG_Hell/
+    Untracked:  output/AG_Hopf/
+    Untracked:  output/AG_Krijgsveld/
+    Untracked:  output/heatmap_tar_untar_PM.png
+    Untracked:  output/heatmap_tar_untar_TM.png
+    Untracked:  output/mofa_barplot_performance.png
+    Untracked:  output/mofa_boxplot_UntarBPM_UntarBPL_DDABPP.png
+    Untracked:  output/mofa_boxplot_UntarBPM_UntarBPL_DDABPP_TarTTP.png
+    Untracked:  output/mofa_setup_UntarBPM_UntarBPL_DDABPP.png
+    Untracked:  output/mofa_setup_UntarBPM_UntarBPL_DDABPP_TarTT.png
+    Untracked:  output/network_tar_untar_PM.png
+    Untracked:  output/network_tar_untar_TM.png
+    Untracked:  output/percentage_sigFeats.png
 
 Unstaged changes:
     Deleted:    analysis/about.Rmd
+    Modified:   analysis/comparisons_targeted_untargeted.Rmd
     Deleted:    analysis/license.Rmd
+    Modified:   analysis/mofa_varied_omics_combinations.Rmd
+    Modified:   analysis/preliminary_analysis_targeted_DDA.Rmd
+    Modified:   analysis/preliminary_analysis_untargeted.Rmd
+    Modified:   analysis/preprocessing_targeted_DDA.Rmd
+    Modified:   code/misc.R
 
 </code></pre>
 <p>
@@ -653,6 +677,77 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/a8193d994da977d8955db358835c8448aa518565/analysis/preprocessing_targeted_DDA.Rmd" target="_blank">a8193d9</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-17
+</td>
+<td>
+Add patient metadata information (gender, smoking, stage) into SE
+objects
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3a34f961ce877eadbe75d867664e093ab77968e8/analysis/preprocessing_targeted_DDA.Rmd" target="_blank">3a34f96</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-16
+</td>
+<td>
+Add patient metadata information (gender, smoking, stage) into SE
+objects
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3fd9f5b3337e04956af02f43dfe8c90f6656b8b5/analysis/preprocessing_targeted_DDA.Rmd" target="_blank">3fd9f5b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-15
+</td>
+<td>
+Change sample names of DDA proteomics from smp to Patient_TG|_NG,
+manually modify information of potential
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/60e2be1baf6c417a1fac3ca5b43772501dff8cbb/docs/preprocessing_targeted_DDA.html" target="_blank">60e2be1</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-26
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -702,37 +797,24 @@ normalization, and in the end, storing all needed information of each
 dataset (4 in total) in SummarizedExperiment objects for further
 analyses. </font></p>
 <p>Load libraries</p>
-<pre class="r"><code>library(&#39;readxl&#39;)
+<pre class="r"><code>library(&#39;readr&#39;)
+library(&#39;readxl&#39;)
 library(&#39;vsn&#39;)
 library(&#39;pwr&#39;)
 library(&#39;SummarizedExperiment&#39;)
+library(&#39;ggrepel&#39;)
 library(&#39;tidyverse&#39;)
 # Load user-defined functions
-source(&#39;./code/misc.R&#39;)</code></pre>
-<div id="plasma-metabolomics" class="section level1">
-<h1>Plasma Metabolomics</h1>
-<pre class="r"><code>metaPlasmaTab &lt;- readxl::read_excel(
-  &#39;./data/AG_Hell/Thorax cohort_not-normalized_subset plasma.xlsx&#39;,
-  skip = 1) %&gt;%
-  filter(!is.na(parents)) %&gt;%
-  dplyr::select(-c(Sample_identification_cut, parents)) %&gt;%
-  rename(Sample = &#39;patients_tissue&#39;,
-         Patient = &#39;Individual_ID&#39;,
-         Condition = &#39;Status&#39;,
-         Identifier = &#39;Sample Identification&#39;) %&gt;%
-  pivot_longer(cols = -c(&#39;Sample&#39;, &#39;Patient&#39;, &#39;Condition&#39;, &#39;Identifier&#39;),
-               names_to = &#39;metabolites&#39;,
-               values_to = &#39;Abundance&#39;) %&gt;%
-  mutate(Abundance = as.numeric(Abundance))
+source(&#39;./code/misc.R&#39;)
 
-# Unify condition annotations for Plasma Proteomics and Metabolomics
-newCondition &lt;- metaPlasmaTab$Condition
-newCondition[which(newCondition == &#39;BASELINE_SURGERY&#39;)] &lt;- &#39;Baseline&#39;
-newCondition[which(newCondition == &#39;FOLLOW-UP&#39;)] &lt;- &#39;Follow-up&#39;
-newCondition[which(newCondition == &#39;RECURRENCE&#39;)] &lt;- &#39;Recurrence&#39;
-metaPlasmaTab$Condition &lt;- newCondition
-
-# Extract patient cancer recurrences information
+# Set plot theme
+th &lt;- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = &#39;bold&#39;),
+        axis.text = element_text(face = &#39;bold&#39;),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))</code></pre>
+<pre class="r"><code># Prepare patient metadata table
+# Retrieve patient recurrence information
 recurAnno &lt;- readxl::read_excel(
   &#39;./data/AG_Hell/Thorax cohort_not-normalized_subset plasma.xlsx&#39;,
   skip = 1) %&gt;%
@@ -746,27 +828,58 @@ recurAnno &lt;- readxl::read_excel(
     Condition == &#39;RECURRENCE&#39; ~ &#39;Yes&#39;
   )) %&gt;%
   dplyr::select(-Condition)
+# Clean up patient metadata information (adjuvant chemotherapy can be used later)
+metadataTab &lt;- readr::read_tsv(&#39;./data/patient_metadata.tsv&#39;) %&gt;%
+  dplyr::select(Code, Gender, `Age at diagnosis`, `Smoking status`, `Pathological stage`) %&gt;%
+  dplyr::rename(Patient = Code, Age = `Age at diagnosis`, Smoking = `Smoking status`,
+                Stage = `Pathological stage`) %&gt;%
+  dplyr::filter(Patient %in% recurAnno$Patient) %&gt;%
+  dplyr::mutate(Gender = dplyr::case_when(Gender == &#39;MALE&#39; ~ &#39;Male&#39;,
+                                          Gender == &#39;FEMALE&#39; ~ &#39;Female&#39;),
+                Smoking = dplyr::case_when(Smoking == &#39;SMOKER&#39; ~ &#39;Smoker&#39;,
+                                           Smoking == &#39;EX-SMOKER&#39; ~ &#39;Ex-smoker&#39;,
+                                           Smoking == &#39;NON-SMOKER&#39; ~ &#39;Non-smoker&#39;))
+# Combine all patient information into a table
+metadataTab &lt;- dplyr::left_join(recurAnno, metadataTab, by = &#39;Patient&#39;)</code></pre>
+<div id="plasma-metabolomics" class="section level1">
+<h1>Plasma Metabolomics</h1>
+<pre class="r"><code># Clean up data and convert data to long data
+metaPlasmaTab &lt;- readxl::read_excel(
+  &#39;./data/AG_Hell/Thorax cohort_not-normalized_subset plasma.xlsx&#39;,
+  skip = 1) %&gt;%
+  filter(!is.na(parents)) %&gt;%
+  dplyr::select(-c(Sample_identification_cut, parents)) %&gt;%
+  rename(Sample = &#39;patients_tissue&#39;,
+         Patient = &#39;Individual_ID&#39;,
+         Condition = &#39;Status&#39;,
+         Identifier = &#39;Sample Identification&#39;) %&gt;%
+  pivot_longer(cols = -c(&#39;Sample&#39;, &#39;Patient&#39;, &#39;Condition&#39;, &#39;Identifier&#39;),
+               names_to = &#39;Metabolite&#39;,
+               values_to = &#39;Abundance&#39;) %&gt;%
+  mutate(Condition = case_when(Condition == &#39;BASELINE_SURGERY&#39; ~ &#39;Baseline&#39;,
+                               Condition == &#39;FOLLOW-UP&#39; ~ &#39;Follow-up&#39;,
+                               Condition == &#39;RECURRENCE&#39; ~ &#39;Recurrence&#39;),
+         Abundance = as.numeric(Abundance)) %&gt;%
+  left_join(metadataTab, by = &#39;Patient&#39;)
 
-# Add cancer recurrence information into annotation table
-metaPlasmaTab &lt;- left_join(metaPlasmaTab, recurAnno, by = &#39;Patient&#39;)
-
-metaPlasma &lt;- df2SummExp(metaPlasmaTab, row_id = &#39;metabolites&#39;, col_id = &#39;Sample&#39;,
+# Convert long data to SE object
+metaPlasma &lt;- df2SummExp(metaPlasmaTab, row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;,
                          values = &#39;Abundance&#39;, col_anno = c(&#39;Condition&#39;, &#39;Patient&#39;,
-                                                            &#39;Recurrence&#39;, &#39;Identifier&#39;))</code></pre>
+                                                            &#39;Recurrence&#39;, &#39;Gender&#39;,
+                                                            &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
+                                                            &#39;Identifier&#39;))</code></pre>
 <p>Display dimensions of processed data (40 samples and 630
 features)</p>
 <pre class="r"><code>dim(metaPlasma)</code></pre>
 <pre><code>[1] 630  40</code></pre>
-<div id="view-and-analyze-processed-data" class="section level2">
-<h2>View and analyze processed data</h2>
 <p>Display distribution of original data</p>
 <pre class="r"><code>metaPlasma4Plot &lt;- summExp2df(metaPlasma, assay = &#39;Abundance&#39;,
-                              row_id = &#39;metabolites&#39;, col_id = &#39;Sample&#39;)
+                              row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;)
 ggplot(metaPlasma4Plot, aes(x=Sample, y=Value)) +
   geom_boxplot() +
   scale_y_log10() +
-  xlab(&#39;Sample IDs&#39;) + ylab(&#39;Metabolite abundance&#39;) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
+  labs(x = &#39;Sample ID&#39;, y = &#39;Metabolite abundance&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
 <p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-4-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-4-1">
@@ -806,21 +919,22 @@ LiaoQianWu
 </div>
 </div>
 <pre class="r"><code># Zero-valued data points are removed.</code></pre>
-<div id="perform-vsn" class="section level3">
-<h3>Perform VSN</h3>
+<div id="perform-vsn" class="section level2">
+<h2>Perform VSN</h2>
 <p>Perform VSN (variance stabilizing normalization) on original data</p>
 <pre class="r"><code>exprMat &lt;- as.matrix(assay(metaPlasma))
 fit &lt;- vsnMatrix(exprMat)
 metaPlasmaNorm &lt;- metaPlasma
 assay(metaPlasmaNorm) &lt;- predict(fit, exprMat)
-
+# save vsn normalized data
 # saveRDS(metaPlasmaNorm, &#39;./data/AG_Hell/metaPlasmaNorm.rds&#39;)
 
 metaPlasmaNorm4Plot &lt;- summExp2df(metaPlasmaNorm, assay = &#39;Abundance&#39;,
-                                  row_id = &#39;metabolites&#39;, col_id = &#39;Sample&#39;)
+                                  row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;)
 ggplot(metaPlasmaNorm4Plot, aes(x=Sample, y=Value)) +
   geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
+  labs(x = &#39;Sample ID&#39;, y = &#39;Metabolite abundance&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
 <p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-5-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-5-1">
@@ -859,9 +973,30 @@ LiaoQianWu
 </table>
 </div>
 </div>
+<pre class="r"><code># Store median normalized data for computing log2(FC) later
+exprMat &lt;- as.matrix(assay(metaPlasma))
+sampleAnno &lt;- tibble::as_tibble(colData(metaPlasma), rownames = &#39;Sample&#39;)
+metaPlasmaMediTab &lt;- limma::normalizeBetweenArrays(exprMat, method = &#39;scale&#39;) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature&#39;) %&gt;%
+  tidyr::pivot_longer(cols = -&#39;Feature&#39;,
+                      names_to = &#39;Sample&#39;,
+                      values_to = &#39;mediAbundance&#39;) %&gt;%
+  dplyr::mutate(mediAbundance = log2(mediAbundance+0.0001)) %&gt;%
+  dplyr::left_join(sampleAnno, by = &#39;Sample&#39;)
+
+ggplot(metaPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
+  geom_boxplot() +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+metaPlasmaMedi &lt;- df2SummExp(metaPlasmaMediTab, row_id = &#39;Feature&#39;, col_id = &#39;Sample&#39;,
+                             values = &#39;mediAbundance&#39;, col_anno = c(&#39;Condition&#39;, &#39;Patient&#39;,
+                                                                    &#39;Recurrence&#39;, &#39;Gender&#39;,
+                                                                    &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
+                                                                    &#39;Identifier&#39;))
+# saveRDS(metaPlasmaMedi, &#39;./data/AG_Hell/metaPlasmaMedi.rds&#39;)</code></pre>
 </div>
-<div id="perform-pca" class="section level3">
-<h3>Perform PCA</h3>
+<div id="perform-pca" class="section level2">
+<h2>Perform PCA</h2>
 <p>Use only top 100 metabolites that have high variance</p>
 <pre class="r"><code>exprMat &lt;- assay(metaPlasmaNorm)
 sd &lt;- rowSds(exprMat)
@@ -876,57 +1011,8 @@ metaPlasmaNorm4Plot &lt;- resPC$x[,1:10] %&gt;%
 
 ggplot(metaPlasmaNorm4Plot, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
   geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;)</code></pre>
-<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-6-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-1">
-Past versions of unnamed-chunk-6-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-6-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-6-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p><br/> <br/></p>
-<p>Use all metabolites</p>
-<pre class="r"><code>resPC2 &lt;- prcomp(t(exprMat), center = TRUE, scale. = FALSE)
-
-metaPlasmaNorm4Plot2 &lt;- resPC2$x[, 1:10] %&gt;%
-  as.data.frame() %&gt;%
-  rownames_to_column(&#39;Sample&#39;)%&gt;%
-  left_join(anno, by = &#39;Sample&#39;)
-
-ggplot(metaPlasmaNorm4Plot2, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;)</code></pre>
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-1">
@@ -965,12 +1051,26 @@ LiaoQianWu
 </table>
 </div>
 </div>
-</div>
+<p><br/> <br/></p>
+<p>Use all metabolites</p>
+<pre class="r"><code>resPC2 &lt;- prcomp(t(exprMat), center = TRUE, scale. = FALSE)
+
+metaPlasmaNorm4Plot2 &lt;- resPC2$x[, 1:10] %&gt;%
+  as.data.frame() %&gt;%
+  rownames_to_column(&#39;Sample&#39;)%&gt;%
+  left_join(anno, by = &#39;Sample&#39;)
+
+ggplot(metaPlasmaNorm4Plot2, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
+  geom_point() +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  th</code></pre>
+<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" /></p>
 </div>
 </div>
 <div id="tissue-metabolomics" class="section level1">
 <h1>Tissue Metabolomics</h1>
-<pre class="r"><code>metaTissueTab &lt;- readxl::read_excel(
+<pre class="r"><code># Clean up data and convert data to long data
+metaTissueTab &lt;- readxl::read_excel(
   &#39;./data/AG_Hell/Thorax cohort_not-normalized_subset tissue.xlsx&#39;,
   skip = 1) %&gt;%
   dplyr::filter(!is.na(parents)) %&gt;%
@@ -980,100 +1080,41 @@ LiaoQianWu
                 Condition = Status,
                 Identifier = `Sample Identification`) %&gt;%
   tidyr::pivot_longer(cols = -c(&#39;Sample&#39;, &#39;Patient&#39;, &#39;Condition&#39;, &#39;Identifier&#39;),
-                      names_to = &#39;metabolites&#39;, values_to = &#39;Abundance&#39;) %&gt;%
-  dplyr::mutate(Abundance = as.numeric(Abundance))
+                      names_to = &#39;Metabolite&#39;, values_to = &#39;Abundance&#39;) %&gt;%
+  dplyr::mutate(Condition = dplyr::case_when(Condition == &#39;Normalgewebe&#39; ~ &#39;Normal&#39;,
+                                             Condition == &#39;Tumorgewebe&#39; ~ &#39;Tumor&#39;),
+                Abundance = as.numeric(Abundance)) %&gt;%
+  dplyr::left_join(metadataTab, by = &#39;Patient&#39;)
 
-# Unify condition annotations for Tumor proteomics and metabolomics
-newCondition &lt;- metaTissueTab$Condition
-newCondition[which(newCondition == &#39;Normalgewebe&#39;)] &lt;- &#39;Normal&#39;
-newCondition[which(newCondition == &#39;Tumorgewebe&#39;)] &lt;- &#39;Tumor&#39;
-metaTissueTab$Condition &lt;- newCondition
-
-# Add cancer recurrence information into annotation table
-metaTissueTab &lt;- dplyr::left_join(metaTissueTab, recurAnno, by = &#39;Patient&#39;)
-
-metaTissue &lt;- df2SummExp(metaTissueTab, row_id = &#39;metabolites&#39;, col_id = &#39;Sample&#39;,
+# Convert long data to SE object
+metaTissue &lt;- df2SummExp(metaTissueTab, row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;,
                          values = &#39;Abundance&#39;, col_anno = c(&#39;Condition&#39;, &#39;Patient&#39;,
-                                                            &#39;Recurrence&#39;, &#39;Identifier&#39;))</code></pre>
+                                                            &#39;Recurrence&#39;, &#39;Gender&#39;,
+                                                            &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
+                                                            &#39;Identifier&#39;))</code></pre>
 <p>Display dimensions of processed data (40 samples and 630
 features)</p>
 <pre class="r"><code>dim(metaTissue)</code></pre>
 <pre><code>[1] 630  40</code></pre>
 <p>Display 3 NA data points in this dataset</p>
 <pre class="r"><code>dplyr::filter(metaTissueTab, is.na(Abundance)) %&gt;%
-  dplyr::select(-Identifier)</code></pre>
+  dplyr::select(-c(Identifier, Recurrence, Gender, Smoking, Stage))</code></pre>
 <pre><code># A tibble: 3 × 6
-  Sample      Patient  Condition metabolites Abundance Recurrence
-  &lt;chr&gt;       &lt;chr&gt;    &lt;chr&gt;     &lt;chr&gt;           &lt;dbl&gt; &lt;chr&gt;     
-1 HH3U27K2_TG HH3U27K2 Tumor     Ala                NA No        
-2 F04ERF3M_TG F04ERF3M Tumor     Histamine          NA Yes       
-3 E04NMF53_TG E04NMF53 Tumor     Histamine          NA Yes       </code></pre>
+  Sample      Patient  Condition Metabolite Abundance   Age
+  &lt;chr&gt;       &lt;chr&gt;    &lt;chr&gt;     &lt;chr&gt;          &lt;dbl&gt; &lt;dbl&gt;
+1 HH3U27K2_TG HH3U27K2 Tumor     Ala               NA    81
+2 F04ERF3M_TG F04ERF3M Tumor     Histamine         NA    68
+3 E04NMF53_TG E04NMF53 Tumor     Histamine         NA    75</code></pre>
 <pre class="r"><code># Values of these data points were infinite (character) before converting them to
 # numeric class.</code></pre>
-<div id="view-and-analyze-processed-data-1" class="section level2">
-<h2>View and analyze processed data</h2>
 <p>Display distribution of original data</p>
 <pre class="r"><code>metaTissue4Plot &lt;- summExp2df(metaTissue, assay = &#39;Abundance&#39;,
-                              row_id = &#39;metabolites&#39;, col_id = &#39;Sample&#39;)
+                              row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;)
 ggplot(metaTissue4Plot, aes(x=Sample, y=Value)) +
   geom_boxplot() +
   scale_y_log10() +
-  xlab(&#39;Sample ID&#39;) + ylab(&#39;Metabolite abundance&#39;) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
-<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-11-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-1">
-Past versions of unnamed-chunk-11-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-11-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-11-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<pre class="r"><code># There are 3 NA data points and 756 zeros.</code></pre>
-<div id="perform-vsn-1" class="section level3">
-<h3>Perform VSN</h3>
-<pre class="r"><code>exprMat &lt;- as.matrix(assay(metaTissue))
-fit &lt;- vsnMatrix(exprMat)
-metaTissueNorm &lt;- metaTissue
-assay(metaTissueNorm) &lt;- predict(fit, exprMat)
-
-# saveRDS(metaTissueNorm, &#39;./data/AG_Hell/metaTissueNorm.rds&#39;)
-
-metaTissueNorm4Plot &lt;- summExp2df(metaTissueNorm, assay = &#39;Abundance&#39;,
-                                  row_id = &#39;metabolites&#39;, col_id = &#39;Sample&#39;)
-ggplot(metaTissueNorm4Plot, aes(x=Sample, y=Value)) +
-  geom_boxplot() +
-  xlab(&#39;Sample IDs&#39;) + ylab(&#39;Metabolite abundance&#39;) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
+  labs(x = &#39;Sample ID&#39;, y = &#39;Metabolite abundance&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
 <p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-12-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-12-1">
@@ -1112,28 +1153,22 @@ LiaoQianWu
 </table>
 </div>
 </div>
-</div>
-<div id="perform-pca-1" class="section level3">
-<h3>Perform PCA</h3>
-<p>Use only top 100 metabolites that have high variance</p>
-<pre class="r"><code>exprMat &lt;- assay(metaTissueNorm)
-# Remove the metabolites containing non-applicable values (try to impute the
-# missing values later)
-exprMat &lt;- exprMat[which(rownames(exprMat) != c(&#39;Ala&#39;, &#39;Histamine&#39;)),]
-sd &lt;- rowSds(exprMat)
-exprMatSub &lt;- exprMat[order(sd, decreasing = TRUE)[1:100],]
-resPC &lt;- prcomp(t(exprMatSub), center = TRUE, scale. = FALSE) # Each row is an
-# observation, i.e., samples
+<pre class="r"><code># There are 3 NA data points and 756 zeros.</code></pre>
+<div id="perform-vsn-1" class="section level2">
+<h2>Perform VSN</h2>
+<pre class="r"><code>exprMat &lt;- as.matrix(assay(metaTissue))
+fit &lt;- vsnMatrix(exprMat)
+metaTissueNorm &lt;- metaTissue
+assay(metaTissueNorm) &lt;- predict(fit, exprMat)
+# Save vsn normalized data
+# saveRDS(metaTissueNorm, &#39;./data/AG_Hell/metaTissueNorm.rds&#39;)
 
-anno &lt;- dplyr::distinct(metaTissueTab, Sample, Patient, Condition)
-metaTissueNorm4Plot &lt;- resPC$x[, 1:10] %&gt;%
-  as.data.frame() %&gt;%
-  tibble::rownames_to_column(&#39;Sample&#39;) %&gt;%
-  dplyr::left_join(anno, by = &#39;Sample&#39;)
-
-ggplot(metaTissueNorm4Plot, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;)</code></pre>
+metaTissueNorm4Plot &lt;- summExp2df(metaTissueNorm, assay = &#39;Abundance&#39;,
+                                  row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;)
+ggplot(metaTissueNorm4Plot, aes(x=Sample, y=Value)) +
+  geom_boxplot() +
+  labs(x = &#39;Sample ID&#39;, y = &#39;Metabolite abundance&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
 <p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-13-1">
@@ -1172,7 +1207,53 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p><br/> <br/></p>
+<pre class="r"><code># Store median normalized data for computing log2(FC)
+exprMat &lt;- as.matrix(assay(metaTissue))
+sampleAnno &lt;- tibble::as_tibble(colData(metaTissue), rownames = &#39;Sample&#39;)
+metaTissueMediTab &lt;- limma::normalizeBetweenArrays(exprMat, method = &#39;scale&#39;) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature&#39;) %&gt;%
+  tidyr::pivot_longer(cols = -&#39;Feature&#39;,
+                      names_to = &#39;Sample&#39;,
+                      values_to = &#39;mediAbundance&#39;) %&gt;%
+  dplyr::mutate(mediAbundance = log2(mediAbundance+0.0001)) %&gt;%
+  dplyr::left_join(sampleAnno, by = &#39;Sample&#39;)
+
+ggplot(metaTissueMediTab, aes(x=Sample, y=mediAbundance)) +
+  geom_boxplot() +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+metaTissueMedi &lt;- df2SummExp(metaTissueMediTab, row_id = &#39;Feature&#39;, col_id = &#39;Sample&#39;,
+                             values = &#39;mediAbundance&#39;, col_anno = c(&#39;Condition&#39;, &#39;Patient&#39;,
+                                                                    &#39;Recurrence&#39;, &#39;Gender&#39;,
+                                                                    &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
+                                                                    &#39;Identifier&#39;))
+# saveRDS(metaTissueMedi, &#39;./data/AG_Hell/metaTissueMedi.rds&#39;)</code></pre>
+</div>
+<div id="perform-pca-1" class="section level2">
+<h2>Perform PCA</h2>
+<p>Take an initial look at dataset for quality control <br/> <br/></p>
+<p>Use only top 100 metabolites that have high variance</p>
+<pre class="r"><code>exprMat &lt;- assay(metaTissueNorm)
+# Remove the metabolites containing non-applicable values (try to impute the
+# missing values later)
+exprMat &lt;- exprMat[which(rownames(exprMat) != c(&#39;Ala&#39;, &#39;Histamine&#39;)),]
+sd &lt;- rowSds(exprMat)
+exprMatSub &lt;- exprMat[order(sd, decreasing = TRUE)[1:100],]
+resPC &lt;- prcomp(t(exprMatSub), center = TRUE, scale. = FALSE) # Each row is an
+# observation, i.e., samples
+
+anno &lt;- dplyr::distinct(metaTissueTab, Sample, Patient, Condition)
+metaTissueNorm4Plot &lt;- resPC$x[, 1:10] %&gt;%
+  as.data.frame() %&gt;%
+  tibble::rownames_to_column(&#39;Sample&#39;) %&gt;%
+  dplyr::left_join(anno, by = &#39;Sample&#39;)
+
+ggplot(metaTissueNorm4Plot, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
+  geom_point() +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  th</code></pre>
+<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-15-1.png" width="960" style="display: block; margin: auto;" />
+<br/> <br/></p>
 <p>Use all metabolites except those three containing missing values</p>
 <pre class="r"><code>resPC2 &lt;- prcomp(t(exprMat), center = TRUE, scale. = FALSE)
 
@@ -1183,46 +1264,9 @@ metaTissueNorm4Plot2 &lt;- resPC2$x[, 1:10] %&gt;%
 
 ggplot(metaTissueNorm4Plot2, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
   geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;)</code></pre>
-<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-14-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-14-1">
-Past versions of unnamed-chunk-14-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-14-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-14-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  th</code></pre>
+<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-16-1.png" width="960" style="display: block; margin: auto;" /></p>
 </div>
 </div>
 <div id="plasma-proteomics" class="section level1">
@@ -1251,144 +1295,34 @@ proPlasmaAnno &lt;- readxl::read_excel(
   &#39;./data/AG_Krijgsveld/20211119_133842_20211018_TMMS_TRX_plasma_Report.xlsx&#39;,
   sheet = 2) %&gt;%
   dplyr::select(Sample_IDs, Condition, parents, Identifier) %&gt;%
-  mutate(id = paste0(&#39;smp&#39;, seq(nrow(.))),
-         Patient = str_remove_all(parents, &#39;/THRX_SPACE/THRX_DB/SC_T_S_|_P_B|_P_R&#39;),
+  mutate(Patient = str_remove_all(parents, &#39;/THRX_SPACE/THRX_DB/SC_T_S_|_P_B|_P_R&#39;),
          Sample = str_remove(parents, &#39;/THRX_SPACE/THRX_DB/SC_T_S_&#39;),
-         Identifier = str_remove(parents, &#39;/THRX_SPACE/THRX_DB/&#39;))
+         Identifier = str_remove(parents, &#39;/THRX_SPACE/THRX_DB/&#39;)) %&gt;%
+  dplyr::select(-parents) %&gt;%
+  left_join(metadataTab, by = &#39;Patient&#39;)
 
 # Unify plasma annotations for Plasma Proteomics and Metabolomics
 newCondition &lt;- proPlasmaAnno$Condition
 newCondition[which(newCondition == &#39;Pretherapeutic&#39;)] &lt;- &#39;Baseline&#39;
 newCondition[which(proPlasmaAnno$Sample == &#39;LH32F07U_P_R&#39;)] &lt;- &#39;Follow-up&#39;
 newCondition[which(proPlasmaAnno$Sample == &#39;E04NMF53_P_R&#39;)] &lt;- &#39;Recurrence&#39;
-proPlasmaAnno$Condition &lt;- newCondition
-
-# Add cancer recurrence information into annotation table
-proPlasmaAnno &lt;- left_join(proPlasmaAnno, recurAnno, by = &#39;Patient&#39;)</code></pre>
+proPlasmaAnno$Condition &lt;- newCondition</code></pre>
 <p>Show dimensions of processed data (40 samples and 435 features)</p>
 <pre class="r"><code>proPlasmaTab &lt;- left_join(proPlasmaTab, proPlasmaAnno, by = &#39;Sample_IDs&#39;)
-proPlasma &lt;- df2SummExp(proPlasmaTab, row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;id&#39;,
+proPlasma &lt;- df2SummExp(proPlasmaTab, row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;Sample&#39;,
                         values = &#39;Abundance&#39;, row_anno = &#39;PG.Genes&#39;,
-                        col_anno = c(&#39;Condition&#39;, &#39;Sample_IDs&#39;, &#39;Patient&#39;,
-                                     &#39;Sample&#39;, &#39;Recurrence&#39;, &#39;Identifier&#39;))
+                        col_anno = c(&#39;Condition&#39;, &#39;Patient&#39;, &#39;Recurrence&#39;, &#39;Gender&#39;,
+                                     &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;, &#39;Identifier&#39;))
 dim(proPlasma)</code></pre>
 <pre><code>[1] 435  40</code></pre>
-<div id="view-and-analyze-processed-data-2" class="section level2">
-<h2>View and analyze processed data</h2>
 <p>Display distribution of original data</p>
 <pre class="r"><code>proPlasma4Plot &lt;- summExp2df(proPlasma, assay = &#39;Abundance&#39;,
-                             row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;id&#39;)
-ggplot(proPlasma4Plot, aes(x=id, y=Value)) +
+                             row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;Sample&#39;)
+ggplot(proPlasma4Plot, aes(x=Sample, y=Value)) +
   geom_boxplot() +
   scale_y_log10() +
-  xlab(&#39;Sample ID&#39;) + ylab(&#39;Protein Abundance&#39;) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
-<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-19-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-19-1">
-Past versions of unnamed-chunk-19-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-19-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-19-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<div id="perform-vsn-2" class="section level3">
-<h3>perform VSN</h3>
-<pre class="r"><code>exprMat &lt;- as.matrix(assay(proPlasma))
-fit &lt;- vsnMatrix(exprMat)
-proPlasmaNorm &lt;- proPlasma
-assay(proPlasmaNorm) &lt;- predict(fit, exprMat)
-
-# saveRDS(proPlasmaNorm, &#39;./data/AG_Krijgsveld/proPlasmaNorm.rds&#39;)
-
-proPlasmaNorm4Plot &lt;- summExp2df(proPlasmaNorm, assay = &#39;Abundance&#39;,
-                                 row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;id&#39;)
-ggplot(proPlasmaNorm4Plot, aes(x=id, y=Value)) +
-  geom_boxplot() +
-  xlab(&#39;Sample ID&#39;) + ylab(&#39;Protein Abundance&#39;) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
-<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-20-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-20-1">
-Past versions of unnamed-chunk-20-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-20-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-20-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-<div id="perform-pca-2" class="section level3">
-<h3>Perform PCA</h3>
-<pre class="r"><code>exprMat &lt;- assay(proPlasmaNorm)
-resPC &lt;- prcomp(t(exprMat), center = TRUE, scale. = FALSE)
-
-anno &lt;- dplyr::distinct(proPlasmaTab, id, Patient, Condition)
-proPlasmaNorm4Plot &lt;- resPC$x[, 1:10] %&gt;%
-  as.data.frame() %&gt;%
-  tibble::rownames_to_column(&#39;id&#39;) %&gt;%
-  dplyr::left_join(anno, by = &#39;id&#39;)
-
-ggplot(proPlasmaNorm4Plot, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;)</code></pre>
+  labs(x = &#39;Sample ID&#39;, y = &#39;Protein Abundance&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
 <p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-21-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-1">
@@ -1427,7 +1361,61 @@ LiaoQianWu
 </table>
 </div>
 </div>
+<div id="perform-vsn-2" class="section level2">
+<h2>perform VSN</h2>
+<pre class="r"><code>exprMat &lt;- as.matrix(assay(proPlasma))
+fit &lt;- vsnMatrix(exprMat)
+proPlasmaNorm &lt;- proPlasma
+assay(proPlasmaNorm) &lt;- predict(fit, exprMat)
+# Save vsn normalized data
+# saveRDS(proPlasmaNorm, &#39;./data/AG_Krijgsveld/proPlasmaNorm.rds&#39;)
+
+proPlasmaNorm4Plot &lt;- summExp2df(proPlasmaNorm, assay = &#39;Abundance&#39;,
+                                 row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;Sample&#39;)
+ggplot(proPlasmaNorm4Plot, aes(x=Sample, y=Value)) +
+  geom_boxplot() +
+  labs(x = &#39;Sample ID&#39;, y = &#39;Protein Abundance&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
+<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-22-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Store median normalized data for computing log2(FC)
+exprMat &lt;- as.matrix(assay(proPlasma))
+sampleAnno &lt;- tibble::as_tibble(colData(proPlasma), rownames = &#39;Sample&#39;)
+featAnno &lt;- tibble::as_tibble(rowData(proPlasma), rownames = &#39;Feature&#39;)
+proPlasmaMediTab &lt;- limma::normalizeBetweenArrays(exprMat, method = &#39;scale&#39;) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature&#39;) %&gt;%
+  tidyr::pivot_longer(cols = -&#39;Feature&#39;,
+                      names_to = &#39;Sample&#39;,
+                      values_to = &#39;mediAbundance&#39;) %&gt;%
+  dplyr::mutate(mediAbundance = log2(mediAbundance)) %&gt;%
+  dplyr::left_join(sampleAnno, by = &#39;Sample&#39;) %&gt;%
+  dplyr::left_join(featAnno, by = &#39;Feature&#39;)
+
+ggplot(proPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
+  geom_boxplot() +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+proPlasmaMedi &lt;- df2SummExp(proPlasmaMediTab, row_id = &#39;Feature&#39;, col_id = &#39;Sample&#39;,
+                            values = &#39;mediAbundance&#39;, row_anno = &#39;PG.Genes&#39;,
+                            col_anno = c(&#39;Condition&#39;, &#39;Patient&#39;, &#39;Recurrence&#39;, &#39;Gender&#39;,
+                                         &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;, &#39;Identifier&#39;))
+# saveRDS(proPlasmaMedi, &#39;./data/AG_Krijgsveld/proPlasmaMedi.rds&#39;)</code></pre>
 </div>
+<div id="perform-pca-2" class="section level2">
+<h2>Perform PCA</h2>
+<pre class="r"><code>exprMat &lt;- assay(proPlasmaNorm)
+resPC &lt;- prcomp(t(exprMat), center = TRUE, scale. = FALSE)
+
+anno &lt;- dplyr::distinct(proPlasmaTab, Sample, Patient, Condition)
+proPlasmaNorm4Plot &lt;- resPC$x[, 1:10] %&gt;%
+  as.data.frame() %&gt;%
+  tibble::rownames_to_column(&#39;Sample&#39;) %&gt;%
+  dplyr::left_join(anno, by = &#39;Sample&#39;)
+
+ggplot(proPlasmaNorm4Plot, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
+  geom_point() +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  th</code></pre>
+<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-24-1.png" width="960" style="display: block; margin: auto;" /></p>
 </div>
 </div>
 <div id="tissue-proteomics" class="section level1">
@@ -1458,25 +1446,22 @@ proTissueAnno &lt;- readxl::read_excel(
   &#39;./data/AG_Krijgsveld/20211119_151605_20211104_TMMS_Tissue_Report.xlsx&#39;,
   sheet = 2) %&gt;%
   dplyr::select(Sample_IDs, Condition, parents, Identifier) %&gt;%
-  dplyr::mutate(id = paste0(&#39;smp&#39;, seq(nrow(.))),
-                Patient = str_remove_all(parents, &#39;/THRX_SPACE/THRX_DB/SC_T_S_|_TG|_NG&#39;),
+  dplyr::mutate(Patient = str_remove_all(parents, &#39;/THRX_SPACE/THRX_DB/SC_T_S_|_TG|_NG&#39;),
                 Sample = str_remove(parents, &#39;/THRX_SPACE/THRX_DB/SC_T_S_&#39;),
-                Identifier = str_remove(Identifier, &#39;/THRX_SPACE/&#39;)) 
-
-# Add cancer recurrence information into annotation table
-proTissueAnno &lt;- dplyr::left_join(proTissueAnno, recurAnno, by = &#39;Patient&#39;)</code></pre>
+                Identifier = str_remove(Identifier, &#39;/THRX_SPACE/&#39;),
+                id = paste0(&#39;smp&#39;, seq(nrow(.)))) %&gt;%
+  dplyr::select(-parents) %&gt;%
+  dplyr::left_join(metadataTab, by = &#39;Patient&#39;)</code></pre>
 <p>Show dimensions of processed data (40 samples and 5193 features)</p>
 <pre class="r"><code># Combine processed Abundance and annotation data
 proTissueTab &lt;- dplyr::left_join(proTissueTab, proTissueAnno, by = &#39;Sample_IDs&#39;)
 # Convert tidy table to value matrix for further analysis
 proTissue &lt;- df2SummExp(proTissueTab, row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;id&#39;,
                         values = &#39;Abundance&#39;, row_anno = &#39;PG.Genes&#39;,
-                        col_anno = c(&#39;Condition&#39;, &#39;Sample_IDs&#39;, &#39;Patient&#39;,
-                                     &#39;Sample&#39;, &#39;Recurrence&#39;, &#39;Identifier&#39;))
+                        col_anno = c(&#39;Condition&#39;, &#39;Patient&#39;, &#39;Recurrence&#39;, &#39;Gender&#39;,
+                                     &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;, &#39;Sample&#39;, &#39;Identifier&#39;))
 dim(proTissue)</code></pre>
 <pre><code>[1] 5193   40</code></pre>
-<div id="view-and-analyze-processed-data-3" class="section level2">
-<h2>View and analyze processed data</h2>
 <p>View distribution of original data to see if there is technical
 noise</p>
 <pre class="r"><code># Convert value matrix to long data for making plot
@@ -1485,121 +1470,8 @@ proTissue4Plot &lt;- summExp2df(proTissue, assay = &#39;Abundance&#39;,
 ggplot(proTissue4Plot, aes(x=id, y=Value)) +
   geom_boxplot() +
   scale_y_log10() +
-  xlab(&#39;Sample ID&#39;) + ylab(&#39;Protein abundance&#39;) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
-<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-25-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-25-1">
-Past versions of unnamed-chunk-25-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-25-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-25-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<div id="perform-vsn-3" class="section level3">
-<h3>Perform VSN</h3>
-<pre class="r"><code>exprMat &lt;- as.matrix(assay(proTissue))
-fit &lt;- vsnMatrix(exprMat)
-proTissueNorm &lt;- proTissue
-assay(proTissueNorm) &lt;- predict(fit, exprMat)
-
-# saveRDS(proTissueNorm, &#39;./data/AG_Krijgsveld/proTissueNorm.rds&#39;)
-
-proTissueNorm4Plot &lt;- summExp2df(proTissueNorm, assay = &#39;Abundance&#39;,
-                                 row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;id&#39;)
-ggplot(proTissueNorm4Plot, aes(x=id, y=Value)) +
-  geom_boxplot() +
-  xlab(&#39;Sample ID&#39;) + ylab(&#39;Protein abundance&#39;) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
-<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-27-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-27-1">
-Past versions of unnamed-chunk-27-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-27-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-27-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-<div id="perform-pca-3" class="section level3">
-<h3>Perform PCA</h3>
-<pre class="r"><code># prcomp()&#39;s parameter *center* is set to TRUE (Check effects of parameters *center*
-# and *scale.*)
-
-exprMat &lt;- assay(proTissueNorm)
-sd &lt;- rowSds(exprMat)
-exprMatSub &lt;- exprMat[order(sd, decreasing = TRUE)[1:1000],]
-resPC &lt;- prcomp(t(exprMatSub), center = TRUE, scale. = FALSE) # Each row is an
-# observation, i.e., samples
-
-anno &lt;- dplyr::distinct(proTissueTab, id, Patient, Condition)
-proTissueNorm4Plot &lt;- resPC$x[, 1:10] %&gt;%
-  as.data.frame() %&gt;%
-  tibble::rownames_to_column(&#39;id&#39;) %&gt;%
-  dplyr::left_join(anno, by = &#39;id&#39;)
-
-ggplot(proTissueNorm4Plot, aes(x=PC1, y=PC2, col=Condition, group=Patient)) + #, label=id
-  # geom_text(hjust = 0, vjust = 0) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;)</code></pre>
+  labs(x = &#39;Sample ID&#39;, y = &#39;Protein abundance&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
 <p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-28-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-28-1">
@@ -1638,11 +1510,94 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Patient “LH32F07U” has two tumor samples and one normal sample.<br />
-Patient “F04ERF3M” does not have a paired tumor sample.<br />
+<div id="perform-vsn-3" class="section level2">
+<h2>Perform VSN</h2>
+<pre class="r"><code>exprMat &lt;- as.matrix(assay(proTissue))
+fit &lt;- vsnMatrix(exprMat)
+proTissueNorm &lt;- proTissue
+assay(proTissueNorm) &lt;- predict(fit, exprMat)
+
+proTissueNorm4Plot &lt;- summExp2df(proTissueNorm, assay = &#39;Abundance&#39;,
+                                 row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;id&#39;)
+ggplot(proTissueNorm4Plot, aes(x=id, y=Value)) +
+  geom_boxplot() +
+  labs(x = &#39;Sample ID&#39;, y = &#39;Protein abundance&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
+<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-30-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="perform-pca-3" class="section level2">
+<h2>Perform PCA</h2>
+<p>Take an initial look at dataset for quality control</p>
+<pre class="r"><code># prcomp()&#39;s parameter *center* is set to TRUE (Check effects of parameters *center*
+# and *scale.*)
+
+exprMat &lt;- assay(proTissueNorm)
+sd &lt;- rowSds(exprMat)
+exprMatSub &lt;- exprMat[order(sd, decreasing = TRUE)[1:1000],]
+resPC &lt;- prcomp(t(exprMatSub), center = TRUE, scale. = FALSE) # Each row is an
+# observation, i.e., samples
+
+anno &lt;- dplyr::distinct(proTissueTab, id, Patient, Condition)
+proTissueNorm4Plot &lt;- resPC$x[, 1:10] %&gt;%
+  as.data.frame() %&gt;%
+  tibble::rownames_to_column(&#39;id&#39;) %&gt;%
+  dplyr::left_join(anno, by = &#39;id&#39;)
+
+ggplot(proTissueNorm4Plot, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
+  geom_text_repel(aes(label=id), show.legend = F) +
+  geom_point() +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  th</code></pre>
+<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-31-1.png" width="960" style="display: block; margin: auto;" />
+Patient “LH32F07U” has two tumor samples (smp24, smp29) and one normal
+sample (smp9).<br />
+Patient “F04ERF3M” does not have a paired tumor sample (smp22).<br />
 It is very probably mislabeling. If not, check correlation between two
 tumor samples from the same patient to get further idea. <br/> <br/></p>
-</div>
+<pre class="r"><code># Manually modify potential mislabeling for now
+ids &lt;- colnames(proTissueNorm)
+colnames(proTissueNorm) &lt;- colData(proTissueNorm)$Sample
+colnames(proTissueNorm)[which(ids == &#39;smp29&#39;)] &lt;- &#39;F04ERF3M_TG&#39;
+colData(proTissueNorm)$Sample &lt;- colnames(proTissueNorm)
+colData(proTissueNorm)$Patient[which(ids == &#39;smp29&#39;)] &lt;- &#39;F04ERF3M&#39;
+colData(proTissueNorm)$Recurrence[which(ids == &#39;smp29&#39;)] &lt;- &#39;Yes&#39;
+colData(proTissueNorm)$Age[which(ids == &#39;smp29&#39;)] &lt;- 68
+# Remove redundant Sample column in column annotation table
+colData(proTissueNorm) &lt;- colData(proTissueNorm)[, -which(colnames(colData(proTissueNorm)) == &#39;Sample&#39;)]
+
+# Save vsn normalized data
+# saveRDS(proTissueNorm, &#39;./data/AG_Krijgsveld/proTissueNorm.rds&#39;)</code></pre>
+<pre class="r"><code># Store median normalized data for computing log2(FC)
+# Manually modify potential mislabeling for now
+ids &lt;- colnames(proTissue)
+colnames(proTissue) &lt;- colData(proTissue)$Sample
+colnames(proTissue)[which(ids == &#39;smp29&#39;)] &lt;- &#39;F04ERF3M_TG&#39;
+colData(proTissue)$Sample &lt;- colnames(proTissue)
+colData(proTissue)$Patient[which(ids == &#39;smp29&#39;)] &lt;- &#39;F04ERF3M&#39;
+colData(proTissue)$Recurrence[which(ids == &#39;smp29&#39;)] &lt;- &#39;Yes&#39;
+colData(proTissue)$Age[which(ids == &#39;smp29&#39;)] &lt;- 68
+
+exprMat &lt;- as.matrix(assay(proTissue))
+sampleAnno &lt;- tibble::as_tibble(colData(proTissue))
+featAnno &lt;- tibble::as_tibble(rowData(proTissue), rownames = &#39;Feature&#39;)
+proTissueMediTab &lt;- limma::normalizeBetweenArrays(exprMat, method = &#39;scale&#39;) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature&#39;) %&gt;%
+  tidyr::pivot_longer(cols = -&#39;Feature&#39;,
+                      names_to = &#39;Sample&#39;,
+                      values_to = &#39;mediAbundance&#39;) %&gt;%
+  dplyr::mutate(mediAbundance = log2(mediAbundance)) %&gt;%
+  dplyr::left_join(sampleAnno, by = &#39;Sample&#39;) %&gt;%
+  dplyr::left_join(featAnno, by = &#39;Feature&#39;)
+
+ggplot(proTissueMediTab, aes(x=Sample, y=mediAbundance)) +
+  geom_boxplot() +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+proTissueMedi &lt;- df2SummExp(proTissueMediTab, row_id = &#39;Feature&#39;, col_id = &#39;Sample&#39;,
+                            values = &#39;mediAbundance&#39;, row_anno = &#39;PG.Genes&#39;,
+                            col_anno = c(&#39;Condition&#39;, &#39;Patient&#39;, &#39;Recurrence&#39;, &#39;Gender&#39;,
+                                         &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;, &#39;Identifier&#39;))
+# saveRDS(proTissueMedi, &#39;./data/AG_Krijgsveld/proTissueMedi.rds&#39;)</code></pre>
 </div>
 </div>
 <div id="abundance-comparisons" class="section level1">
@@ -1660,14 +1615,14 @@ proPlasmaNorm &lt;- readRDS(&#39;./data/AG_Krijgsveld/proPlasmaNorm.rds&#39;)</c
 <pre class="r"><code># Convert SummarizedExperiment objects to tables for plotting
 # Tissue Metabolomics
 metaTissueNorm4Plot &lt;- summExp2df(metaTissueNorm, assay = &#39;Abundance&#39;,
-                                  row_id = &#39;Metabolites&#39;, col_id = &#39;Sample&#39;) %&gt;%
-  dplyr::select(c(&#39;Metabolites&#39;, &#39;Sample&#39;, &#39;Value&#39;)) %&gt;%
+                                  row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;) %&gt;%
+  dplyr::select(c(&#39;Metabolite&#39;, &#39;Sample&#39;, &#39;Value&#39;)) %&gt;%
   dplyr::mutate(Sample_type = &#39;Tissue&#39;, Sample = paste0(&#39;Tissue_&#39;, Sample))
 
 # Plasma Metabolomics
 metaPlasmaNorm4Plot &lt;- summExp2df(metaPlasmaNorm, assay = &#39;Abundance&#39;,
-                                  row_id = &#39;Metabolites&#39;, col_id = &#39;Sample&#39;) %&gt;%
-  dplyr::select(c(&#39;Metabolites&#39;, &#39;Sample&#39;, &#39;Value&#39;)) %&gt;%
+                                  row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;) %&gt;%
+  dplyr::select(c(&#39;Metabolite&#39;, &#39;Sample&#39;, &#39;Value&#39;)) %&gt;%
   dplyr::mutate(Sample_type = &#39;Plasma&#39;, Sample = paste0(&#39;Plasma_&#39;, Sample))
 
 # Concatenate two tables
@@ -1676,45 +1631,8 @@ metaTab4Plot &lt;- rbind(metaTissueNorm4Plot, metaPlasmaNorm4Plot)
 ggplot(metaTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
   geom_boxplot(width = 0.7) +
   labs(y = &#39;Metabolite abundance&#39;, title = &#39;Metabolomics&#39;, col = &#39;Sample type&#39;) +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-34-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-34-1">
-Past versions of unnamed-chunk-34-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-34-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-34-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
+<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-39-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># ggplot(metaTab4Plot, aes(x=Sample_type, y=Value, col=Sample_type)) +
 #   geom_boxplot() +
 #   labs(x = &#39;Sample type&#39;, y = &#39;Metabolite abundance&#39;, title = &#39;Metabolomics&#39;) +
@@ -1728,21 +1646,16 @@ LiaoQianWu
 <div id="proteomics" class="section level2">
 <h2>Proteomics</h2>
 <pre class="r"><code># Tissue Proteomics
-# Deal with mislabeling
-newSample &lt;- colData(proTissueNorm)$Sample
-newSample[22] &lt;- &#39;F04ERF3M_TG&#39;
-colData(proTissueNorm)$Sample &lt;- paste0(&#39;Tissue_&#39;, newSample)
 proTissueNorm4Plot &lt;- summExp2df(proTissueNorm, assay = &#39;Abundance&#39;,
-                                 row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;id&#39;) %&gt;%
+                                 row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;Sample&#39;) %&gt;%
   dplyr::select(c(&#39;PG.ProteinGroups&#39;, &#39;Sample&#39;, &#39;Value&#39;)) %&gt;%
-  dplyr::mutate(Sample_type = &#39;Tissue&#39;)
+  dplyr::mutate(Sample_type = &#39;Tissue&#39;, Sample = paste0(&#39;Tissue_&#39;, Sample))
 
 # Plasma Proteomics
-colData(proPlasmaNorm)$Sample &lt;- paste0(&#39;Plasma_&#39;, colData(proPlasmaNorm)$Sample)
 proPlasmaNorm4Plot &lt;- summExp2df(proPlasmaNorm, assay = &#39;Abundance&#39;,
-                                 row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;id&#39;) %&gt;%
+                                 row_id = &#39;PG.ProteinGroups&#39;, col_id = &#39;Sample&#39;) %&gt;%
   dplyr::select(c(&#39;PG.ProteinGroups&#39;, &#39;Sample&#39;, &#39;Value&#39;)) %&gt;%
-  dplyr::mutate(Sample_type = &#39;Plasma&#39;)
+  dplyr::mutate(Sample_type = &#39;Plasma&#39;, Sample = paste0(&#39;Plasma_&#39;, Sample))
 
 # Concatenate two tables
 proTab4Plot &lt;- rbind(proTissueNorm4Plot, proPlasmaNorm4Plot)
@@ -1750,45 +1663,8 @@ proTab4Plot &lt;- rbind(proTissueNorm4Plot, proPlasmaNorm4Plot)
 ggplot(proTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
   geom_boxplot(width = 0.7) +
   labs(y = &#39;Protein abundance&#39;, title = &#39;Proteomics&#39;, col = &#39;Sample type&#39;) +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-35-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-35-1">
-Past versions of unnamed-chunk-35-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-35-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-35-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
+<p><img src="figure/preprocessing_targeted_DDA.Rmd/unnamed-chunk-40-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># ggplot(proTab4Plot, aes(x=Sample_type, y=Value, col=Sample_type)) +
 #   geom_boxplot() +
 #   labs(x = &#39;Sample type&#39;, y = &#39;Protein abundance&#39;, title = &#39;Proteomics&#39;) +
@@ -1807,7 +1683,7 @@ Session information
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>R version 4.2.1 (2022-06-23)
 Platform: aarch64-apple-darwin20 (64-bit)
-Running under: macOS Ventura 13.2.1
+Running under: macOS Ventura 13.4
 
 Matrix products: default
 BLAS:   /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRblas.0.dylib
@@ -1822,43 +1698,43 @@ attached base packages:
 
 other attached packages:
  [1] lubridate_1.9.2             forcats_1.0.0              
- [3] stringr_1.5.0               dplyr_1.1.1                
- [5] purrr_1.0.1                 readr_2.1.4                
- [7] tidyr_1.3.0                 tibble_3.2.1               
- [9] ggplot2_3.4.1               tidyverse_2.0.0            
+ [3] stringr_1.5.0               dplyr_1.1.2                
+ [5] purrr_1.0.1                 tidyr_1.3.0                
+ [7] tibble_3.2.1                tidyverse_2.0.0            
+ [9] ggrepel_0.9.3               ggplot2_3.4.2              
 [11] SummarizedExperiment_1.26.1 GenomicRanges_1.48.0       
 [13] GenomeInfoDb_1.32.4         IRanges_2.30.1             
 [15] S4Vectors_0.34.0            MatrixGenerics_1.8.1       
 [17] matrixStats_0.63.0          pwr_1.3-0                  
 [19] vsn_3.64.0                  Biobase_2.56.0             
 [21] BiocGenerics_0.42.0         readxl_1.4.2               
-[23] workflowr_1.7.0            
+[23] readr_2.1.4                
 
 loaded via a namespace (and not attached):
- [1] httr_1.4.5             sass_0.4.5             jsonlite_1.8.4        
- [4] bslib_0.4.2            getPass_0.2-2          BiocManager_1.30.20   
+ [1] sass_0.4.6             bit64_4.0.5            vroom_1.6.3           
+ [4] jsonlite_1.8.4         bslib_0.4.2            BiocManager_1.30.20   
  [7] affy_1.74.0            highr_0.10             GenomeInfoDbData_1.2.8
 [10] cellranger_1.1.0       yaml_2.3.7             pillar_1.9.0          
-[13] lattice_0.20-45        glue_1.6.2             limma_3.52.4          
+[13] lattice_0.21-8         glue_1.6.2             limma_3.52.4          
 [16] digest_0.6.31          promises_1.2.0.1       XVector_0.36.0        
-[19] colorspace_2.1-0       htmltools_0.5.5        httpuv_1.6.9          
-[22] preprocessCore_1.58.0  Matrix_1.5-3           pkgconfig_2.0.3       
-[25] zlibbioc_1.42.0        scales_1.2.1           processx_3.8.0        
-[28] whisker_0.4.1          affyio_1.66.0          later_1.3.0           
-[31] tzdb_0.3.0             timechange_0.2.0       git2r_0.31.0          
-[34] farver_2.1.1           generics_0.1.3         cachem_1.0.7          
-[37] withr_2.5.0            cli_3.6.1              magrittr_2.0.3        
-[40] evaluate_0.20          ps_1.7.3               fs_1.6.1              
-[43] fansi_1.0.4            tools_4.2.1            hms_1.1.3             
-[46] lifecycle_1.0.3        munsell_0.5.0          DelayedArray_0.22.0   
-[49] callr_3.7.3            compiler_4.2.1         jquerylib_0.1.4       
-[52] rlang_1.1.0            grid_4.2.1             RCurl_1.98-1.10       
-[55] rstudioapi_0.14        labeling_0.4.2         bitops_1.0-7          
-[58] rmarkdown_2.21         gtable_0.3.3           DBI_1.1.3             
-[61] R6_2.5.1               knitr_1.42             fastmap_1.1.1         
-[64] utf8_1.2.3             rprojroot_2.0.3        stringi_1.7.12        
-[67] Rcpp_1.0.10            vctrs_0.6.1            tidyselect_1.2.0      
-[70] xfun_0.38             </code></pre>
+[19] colorspace_2.1-0       htmltools_0.5.5        httpuv_1.6.11         
+[22] preprocessCore_1.58.0  Matrix_1.5-4.1         pkgconfig_2.0.3       
+[25] zlibbioc_1.42.0        scales_1.2.1           whisker_0.4.1         
+[28] affyio_1.66.0          later_1.3.1            tzdb_0.4.0            
+[31] timechange_0.2.0       git2r_0.32.0           farver_2.1.1          
+[34] generics_0.1.3         cachem_1.0.8           withr_2.5.0           
+[37] cli_3.6.1              crayon_1.5.2           magrittr_2.0.3        
+[40] evaluate_0.21          fs_1.6.2               fansi_1.0.4           
+[43] tools_4.2.1            hms_1.1.3              lifecycle_1.0.3       
+[46] munsell_0.5.0          DelayedArray_0.22.0    compiler_4.2.1        
+[49] jquerylib_0.1.4        rlang_1.1.1            grid_4.2.1            
+[52] RCurl_1.98-1.12        rstudioapi_0.14        labeling_0.4.2        
+[55] bitops_1.0-7           rmarkdown_2.21         gtable_0.3.3          
+[58] DBI_1.1.3              R6_2.5.1               knitr_1.42            
+[61] bit_4.0.5              fastmap_1.1.1          utf8_1.2.3            
+[64] workflowr_1.7.0        rprojroot_2.0.3        stringi_1.7.12        
+[67] parallel_4.2.1         Rcpp_1.0.10            vctrs_0.6.2           
+[70] tidyselect_1.2.0       xfun_0.39             </code></pre>
 </div>
 </div>
 </div>
