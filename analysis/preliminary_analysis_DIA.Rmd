@@ -138,6 +138,37 @@ proBaseAssoRes <- doSOA(proBase, meta_var = c('Recurrence', 'Gender', 'Age',
 proBaseAssoRes$tPCASigRes
 ```
 
+```{r include = F, eval = F}
+# Compare learned PCs using conventional PCA and PPCA
+# Impute missing values using PPCA
+impuDatMat <- proBaseAssoRes$pcaRes@completeObs
+# Run PPCA on imputed data
+ppcaRes <- doPCA(t(impuDatMat), pca_method = 'ppca', num_PCs = 15)
+# Conduct association tests between PCs and metadata
+pcTab <- tibble::as_tibble(ppcaRes@scores, rownames = 'Sample')
+metaTab <- tibble::as_tibble(colData(proBase), rownames = 'Sample') %>%
+  dplyr::select(Sample, Recurrence, Gender, Age, Smoking, Stage, Metastasis)
+assoRes <- testAssociation(data = pcTab, metadata = metaTab, cmn_col = 'Sample') %>%
+  dplyr::filter(pVal < 0.05)
+assoRes
+
+# Run conventional PCA on imputed data
+pcaRes <- doPCA(t(impuDatMat), pca_method = 'pca')
+# Conduct association test between PCs and metadata
+pcTab <- tibble::as_tibble(pcaRes$x, rownames = 'Sample')
+metaTab <- tibble::as_tibble(colData(proBase), rownames = 'Sample') %>%
+  dplyr::select(Sample, Recurrence, Gender, Age, Smoking, Stage, Metastasis)
+assoRes <- testAssociation(data = pcTab, metadata = metaTab, cmn_col = 'Sample') %>%
+  dplyr::filter(pVal < 0.05)
+assoRes
+
+# PCA is matrix factorization, which decomposes a matrix into two matrices, score
+# and loading matrices. Imputing data using PPCA is basically product of learned
+# score and loading matrices. Results will be similar despite running PPCA on original
+# data with missingness or imputed data using PPCA. Results of conventional PCA
+# or PPCA on same complete data should be similar.
+```
+
 Display significant associations between features (Var1) and cancer recurrence
 (Var2) and observe molecular signatures in input data through heatmap. Note that
 features in heatmap are ordered by their t-statistics.
@@ -646,6 +677,18 @@ ggplot(pcTab, aes(x=Condition, y=PC5, color=Condition, fill=Condition)) +
                              method.args = list(var.equal = T),
                              show.legend = F) +
   th
+```
+
+```{r include=F, eval=F}
+ggplot(pcTab, aes(x=PC6, y=PC5, col=Condition, group=Patient)) +
+  geom_point(size = 5) +
+  geom_line(col = 'grey50', linetype = 'dashed') +
+  th + theme(axis.title = element_text(size = 22),
+             axis.text = element_text(size = 18),
+             legend.title = element_text(size = 22), 
+             legend.text = element_text(size = 22))
+ggsave('./output/group_meeting/proTissue_Kri_DIA_PCA_condition.png',
+       device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 Display variance explained by each PC
