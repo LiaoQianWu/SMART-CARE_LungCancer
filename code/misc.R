@@ -97,59 +97,6 @@ summExp2df <- function(summ_exp, assay = NULL,
 }
 
 
-rmCorrFeats <- function(data, cutoff = 0.8, distance_method = "pearson",
-                        cluster_method = "ward.D2") {
-  #' Perform agglomerative hierarchical clustering to cluster features into correlated
-  #' feature groups and remove most of correlated features in a group from data,
-  #' i.e., only one representative of a group is kept
-  #' 
-  #' Parameter
-  #' data: A Feature x Sample data matrix
-  #' cutoff: A numeric value specifying where the tree is cut to determine the
-  #' number of clusters. The cutoff is applied to the height (distance of a merge)
-  #' of the tree and corresponds to feature correlations and should be greater than 0.
-  #' distance_method: A character specifying the method for computing a distance
-  #' matrix
-  #' cluster_method: A character specifying the linkage method for combining clusters
-  #' 
-  #' Return
-  #' A list containing the following components:
-  #' reducedData: A matrix where only individual representatives of feature clusters
-  #' are kept, i.e., the other correlated features are removed
-  #' corrFeats: A list storing clusters of correlated features for latter retrieval
-  
-  # Check argument
-  if (!is(cutoff, 'numeric') | cutoff < 0) {
-    stop("Cutoff should be class 'numeric' and greater than 0.")
-  }
-  
-  # Calculate distance matrix
-  if (distance_method == 'pearson') {
-    distMat <- stats::as.dist(1 - stats::cor(t(data), method = 'pearson',
-                                             use = 'pairwise.complete.obs'))
-  } else if (distance_method == 'euclidean') {
-    distMat <- stats::dist(data, method = 'euclidean')
-  } else if (distance_method == 'binary') { #for sparse matrix
-    distMat <- stats::dist(data, method = 'binary')
-  }
-  
-  # Perform hierarchical clustering
-  hierClust <- stats::hclust(distMat, method = cluster_method)
-  clusters <- stats::cutree(hierClust, h = 1 - cutoff)
-  reduData <- data[!duplicated(clusters),]
-  
-  # Record removed correlated feature group for latter retrieval
-  corrFeatList <- lapply(rownames(reduData), function(feat) {
-    corrFeats <- names(clusters[clusters == clusters[feat]])
-    corrFeats[corrFeats != feat]
-  })
-  names(corrFeatList) <- rownames(reduData)
-  
-  return(list(reducedData = reduData,
-              corrFeats = corrFeatList))
-}
-
-
 doPCA <- function(data, pca_method = 'pca', num_PCs = 20) {
   #' Perform conventional PCA or its extensions, probabilistic PCA and Bayesian
   #' PCA, on MS-based data such as proteomics, metabolomics, etc. If missing values
@@ -448,32 +395,91 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
 }
 
 
-corrIter <- function(tabX, tabY, cmn_col, cor_method = 'pearson') {
+testAsso <- function(tabX, tabY, cmn_col, cor_method = 'pearson', var_equal = T) {
+  #' Systematically perform association tests between variables from two input tables
+  
   # Combine two input tables by a common column to ensure matched information
   combinedTab <- dplyr::left_join(tabX, tabY, by = cmn_col) %>%
     dplyr::select(-all_of(cmn_col))
-  # Conduct all possible correlation tests
+  # Conduct all possible association tests
   numVar1 <- ncol(tabX) - 1
   numVar2 <- ncol(tabY) - 1
   resTab <- lapply(seq(numVar1), function(i) {
     lapply(seq(numVar2), function(j) {
       var1 <- combinedTab[[i]]
       var2 <- combinedTab[[numVar1+j]]
-      # Compute correlation and extract correlation coefficient and p-value
-      # use = 'complete.obs' (casewise) => remove all cases with missing data
-      # and calculate correlation on remaining data
-      # use = 'pairwise.complete.obs' => remove cases with missing data for each
-      # correlation calculation
-      corrRes <- try(cor.test(var1, var2, method = cor_method,
-                              use = "pairwise.complete.obs"),
-                     silent = T)
-      if (!is(corrRes, 'try-error')) {
-        corr <- corrRes$estimate
-        pVal <- corrRes$p.value
-        # Create data frame for summarizing results
+      # Perform corresponding tests depending on variable types
+      singleRes <- try(
+        if (is.numeric(var1) & is.numeric(var2)) {
+          # Perform correlation test if both variables are numerical
+          # use = 'complete.obs' (casewise) => remove all cases with missing data
+          # and calculate correlation on remaining data
+          # use = 'pairwise.complete.obs' => remove cases with missing data for each
+          # correlation calculation
+          test <- 'Correlation'
+          corrRes <- cor.test(var1, var2, method = cor_method,
+                              use = "pairwise.complete.obs")
+          pValue <- corrRes$p.value
+          statistic <- corrRes$estimate
+        } else if (!is.numeric(var1) & !is.numeric(var2)) {
+          # Perform chi-square test if both variables are categorical
+          #### Use Fisher's exact test for small sample size? ####
+          test <- 'Chi-square'
+          chisqRes <- chisq.test(var1, var2)
+          pValue <- chisqRes$p.value
+          statistic <- chisqRes$statistic
+        } else if ((is.numeric(var1) & !is.numeric(var2)) &
+                   length(unique(var2)) == 2) {
+          # Perform t-test if one variable is numerical and one is categorical and
+          # has 2 levels
+          test <- 'T-test'
+          tStatRes <- t.test(var1 ~ var2, paired = F, var.equal = var_equal)
+          pValue <- tStatRes$p.value
+          statistic <- tStatRes$statistic
+        } else if ((!is.numeric(var1) & is.numeric(var2)) &
+                   length(unique(var1)) == 2) {
+          # Perform t-test if one variable is numerical and one is categorical and
+          # has 2 levels
+          test <- 'T-test'
+          tStatRes <- t.test(var2 ~ var1, paired = F, var.equal = var_equal)
+          pValue <- tStatRes$p.value
+          statistic <- tStatRes$statistic
+        } else if ((is.numeric(var1) & !is.numeric(var2)) &
+                   length(unique(var2)) > 2) {
+          # Perform ANOVA if one variable is numerical and one is categorical and
+          # has more than 2 levels
+          test <- 'ANOVA'
+          anovaRes <- summary(aov(var1 ~ var2))
+          pValue <- anovaRes[[1]][['Pr(>F)']][1]
+          statistic <- anovaRes[[1]][['F value']][1]
+        } else if ((!is.numeric(var1) & is.numeric(var2)) &
+                   length(unique(var1)) > 2) {
+          # Perform ANOVA if one variable is numerical and one is categorical and
+          # has more than 2 levels
+          test <- 'ANOVA'
+          anovaRes <- summary(aov(var2 ~ var1))
+          pValue <- anovaRes[[1]][['Pr(>F)']][1]
+          statistic <- anovaRes[[1]][['F value']][1]
+        },
+        silent = T
+      )
+      # Create data frame for summarizing results
+      if (!is(singleRes, 'try-error')) {
+        # Prevent error in creating data frame due to differing number of rows,
+        # i.e., p-value and statistic are NULL and fail to be retrieved (e.g., 20
+        # samples and 20 groups in ANOVA)
+        if (is.null(statistic)) {
+          pValue <- NA
+          statistic <- NA
+        }
         data.frame(Var1 = colnames(combinedTab)[i],
                    Var2 = colnames(combinedTab)[numVar1+j],
-                   Corr = corr, pVal = pVal,
+                   pVal = pValue, Stat = statistic, Test = test,
+                   stringsAsFactors = F, row.names = c())
+      } else {
+        data.frame(Var1 = colnames(combinedTab)[i],
+                   Var2 = colnames(combinedTab)[numVar1+j],
+                   pVal = NA, Stat = NA, Test = test,
                    stringsAsFactors = F, row.names = c())
       }
     }) %>% dplyr::bind_rows()
@@ -487,11 +493,199 @@ corrIter <- function(tabX, tabY, cmn_col, cor_method = 'pearson') {
 }
 
 
+rmCorrFeats <- function(data, cutoff = 0.8, distance_method = "pearson",
+                        cluster_method = "ward.D2") {
+  #' Perform agglomerative hierarchical clustering to cluster features into correlated
+  #' feature groups and remove most of correlated features in a group from data,
+  #' i.e., only one representative of a group is kept
+  #' 
+  #' Parameter
+  #' data: A Feature x Sample data matrix
+  #' cutoff: A numeric value specifying where the tree is cut to determine the
+  #' number of clusters. The cutoff is applied to the height (distance of a merge)
+  #' of the tree and corresponds to feature correlations and should be greater than 0.
+  #' distance_method: A character specifying the method for computing a distance
+  #' matrix
+  #' cluster_method: A character specifying the linkage method for combining clusters
+  #' 
+  #' Return
+  #' A list containing the following components:
+  #' reducedData: A matrix where only individual representatives of feature clusters
+  #' are kept, i.e., the other correlated features are removed
+  #' corrFeats: A list storing clusters of correlated features for latter retrieval
+  
+  # Check argument
+  if (!is(cutoff, 'numeric') | cutoff < 0) {
+    stop("Cutoff should be class 'numeric' and greater than 0.")
+  }
+  
+  # Calculate distance matrix
+  if (distance_method == 'pearson') {
+    distMat <- stats::as.dist(1 - stats::cor(t(data), method = 'pearson',
+                                             use = 'pairwise.complete.obs'))
+  } else if (distance_method == 'euclidean') {
+    distMat <- stats::dist(data, method = 'euclidean')
+  } else if (distance_method == 'binary') { #for sparse matrix
+    distMat <- stats::dist(data, method = 'binary')
+  }
+  
+  # Perform hierarchical clustering
+  hierClust <- stats::hclust(distMat, method = cluster_method)
+  clusters <- stats::cutree(hierClust, h = 1 - cutoff)
+  reduData <- data[!duplicated(clusters),]
+  
+  # Record removed correlated feature group for latter retrieval
+  corrFeatList <- lapply(rownames(reduData), function(feat) {
+    corrFeats <- names(clusters[clusters == clusters[feat]])
+    corrFeats[corrFeats != feat]
+  })
+  names(corrFeatList) <- rownames(reduData)
+  
+  return(list(reducedData = reduData, corrFeats = corrFeatList))
+}
+
+
+splitData <- function(x, y, trainSet_ratio = 0.8) {
+  #' Split labeled data into training and test sets
+  #' 
+  #' Parameters
+  #' x: A sample x feature matrix containing explanatory variables
+  #' y: A response vector containing sample labels that correspond to samples in x
+  #' trainSet_ratio: A numeric value specifying the ratio of the size of the training
+  #' set to that of the total dataset
+  #' 
+  #' Return
+  #' A list containing training and test sets
+  
+  # Sanity check
+  # stopifnot(nrow(x) == length(y))
+  if (!(nrow(x) == length(y))) {
+    stop("Row length of x (sample) should be same as length of y.")
+  }
+  
+  # Combine explanatory variables and response variable into a dataset
+  combinedTab <- data.frame(cbind(x, y))
+  # Split data and balance samples with different labels in training and test sets
+  smpIdx <- seq_along(y)
+  trainIdx <- lapply(unique(y), function(label) {
+    ySub <- smpIdx[y == label]
+    sample(ySub, size = as.integer(length(ySub) * trainSet_ratio)) 
+  }) %>% do.call(c, .)
+  trainData <- combinedTab[trainIdx,]
+  testData <- combinedTab[-trainIdx,]
+  return(list(trainingData = trainData, testData = testData))
+}
+
+
+runRF <- function(x, y, posLabel, iter = 1, trainSet_ratio = 0.8, ntree = 10000,
+                  plot_ROC = F) {
+  #' Perform random forest for classification problem. Trained RF model is evaluated
+  #' using ROC curve. If there are more than two classes, one-vs-all is used to
+  #' turn multi-class classification into binary classification for creating ROC
+  #' curve and compute AUC (Area Under ROC Curve). Furthermore, feature importance
+  #' is also computed.
+  #' 
+  #' Parameters
+  #' x: A sample x feature matrix containing explanatory variables
+  #' y: A response vector containing sample labels that correspond to the samples in x
+  #' posLabel: A character or a numeric value indicating the positive sample labels
+  #' that are encoded with 1 and the rest of labels are encoded with 0
+  #' iter: A numeric value specifying the number of time to run random forest
+  #' trainSet_ratio: A numeric value specifying the ratio of the size of the training
+  #' set to that of the total dataset
+  #' ntree: A numeric value specifying the number of trees to grow, which should not
+  #' be set to too low to ensure that every input row gets predicted at least a few times
+  #' plot_ROC: A logical variable indicating whether ROC curve is plotted
+  #' 
+  #' Return
+  #' A list containing the following components:
+  #' mtry: A vector of tuned best mtry used to train RF models
+  #' auc: A vector of computed AUC from trained RF models
+  #' MDA, MDG: Matrices containing computed feature importance. Rows and columns
+  #' present features and independent trained RF models. MDA and MDG stand for Mean
+  #' Decrease Accuracy and Gini
+  
+  # Sanity check
+  if (!(nrow(x) == length(y))) {
+    stop("Row length of x (sample) should be same as length of y.")
+  }
+  if (iter < 1) {
+    stop("Argument for 'iter' should be integer greater than or equal to 1.")
+  }
+  if (trainSet_ratio < 0 | trainSet_ratio > 1) {
+    stop("Argument for 'trainSet_ratio' should be numeric between 0 and 1.")
+  }
+  
+  # Create vectors to save results
+  mtryList <- c()
+  aucList <- c()
+  matMDA <- c()
+  matMDG <- c()
+  
+  for (i in seq_len(iter)) {
+    # Print progress
+    if (i %% 10 == 0) {
+      print(paste0('RF', i, ' is building...'))
+    }
+    
+    # Separate data into training and test sets
+    splitDat <- splitData(x, y, trainSet_ratio = trainSet_ratio)
+    trainData <- splitDat$trainingData
+    testData <- splitDat$testData
+    # Turn response variable into factor to conduct random forests for classification
+    trainData$y <- as.factor(trainData$y)
+    testData$y <- as.factor(testData$y)
+    
+    # Tune mtry
+    tuneRes <- randomForest::tuneRF(x = trainData[, -which(colnames(trainData) == 'y')],
+                                    y = trainData$y, ntreeTry = 1000, stepFactor = 1.5,
+                                    improve = 0.01, trace = F, plot = F, dobest = F)
+    # Retrieve mtry with least OOB error
+    mtry <- tuneRes[order(tuneRes[, 2]),][1, 1]
+    # Save best mtry
+    mtryList <- c(mtryList, mtry)
+    # Run random forest
+    rfRes <- randomForest::randomForest(y ~ ., data = trainData, mtry = mtry, ntree = ntree,
+                                        # xtest = testData[, -which(colnames(testData) == 'y')],
+                                        # ytest = testData$y,
+                                        importance = T, proximity = T, keep.forest = T)
+    
+    # Evaluate model by AUC of ROC curve
+    pred_rfRes <- predict(rfRes, newdata = testData, type = 'prob')
+    # Encode positive sample labels with 1s and the rest with 0s
+    colnames(pred_rfRes) <- ifelse(test = colnames(pred_rfRes) == posLabel, yes = '1', no = '0')
+    response <- ifelse(test = testData$y == posLabel, yes = 1, no = 0)
+    if (plot_ROC) {
+      par(pty = 's')
+      rocRes <- pROC::roc(response = response, predictor = pred_rfRes[, '1'],
+                       plot = T, legacy.axes = T, print.auc = T, print.auc.x = 0.4,
+                       xlab = 'False positive rate', ylab = 'True positive rate',
+                       main = 'ROC Curve for Random Forest',
+                       cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4)
+      par(pty = 'm')
+    } else {
+      rocRes <- pROC::roc(response = response, predictor = pred_rfRes[, '1'], plot = F)
+    }
+    # Save AUC
+    aucList <- c(aucList, rocRes$auc)
+    
+    # Retrieve feature importance values from RF object
+    matMDA <- cbind(matMDA, rfRes$importance[, 'MeanDecreaseAccuracy'])
+    matMDG <- cbind(matMDG, rfRes$importance[, 'MeanDecreaseGini'])
+    colnames(matMDA) <- colnames(matMDG) <- seq_len(iter)
+  }
+  
+  return(list(mtry = mtryList, auc = aucList, MDA = matMDA, MDG = matMDG))
+}
 
 
 
 
 
+
+
+
+####################################################################################
 
 effSize <- function(mofaObj, gp = NULL, fac, abs_es = T) {
   #' Compute effect size of factor learned from MOFA model, which can potentially
