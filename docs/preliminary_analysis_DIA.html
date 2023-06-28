@@ -393,7 +393,7 @@ aria-hidden="true"></span> </a>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2023-06-07
+<strong>Last updated:</strong> 2023-06-28
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -551,15 +551,15 @@ relative
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree53325e13fea07b57d11f79086c63b40af1ea19f6targetblank53325e1a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree8088fce3349a9e05c998f7283f2e7c6ffe55b67ftargetblank8088fcea">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/53325e13fea07b57d11f79086c63b40af1ea19f6" target="_blank">53325e1</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/8088fce3349a9e05c998f7283f2e7c6ffe55b67f" target="_blank">8088fce</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree53325e13fea07b57d11f79086c63b40af1ea19f6targetblank53325e1a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree8088fce3349a9e05c998f7283f2e7c6ffe55b67ftargetblank8088fcea"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -569,7 +569,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/53325e13fea07b57d11f79086c63b40af1ea19f6" target="_blank">53325e1</a>.
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/8088fce3349a9e05c998f7283f2e7c6ffe55b67f" target="_blank">8088fce</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -593,20 +593,26 @@ Ignored files:
     Ignored:    output/.DS_Store
 
 Untracked files:
+    Untracked:  analysis/feature_selection.Rmd
     Untracked:  code/about.Rmd
-    Untracked:  code/feature_selection.Rmd
+    Untracked:  code/functions.R
     Untracked:  code/license.Rmd
     Untracked:  code/mofa_downstream_analysis.Rmd
     Untracked:  code/mofa_factors_investigation.Rmd
     Untracked:  code/workflowr_commands.R
     Untracked:  data/AG_Hell/
     Untracked:  data/AG_Hopf/
+    Untracked:  data/AG_Klingmuller/
     Untracked:  data/AG_Krijgsveld/
     Untracked:  data/mofa/
     Untracked:  data/patient_metadata.tsv
     Untracked:  data/stats/
     Untracked:  output/TAC_2023/
+    Untracked:  output/group_meeting/
     Untracked:  output/preliminary_analysis_DIA.html
+
+Unstaged changes:
+    Modified:   analysis/preliminary_analysis_untargeted.Rmd
 
 </code></pre>
 <p>
@@ -653,6 +659,41 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/b0836405d1d46e75d85da360f9aa744d48e4ae9c/analysis/preliminary_analysis_DIA.Rmd" target="_blank">b083640</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-27
+</td>
+<td>
+Preprocess DIA tissue proteomics from AG Klingmüller and compare it with
+DIA and DDA data from AG Krijgsveld
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/preliminary_analysis_DIA.html" target="_blank">5c9ec0b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1141,13 +1182,13 @@ pheatmap::pheatmap(datMatSub,
                    cluster_rows = F, cluster_cols = F,
                    scale = &#39;row&#39;, #row scaling is across columns
                    main = &#39;Baseline plasma proteomics&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-6-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-1">
-Past versions of unnamed-chunk-6-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-1">
+Past versions of unnamed-chunk-7-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-6-1" class="collapse">
+<div id="fig-unnamed-chunk-7-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -1166,7 +1207,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-6-1.png" target="_blank">3959bda</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-7-1.png" target="_blank">3959bda</a>
 </td>
 <td>
 LiaoQianWu
@@ -1177,7 +1218,7 @@ LiaoQianWu
 </tr>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-6-1.png" target="_blank">2f62f8a</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-7-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
 LiaoQianWu
@@ -1251,13 +1292,13 @@ pheatmap::pheatmap(datMatSub,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    cluster_rows = F, cluster_cols = F,
                    scale = &#39;row&#39;, main = &#39;Baseline plasma proteomics (proDA)&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-1">
-Past versions of unnamed-chunk-7-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-1">
+Past versions of unnamed-chunk-8-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-7-1" class="collapse">
+<div id="fig-unnamed-chunk-8-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -1276,24 +1317,13 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-7-1.png" target="_blank">3959bda</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-8-1.png" target="_blank">5c9ec0b</a>
 </td>
 <td>
 LiaoQianWu
 </td>
 <td>
 2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-7-1.png" target="_blank">2f62f8a</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-17
 </td>
 </tr>
 </tbody>
@@ -1327,8 +1357,56 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
                              method.args = list(var.equal = T),
                              show.legend = F) +
   th + theme(strip.text = element_text(size = 13, face = &#39;bold&#39;))</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" />
--&gt; ADD COMMENT! <br/> <br/></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-9-1">
+Past versions of unnamed-chunk-9-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-9-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-9-1.png" target="_blank">5c9ec0b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-9-1.png" target="_blank">2f62f8a</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>-&gt; ADD COMMENT! <br/> <br/></p>
 <p>There is no significant association between PCs (Var1) and cancer
 recurrence (Var2).</p>
 <pre class="r"><code># Display PCs that can significantly separate recurrence and non-recurrence
@@ -1405,13 +1483,13 @@ pheatmap::pheatmap(datMatSub,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    cluster_rows = F, cluster_cols = F,
                    scale = &#39;row&#39;, main = &#39;Follow-up plasma proteomics&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-11-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-12-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-1">
-Past versions of unnamed-chunk-11-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-12-1">
+Past versions of unnamed-chunk-12-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-11-1" class="collapse">
+<div id="fig-unnamed-chunk-12-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -1430,7 +1508,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-11-1.png" target="_blank">3959bda</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-12-1.png" target="_blank">3959bda</a>
 </td>
 <td>
 LiaoQianWu
@@ -1441,7 +1519,7 @@ LiaoQianWu
 </tr>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-11-1.png" target="_blank">2f62f8a</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-12-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
 LiaoQianWu
@@ -1499,82 +1577,6 @@ pheatmap::pheatmap(datMatSub,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    cluster_rows = F, cluster_cols = F,
                    scale = &#39;row&#39;, main = &#39;Follow-up plasma proteomics (proDA)&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-12-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-12-1">
-Past versions of unnamed-chunk-12-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-12-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-12-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-12-1.png" target="_blank">2f62f8a</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-17
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>Visualize data of top 6 significant features based on proDA
-result</p>
-<pre class="r"><code># Visualize data of top 6 significant features
-topSigFeats &lt;- proDAProFoloRes$name[1:6]
-topSigFeatData &lt;- tibble::as_tibble(datMat[topSigFeats,], rownames = &#39;Feature&#39;) %&gt;%
-  tidyr::pivot_longer(cols = -&#39;Feature&#39;,
-                      names_to = &#39;Sample&#39;, values_to = &#39;Abundance&#39;) %&gt;%
-  dplyr::mutate(Feature = plyr::mapvalues(Feature,
-                                          from = featInfo$Protein.Groups,
-                                          to = featInfo$Genes,
-                                          warn_missing = F),
-                Feature = factor(Feature, levels = plyr::mapvalues(topSigFeats,
-                                                                   from = featInfo$Protein.Groups,
-                                                                   to = featInfo$Genes,
-                                                                   warn_missing = F))) %&gt;%
-  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
-
-ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  scale_color_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
-  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
-  facet_wrap(vars(Feature), scales = &#39;free&#39;) +
-  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
-  th + theme(strip.text = element_text(size = 13, face = &#39;bold&#39;))</code></pre>
 <p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-13-1">
@@ -1624,23 +1626,33 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Display significant associations between PCs (Var1) and cancer
-recurrence (Var2)</p>
-<pre class="r"><code># Display PCs that can significantly separate recurrence and non-recurrence
-# patients
-tPCASigRes</code></pre>
-<pre><code>  Var1       Var2        pVal    pValAdj      Stat   Test
-1  PC9 Recurrence 0.002493242 0.03739864 -3.625238 T-test</code></pre>
-<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
-varExplained &lt;- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
-PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
-varTab &lt;- data.frame(PC = factor(PC, levels = PC),
-                     Var_explained = varExplained)
-ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
-  geom_col() +
-  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;,
-       title = &#39;Follow-up plasma proteomics&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+<p>Visualize data of top 6 significant features based on proDA
+result</p>
+<pre class="r"><code># Visualize data of top 6 significant features
+topSigFeats &lt;- proDAProFoloRes$name[1:6]
+topSigFeatData &lt;- tibble::as_tibble(datMat[topSigFeats,], rownames = &#39;Feature&#39;) %&gt;%
+  tidyr::pivot_longer(cols = -&#39;Feature&#39;,
+                      names_to = &#39;Sample&#39;, values_to = &#39;Abundance&#39;) %&gt;%
+  dplyr::mutate(Feature = plyr::mapvalues(Feature,
+                                          from = featInfo$Protein.Groups,
+                                          to = featInfo$Genes,
+                                          warn_missing = F),
+                Feature = factor(Feature, levels = plyr::mapvalues(topSigFeats,
+                                                                   from = featInfo$Protein.Groups,
+                                                                   to = featInfo$Genes,
+                                                                   warn_missing = F))) %&gt;%
+  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
+
+ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  facet_wrap(vars(Feature), scales = &#39;free&#39;) +
+  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F) +
+  th + theme(strip.text = element_text(size = 13, face = &#39;bold&#39;))</code></pre>
 <p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-14-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-14-1">
@@ -1690,6 +1702,61 @@ LiaoQianWu
 </table>
 </div>
 </div>
+<p>Display significant associations between PCs (Var1) and cancer
+recurrence (Var2)</p>
+<pre class="r"><code># Display PCs that can significantly separate recurrence and non-recurrence
+# patients
+tPCASigRes</code></pre>
+<pre><code>  Var1       Var2        pVal    pValAdj      Stat   Test
+1  PC9 Recurrence 0.002493242 0.03739864 -3.625238 T-test</code></pre>
+<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
+varExplained &lt;- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
+PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
+varTab &lt;- data.frame(PC = factor(PC, levels = PC),
+                     Var_explained = varExplained)
+ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
+  geom_col() +
+  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;,
+       title = &#39;Follow-up plasma proteomics&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-15-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-15-1">
+Past versions of unnamed-chunk-15-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-15-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-15-1.png" target="_blank">5c9ec0b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>PC9 potentially separates recurrence and non-recurrence patients.</p>
 <pre class="r"><code># Visualize PCs
 ggplot(pcTab, aes(x=Recurrence, y=PC9, col=Recurrence, fill=Recurrence)) +
@@ -1702,34 +1769,6 @@ ggplot(pcTab, aes(x=Recurrence, y=PC9, col=Recurrence, fill=Recurrence)) +
                              method.args = list(var.equal = T), hjust = 0.65,
                              show.legend = F) +
   th</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-15-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>Plot molecular signatures captured by PC9 in input data. We took a
-look at top 20 features with highest loadings and observed protein
-levels of these top features through heatmap. Note that features in
-heatmap are ordered by their loadings. There is no single feature that
-can decently hint if patients will suffer cancer recurrence or not,
-which means each of these top features contributes a bit to explaining
-variation between recurrence and non-recurrence patients.</p>
-<pre class="r"><code># Plot molecular signatures in input data
-# Extract top features with highest loadings
-topFeats &lt;- pcTopFeatTab$PC9$Feature[1:20]
-# Order features by loadings
-topFeatsIdx &lt;- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
-# Change protein names to gene names
-datMatSub &lt;- datMat[topFeatsIdx, smpOrder]
-rownames(datMatSub) &lt;- plyr::mapvalues(rownames(datMatSub),
-                                       from = featInfo$Protein.Groups,
-                                       to = featInfo$Genes,
-                                       warn_missing = F)
-
-# Manually shorten names
-rownames(datMatSub)[20] &lt;- &#39;H2AC11;H2AC12&#39;
-
-pheatmap::pheatmap(datMatSub,
-                   annotation_col = smpRecur,
-                   color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
-                   cluster_rows = F, cluster_cols = F,
-                   scale = &#39;row&#39;, main = &#39;Follow-up plasma proteomics - PC9&#39;)</code></pre>
 <p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-16-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-16-1">
@@ -1779,6 +1818,34 @@ LiaoQianWu
 </table>
 </div>
 </div>
+<p>Plot molecular signatures captured by PC9 in input data. We took a
+look at top 20 features with highest loadings and observed protein
+levels of these top features through heatmap. Note that features in
+heatmap are ordered by their loadings. There is no single feature that
+can decently hint if patients will suffer cancer recurrence or not,
+which means each of these top features contributes a bit to explaining
+variation between recurrence and non-recurrence patients.</p>
+<pre class="r"><code># Plot molecular signatures in input data
+# Extract top features with highest loadings
+topFeats &lt;- pcTopFeatTab$PC9$Feature[1:20]
+# Order features by loadings
+topFeatsIdx &lt;- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
+# Change protein names to gene names
+datMatSub &lt;- datMat[topFeatsIdx, smpOrder]
+rownames(datMatSub) &lt;- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+
+# Manually shorten names
+rownames(datMatSub)[20] &lt;- &#39;H2AC11;H2AC12&#39;
+
+pheatmap::pheatmap(datMatSub,
+                   annotation_col = smpRecur,
+                   color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
+                   cluster_rows = F, cluster_cols = F,
+                   scale = &#39;row&#39;, main = &#39;Follow-up plasma proteomics - PC9&#39;)</code></pre>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-17-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>Display top features that build the PC9</p>
 <pre class="r"><code># Display top features with highest loadings of PC of interest
 pcTopFeatTab &lt;- dplyr::mutate(pcTopFeatTab$PC9, Gene = plyr::mapvalues(Feature,
@@ -1902,55 +1969,7 @@ pheatmap::pheatmap(datMatSub,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    cluster_rows = F, cluster_cols = F,
                    scale = &#39;row&#39;, main = &#39;Differential plasma proteomics&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-18-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-18-1">
-Past versions of unnamed-chunk-18-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-18-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-18-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-18-1.png" target="_blank">2f62f8a</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-17
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-19-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>Use probabilistic dropout model to account for data missingness and
 identify differentially abundant entity differences that are
 significantly associated with cancer recurrence. Note that there is no
@@ -2019,7 +2038,7 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
                              method.args = list(var.equal = T),
                              show.legend = F) +
   th + theme(strip.text = element_text(size = 13, face = &#39;bold&#39;))</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-20-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-21-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>There is no significant association between PCs (Var1) and cancer
 recurrence (Var2).</p>
 <pre class="r"><code># Display PCs that can significantly separate recurrence and non-recurrence
@@ -2071,81 +2090,6 @@ tPCASigRes</code></pre>
   geom_point(size = 4) +
   geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
   th</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-24-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-24-1">
-Past versions of unnamed-chunk-24-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-24-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-24-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-24-1.png" target="_blank">2f62f8a</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-17
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<pre class="r"><code>ggplot(pcTab, aes(x=Condition, y=PC6, color=Condition, fill=Condition)) +
-  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
-  th</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-24-2.png" width="960" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>ggplot(pcTab, aes(x=Condition, y=PC5, color=Condition, fill=Condition)) +
-  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
-  th</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-24-3.png" width="960" style="display: block; margin: auto;" /></p>
-<p>Display variance explained by each PC</p>
-<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
-varExplained &lt;- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
-PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
-varTab &lt;- data.frame(PC = factor(PC, levels = PC),
-                     Var_explained = varExplained)
-ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
-  geom_col() +
-  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
 <p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-25-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-25-1">
@@ -2183,6 +2127,81 @@ LiaoQianWu
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-25-1.png" target="_blank">2f62f8a</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code>ggplot(pcTab, aes(x=Condition, y=PC6, color=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F) +
+  th</code></pre>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-25-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(pcTab, aes(x=Condition, y=PC5, color=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F) +
+  th</code></pre>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-25-3.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display variance explained by each PC</p>
+<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
+varExplained &lt;- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
+PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
+varTab &lt;- data.frame(PC = factor(PC, levels = PC),
+                     Var_explained = varExplained)
+ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
+  geom_col() +
+  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-27-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-27-1">
+Past versions of unnamed-chunk-27-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-27-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-27-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-27-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
 LiaoQianWu
@@ -2442,13 +2461,13 @@ pheatmap::pheatmap(datMatSub,
                    cluster_rows = F, cluster_cols = F, show_rownames = F,
                    scale = &#39;row&#39;, #row scaling is across columns
                    main = &#39;Tumor Tissue proteomics&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-27-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-29-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-27-1">
-Past versions of unnamed-chunk-27-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-29-1">
+Past versions of unnamed-chunk-29-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-27-1" class="collapse">
+<div id="fig-unnamed-chunk-29-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -2467,7 +2486,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-27-1.png" target="_blank">3959bda</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-29-1.png" target="_blank">3959bda</a>
 </td>
 <td>
 LiaoQianWu
@@ -2478,7 +2497,7 @@ LiaoQianWu
 </tr>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-27-1.png" target="_blank">2f62f8a</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-29-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
 LiaoQianWu
@@ -2688,13 +2707,13 @@ pheatmap::pheatmap(datMatSub,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    cluster_rows = F, cluster_cols = F, show_rownames = F,
                    scale = &#39;row&#39;, main = &#39;Tumor Tissue proteomics (proDA)&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-28-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-30-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-28-1">
-Past versions of unnamed-chunk-28-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-30-1">
+Past versions of unnamed-chunk-30-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-28-1" class="collapse">
+<div id="fig-unnamed-chunk-30-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -2713,24 +2732,13 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-28-1.png" target="_blank">3959bda</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-30-1.png" target="_blank">5c9ec0b</a>
 </td>
 <td>
 LiaoQianWu
 </td>
 <td>
 2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-28-1.png" target="_blank">2f62f8a</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-17
 </td>
 </tr>
 </tbody>
@@ -2764,85 +2772,6 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
                              method.args = list(var.equal = T),
                              show.legend = F) +
   th + theme(strip.text = element_text(size = 13, face = &#39;bold&#39;))</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-29-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-29-1">
-Past versions of unnamed-chunk-29-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-29-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-29-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-29-1.png" target="_blank">2f62f8a</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-17
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>Display significant associations between PCs (Var1) and cancer
-recurrence (Var2)</p>
-<pre class="r"><code># Display PCs that can significantly separate recurrence and non-recurrence
-# patients
-tPCASigRes</code></pre>
-<pre><code>  Var1       Var2       pVal   pValAdj      Stat   Test
-1  PC9 Recurrence 0.04128828 0.6193243 -2.232018 T-test</code></pre>
-<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
-varExplained &lt;- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
-PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
-varTab &lt;- data.frame(PC = factor(PC, levels = PC),
-                     Var_explained = varExplained)
-ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
-  geom_col() +
-  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;,
-       title = &#39;Tumor tissue proteomics&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-30-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>PC9 potentially separates recurrence and non-recurrence patients.</p>
-<pre class="r"><code># Visualize PCs
-ggplot(pcTab, aes(x=Recurrence, y=PC9, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  labs(title = &#39;Tumor Tissue proteomics&#39;) +
-  scale_color_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
-  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
-  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F, size = 6,
-                             method.args = list(var.equal = T), hjust = 0.65,
-                             show.legend = F) +
-  th</code></pre>
 <p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-31-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-31-1">
@@ -2892,29 +2821,23 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Plot molecular signatures captured by PC9 in input data. We took a
-look at top 20 features with highest loadings and observed protein
-levels of these top features through heatmap. Note that features in
-heatmap are ordered by their loadings. There is no single feature that
-can decently hint if patients will suffer cancer recurrence or not,
-which means each of these top features contributes a bit to explaining
-variation between recurrence and non-recurrence patients.</p>
-<pre class="r"><code># Plot molecular signatures in input data
-# Extract top features with highest loadings
-topFeats &lt;- pcTopFeatTab$PC9$Feature[1:20]
-# Order features by loadings
-topFeatsIdx &lt;- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
-# Change protein names to gene names
-datMatSub &lt;- datMat[topFeatsIdx, smpOrder]
-rownames(datMatSub) &lt;- plyr::mapvalues(rownames(datMatSub),
-                                       from = featInfo$Protein.Groups,
-                                       to = featInfo$Genes,
-                                       warn_missing = F)
-pheatmap::pheatmap(datMatSub,
-                   annotation_col = smpRecur,
-                   color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
-                   cluster_rows = F, cluster_cols = F,
-                   scale = &#39;row&#39;, main = &#39;Tumor Tissue proteomics - PC9&#39;)</code></pre>
+<p>Display significant associations between PCs (Var1) and cancer
+recurrence (Var2)</p>
+<pre class="r"><code># Display PCs that can significantly separate recurrence and non-recurrence
+# patients
+tPCASigRes</code></pre>
+<pre><code>  Var1       Var2       pVal   pValAdj      Stat   Test
+1  PC9 Recurrence 0.04128828 0.6193243 -2.232018 T-test</code></pre>
+<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
+varExplained &lt;- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
+PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
+varTab &lt;- data.frame(PC = factor(PC, levels = PC),
+                     Var_explained = varExplained)
+ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
+  geom_col() +
+  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;,
+       title = &#39;Tumor tissue proteomics&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
 <p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-32-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-32-1">
@@ -2952,6 +2875,139 @@ LiaoQianWu
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-32-1.png" target="_blank">2f62f8a</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>PC9 potentially separates recurrence and non-recurrence patients.</p>
+<pre class="r"><code># Visualize PCs
+ggplot(pcTab, aes(x=Recurrence, y=PC9, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  labs(title = &#39;Tumor Tissue proteomics&#39;) +
+  scale_color_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F, size = 6,
+                             method.args = list(var.equal = T), hjust = 0.65,
+                             show.legend = F) +
+  th</code></pre>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-33-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-33-1">
+Past versions of unnamed-chunk-33-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-33-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-33-1.png" target="_blank">5c9ec0b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-33-1.png" target="_blank">2f62f8a</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Plot molecular signatures captured by PC9 in input data. We took a
+look at top 20 features with highest loadings and observed protein
+levels of these top features through heatmap. Note that features in
+heatmap are ordered by their loadings. There is no single feature that
+can decently hint if patients will suffer cancer recurrence or not,
+which means each of these top features contributes a bit to explaining
+variation between recurrence and non-recurrence patients.</p>
+<pre class="r"><code># Plot molecular signatures in input data
+# Extract top features with highest loadings
+topFeats &lt;- pcTopFeatTab$PC9$Feature[1:20]
+# Order features by loadings
+topFeatsIdx &lt;- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
+# Change protein names to gene names
+datMatSub &lt;- datMat[topFeatsIdx, smpOrder]
+rownames(datMatSub) &lt;- plyr::mapvalues(rownames(datMatSub),
+                                       from = featInfo$Protein.Groups,
+                                       to = featInfo$Genes,
+                                       warn_missing = F)
+pheatmap::pheatmap(datMatSub,
+                   annotation_col = smpRecur,
+                   color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
+                   cluster_rows = F, cluster_cols = F,
+                   scale = &#39;row&#39;, main = &#39;Tumor Tissue proteomics - PC9&#39;)</code></pre>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-34-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-34-1">
+Past versions of unnamed-chunk-34-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-34-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-34-1.png" target="_blank">5c9ec0b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-34-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
 LiaoQianWu
@@ -3198,13 +3254,13 @@ pheatmap::pheatmap(datMatSub,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    cluster_rows = F, cluster_cols = F, show_rownames = F,
                    scale = &#39;row&#39;, main = &#39;Normal tissue proteomics&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-35-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-37-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-35-1">
-Past versions of unnamed-chunk-35-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-37-1">
+Past versions of unnamed-chunk-37-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-35-1" class="collapse">
+<div id="fig-unnamed-chunk-37-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -3223,24 +3279,13 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-35-1.png" target="_blank">3959bda</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-37-1.png" target="_blank">5c9ec0b</a>
 </td>
 <td>
 LiaoQianWu
 </td>
 <td>
 2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-35-1.png" target="_blank">2f62f8a</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-17
 </td>
 </tr>
 </tbody>
@@ -3393,13 +3438,13 @@ pheatmap::pheatmap(datMatSub,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    cluster_rows = F, cluster_cols = F, show_rownames = F,
                    scale = &#39;row&#39;, main = &#39;Normal Tissue proteomics (proDA)&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-36-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-38-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-36-1">
-Past versions of unnamed-chunk-36-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-38-1">
+Past versions of unnamed-chunk-38-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-36-1" class="collapse">
+<div id="fig-unnamed-chunk-38-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -3418,7 +3463,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-36-1.png" target="_blank">3959bda</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-38-1.png" target="_blank">5c9ec0b</a>
 </td>
 <td>
 LiaoQianWu
@@ -3429,7 +3474,7 @@ LiaoQianWu
 </tr>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-36-1.png" target="_blank">2f62f8a</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-38-1.png" target="_blank">2f62f8a</a>
 </td>
 <td>
 LiaoQianWu
@@ -3469,7 +3514,44 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
                              method.args = list(var.equal = T),
                              show.legend = F) +
   th + theme(strip.text = element_text(size = 13, face = &#39;bold&#39;))</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-37-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-39-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-39-1">
+Past versions of unnamed-chunk-39-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-39-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-39-1.png" target="_blank">5c9ec0b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>There is no significant association between PCs (Var1) and cancer
 recurrence (Var2).</p>
 <pre class="r"><code># Display PCs that can significantly separate recurrence and non-recurrence
@@ -3714,7 +3796,55 @@ pheatmap::pheatmap(datMatSub,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    cluster_rows = F, cluster_cols = F, show_rownames = F,
                    scale = &#39;row&#39;, main = &#39;Differential tissue proteomics&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-39-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-41-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-41-1">
+Past versions of unnamed-chunk-41-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-41-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-41-1.png" target="_blank">3959bda</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-41-1.png" target="_blank">2f62f8a</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-17
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Use probabilistic dropout model to account for data missingness and
 identify differentially abundant entity differences that are
 significantly associated with cancer recurrence. Note that there is no
@@ -3783,134 +3913,6 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
                              method.args = list(var.equal = T),
                              show.legend = F) +
   th + theme(strip.text = element_text(size = 13, face = &#39;bold&#39;))</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-41-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-41-1">
-Past versions of unnamed-chunk-41-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-41-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-41-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-41-1.png" target="_blank">2f62f8a</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-17
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>Display significant associations between PCs (Var1) and cancer
-recurrence (Var2)</p>
-<pre class="r"><code># Display PCs that can significantly separate recurrence and non-recurrence
-# patients
-tPCASigRes</code></pre>
-<pre><code>  Var1       Var2        pVal    pValAdj      Stat   Test
-1 PC15 Recurrence 0.001415623 0.02123434 -3.901938 T-test</code></pre>
-<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
-varExplained &lt;- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
-PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
-varTab &lt;- data.frame(PC = factor(PC, levels = PC),
-                     Var_explained = varExplained)
-ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
-  geom_col() +
-  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;,
-       title = &#39;Differential tissue proteomics&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-42-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-42-1">
-Past versions of unnamed-chunk-42-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-42-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-42-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-42-1.png" target="_blank">2f62f8a</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-17
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>PC15 potentially separates recurrence and non-recurrence
-patients.</p>
-<pre class="r"><code># Visualize PCs
-ggplot(pcTab, aes(x=Recurrence, y=PC15, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  labs(title = &#39;Differential tissue proteomics&#39;) +
-  scale_color_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
-  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
-  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F, size = 6,
-                             method.args = list(var.equal = T), hjust = 0.65,
-                             show.legend = F) +
-  th</code></pre>
 <p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-43-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-43-1">
@@ -3960,6 +3962,75 @@ LiaoQianWu
 </table>
 </div>
 </div>
+<p>Display significant associations between PCs (Var1) and cancer
+recurrence (Var2)</p>
+<pre class="r"><code># Display PCs that can significantly separate recurrence and non-recurrence
+# patients
+tPCASigRes</code></pre>
+<pre><code>  Var1       Var2        pVal    pValAdj      Stat   Test
+1 PC15 Recurrence 0.001415623 0.02123434 -3.901938 T-test</code></pre>
+<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
+varExplained &lt;- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
+PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
+varTab &lt;- data.frame(PC = factor(PC, levels = PC),
+                     Var_explained = varExplained)
+ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
+  geom_col() +
+  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;,
+       title = &#39;Differential tissue proteomics&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-44-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-44-1">
+Past versions of unnamed-chunk-44-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-44-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-44-1.png" target="_blank">5c9ec0b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>PC15 potentially separates recurrence and non-recurrence
+patients.</p>
+<pre class="r"><code># Visualize PCs
+ggplot(pcTab, aes(x=Recurrence, y=PC15, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  labs(title = &#39;Differential tissue proteomics&#39;) +
+  scale_color_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F, size = 6,
+                             method.args = list(var.equal = T), hjust = 0.65,
+                             show.legend = F) +
+  th</code></pre>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-45-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>Plot molecular signatures captured by PC15 in input data. We took a
 look at top 20 features with highest loadings and observed protein
 levels of these top features through heatmap. Note that features in
@@ -3980,7 +4051,7 @@ pheatmap::pheatmap(datMatSub,
                    color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
                    cluster_rows = F, cluster_cols = F,
                    scale = &#39;row&#39;, main = &#39;Differential tissue proteomics - PC15&#39;)</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-44-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-46-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>Display top features that build the PC15</p>
 <pre class="r"><code># Display top features with highest loadings of PC of interest
 dplyr::mutate(pcTopFeatTab$PC15, Gene = plyr::mapvalues(Feature,
@@ -4086,55 +4157,7 @@ ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
   scale_color_manual(values = c(&#39;navy&#39;, &#39;grey&#39;, &#39;red&#39;)) +
   labs(x = &#39;log2(FC)&#39;, title = &#39;Baseline Plasma Proteomics&#39;) +
   th</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-47-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-47-1">
-Past versions of unnamed-chunk-47-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-47-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-47-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/2f62f8a2900c25f1a598fc01530afdbf41f7d6bb/docs/figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-47-1.png" target="_blank">2f62f8a</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-17
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-49-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>Log2-FC cutoffs are 0.5 (FC=1.41) and -0.5 (FC=0.71).</p>
 <pre class="r"><code># FPP
 volTab &lt;- proFoloVolTab
@@ -4153,7 +4176,7 @@ ggplot(volTab, aes(x=logFC, y=-log10(pVal), col=DE, label=Label)) +
   scale_color_manual(values = c(&#39;navy&#39;, &#39;grey&#39;, &#39;red&#39;)) +
   labs(x = &#39;log2(FC)&#39;, title = &#39;Follow-up Plasma Proteomics&#39;) +
   th</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-48-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-50-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>Display proportions of significant features that can separate cancer
 recurrence and non-recurrence patient groups for all datasets we
 currently have. Numbers above bars indicate total feature numbers.</p>
@@ -4424,7 +4447,7 @@ ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill = Data_modality, label=Fea
   scale_fill_discrete(name = &#39;Sample Condition&#39;) +
   th + theme(axis.text.x = element_text(angle = 65, vjust = 1, hjust = 1),
              strip.text = element_text(size = 16, face = &#39;bold&#39;))</code></pre>
-<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-51-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preliminary_analysis_DIA.Rmd/unnamed-chunk-53-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>  # theme(strip.text = element_text(size = 26), axis.title = element_text(size = 26),
   #       axis.text.x = element_text(size = 11.5, angle = 60, vjust = 1, hjust = 1), axis.text.y = element_text(size = 22),
   #       legend.title = element_text(size = 24), legend.text = element_text(size = 24),

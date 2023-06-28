@@ -393,7 +393,7 @@ aria-hidden="true"></span> </a>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2023-06-07
+<strong>Last updated:</strong> 2023-06-28
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -551,15 +551,15 @@ relative
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree53325e13fea07b57d11f79086c63b40af1ea19f6targetblank53325e1a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree8088fce3349a9e05c998f7283f2e7c6ffe55b67ftargetblank8088fcea">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/53325e13fea07b57d11f79086c63b40af1ea19f6" target="_blank">53325e1</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/8088fce3349a9e05c998f7283f2e7c6ffe55b67f" target="_blank">8088fce</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree53325e13fea07b57d11f79086c63b40af1ea19f6targetblank53325e1a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree8088fce3349a9e05c998f7283f2e7c6ffe55b67ftargetblank8088fcea"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -569,7 +569,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/53325e13fea07b57d11f79086c63b40af1ea19f6" target="_blank">53325e1</a>.
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/8088fce3349a9e05c998f7283f2e7c6ffe55b67f" target="_blank">8088fce</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -593,20 +593,26 @@ Ignored files:
     Ignored:    output/.DS_Store
 
 Untracked files:
+    Untracked:  analysis/feature_selection.Rmd
     Untracked:  code/about.Rmd
-    Untracked:  code/feature_selection.Rmd
+    Untracked:  code/functions.R
     Untracked:  code/license.Rmd
     Untracked:  code/mofa_downstream_analysis.Rmd
     Untracked:  code/mofa_factors_investigation.Rmd
     Untracked:  code/workflowr_commands.R
     Untracked:  data/AG_Hell/
     Untracked:  data/AG_Hopf/
+    Untracked:  data/AG_Klingmuller/
     Untracked:  data/AG_Krijgsveld/
     Untracked:  data/mofa/
     Untracked:  data/patient_metadata.tsv
     Untracked:  data/stats/
     Untracked:  output/TAC_2023/
+    Untracked:  output/group_meeting/
     Untracked:  output/preliminary_analysis_DIA.html
+
+Unstaged changes:
+    Modified:   analysis/preliminary_analysis_untargeted.Rmd
 
 </code></pre>
 <p>
@@ -653,6 +659,41 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/8088fce3349a9e05c998f7283f2e7c6ffe55b67f/analysis/preprocessing_untargeted.Rmd" target="_blank">8088fce</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-28
+</td>
+<td>
+Filter out features with massive missingness in untargeted metabolomics
+and lipidomics
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/preprocessing_untargeted.html" target="_blank">5c9ec0b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -813,9 +854,12 @@ normalization methods, vsn normalized data is selected. Note that, since
 features have not been identified yet by comparing against databases, we
 defined them by m/z and retention time.<br />
 </p>
-<p>Update: Remove those features whose Retention Time is shorter than
+<p>Update: Remove those features whose Retention Times are shorter than
 0.3 min and longer than 8.5 min for Metabolomics and 9 min for
-Lipidomics. </font></p>
+Lipidomics.<br />
+</p>
+<p>Update2: Remove those features quantified in less than 2/3 of samples
+in all sample groups of interest after data fusion. </font></p>
 <p>Load libraries</p>
 <pre class="r"><code>library(&#39;readxl&#39;)
 library(&#39;vsn&#39;)
@@ -832,7 +876,11 @@ th &lt;- theme_bw(base_size = 15) +
   theme(axis.title = element_text(face = &#39;bold&#39;),
         axis.text = element_text(face = &#39;bold&#39;),
         axis.ticks = element_line(linewidth = 0.8),
-        legend.text = element_text(size = 15))</code></pre>
+        legend.text = element_text(size = 15))
+
+# List sample annotations to keep in SE objects
+anno &lt;- c(&#39;Condition&#39;, &#39;Patient&#39;, &#39;Recurrence&#39;, &#39;Gender&#39;, &#39;Age&#39;, &#39;Smoking&#39;,
+          &#39;Stage&#39;, &#39;Identifier&#39;)</code></pre>
 <div id="plasma-metabolomics" class="section level1">
 <h1>Plasma Metabolomics</h1>
 <pre class="r"><code># Load dataset
@@ -847,11 +895,16 @@ smpNam &lt;- colNam[2:length(colNam)]
 colNam[2:length(colNam)] &lt;- paste0(smpNam, &#39;_&#39;, rep(c(1,2,3), length(smpNam)/3))
 colnames(metaPlasmaTab) &lt;- colNam
 
-# Remove those features whose retention time is smaller than 0.3 and greater than 8.5 min
+# Remove those features whose retention times are smaller than 0.3 and greater than 8.5 min
 RT &lt;- stringr::str_extract(metaPlasmaTab$`m/z_RT`, &#39;/.*&#39;) %&gt;%
   stringr::str_remove(&#39;/&#39;) %&gt;%
   as.numeric()
 metaPlasmaTab &lt;- metaPlasmaTab[RT &gt;= 0.3 &amp; RT &lt;= 8.5,]
+# Remove those features whose intensities are smaller than 300?
+# MZ &lt;- stringr::str_extract(metaPlasmaTab$`m/z_RT`, &#39;.*/&#39;) %&gt;%
+#   stringr::str_remove(&#39;/&#39;) %&gt;%
+#   as.numeric()
+# sum(MZ &lt; 300) #458
 
 # Create feature IDs for m/z_RT to simplify downstream operations
 metaPlasmaTab$Feature_ID &lt;- paste0(&#39;Feature&#39;, seq(nrow(metaPlasmaTab)))</code></pre>
@@ -2755,16 +2808,41 @@ LiaoQianWu
 abun &lt;- merge_metaPlasmaVsnTab$vsnAbundance
 cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
 <pre><code>0.07% observations are missing.</code></pre>
-<pre class="r"><code># Convert tidy long table to SummarizedExperiment object and save it for further
-# analysis
-metaPlasmaVsn &lt;- df2SummExp(merge_metaPlasmaVsnTab,
-                            row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
-                            values = &#39;vsnAbundance&#39;,
-                            row_anno = &#39;m/z_RT&#39;,
-                            col_anno = c(&#39;Patient&#39;, &#39;Condition&#39;, &#39;Recurrence&#39;,
-                                         &#39;Gender&#39;, &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
-                                         &#39;Identifier&#39;))
-saveRDS(metaPlasmaVsn, &#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)</code></pre>
+<p><strong>Remove features quantified in less than 2/3 of samples in all
+four sample groups</strong> <strong>of interest (Baseline/Follow-up
+Recurrence/Non-recurrence)</strong><br />
+Missing data is more likely to happen in features with small abundances
+due to detection limit. Image comparison between two sample groups,
+certain metabolites are highly missing in one group and present in the
+other</p>
+<pre class="r"><code># Prepare sample time point information for feature filtering
+merge_metaPlasmaVsnTab &lt;- dplyr::mutate(merge_metaPlasmaVsnTab,
+                                        TimePoint = dplyr::case_when(
+                                          Condition == &#39;Baseline&#39; ~ &#39;Baseline&#39;,
+                                          Condition != &#39;Baseline&#39; ~ &#39;2 years later&#39;))
+
+# Remove features quantified in less than 2/3 of samples in all sample groups of interest
+# Grouping like this since Baseline and Follow-up samples will be analyzed separately
+rmFeats &lt;- dplyr::group_by(merge_metaPlasmaVsnTab, Feature_ID, TimePoint, Recurrence) %&gt;%
+  # Compute proportion of observed data points of each group
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(vsnAbundance)) / length(vsnAbundance), 2)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  # Keep features observed in less than 2/3 of samples of groups
+  dplyr::filter(frac_nonNA &lt; 0.67) %&gt;%
+  dplyr::group_by(Feature_ID) %&gt;%
+  dplyr::summarise(Count = length(Feature_ID)) %&gt;%
+  # Keep features observed in less than 2/3 of samples of all groups
+  dplyr::filter(Count == 4) %&gt;%
+  dplyr::pull(Feature_ID)
+merge_metaPlasmaVsnTab &lt;- dplyr::filter(merge_metaPlasmaVsnTab, !Feature_ID %in% rmFeats)
+
+# Convert tidy long table to SummarizedExperiment object and save it for further analysis
+metaPlasmaVsn &lt;- df2SummExp(merge_metaPlasmaVsnTab, row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
+                            values = &#39;vsnAbundance&#39;, row_anno = &#39;m/z_RT&#39;, col_anno = anno)
+# saveRDS(metaPlasmaVsn, &#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)</code></pre>
+<p>Display dimensions of filtered dataset</p>
+<pre class="r"><code>dim(metaPlasmaVsn)</code></pre>
+<pre><code>[1] 957  40</code></pre>
 <p>PCA</p>
 <pre class="r"><code># Perform PCA
 # Remove rows (features) that have any NA values
@@ -2798,68 +2876,9 @@ ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Time_point, shape=Condition,
   scale_color_discrete(name = &#39;Time point&#39;,
                        labels = c(&#39;Baseline&#39;, &#39;2 years later&#39;)) +
   th</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-30-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-30-1">
-Past versions of unnamed-chunk-30-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-30-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-30-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-30-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-30-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p><br/> -&gt; PCA mainly captures source of variation in time points
-when samples were taken. <br/> <br/></p>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-32-1.png" width="960" style="display: block; margin: auto;" />
+<br/> -&gt; PCA mainly captures source of variation in time points when
+samples were taken. <br/> <br/></p>
 <p>Variance explained by each PC</p>
 <pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
 varExplained &lt;- pcVsnRes$sdev^2 / sum(pcVsnRes$sdev^2)
@@ -2871,66 +2890,7 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;) +
   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-31-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-31-1">
-Past versions of unnamed-chunk-31-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-31-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-31-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-31-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-31-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-33-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># Store median normalized data for computing log(FC) later
 # Perform batch correction to see if triplicates can be clustered
 # Convert long table to wide data
@@ -2972,7 +2932,7 @@ abunMediMatBC &lt;- dplyr::select(metaPlasmaMediTabBC,
   tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;mediAbundance&#39;) %&gt;%
   tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
-pcMediResBC &lt;- PCA(abunMediMatBC)
+pcMediResBC &lt;- doPCA(abunMediMatBC)
 pcMediTabBC &lt;- pcMediResBC$x[, 1:10] %&gt;%
   tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
   dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
@@ -2987,6 +2947,7 @@ ggplot(pcMediTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
 merge_metaPlasmaMediTab &lt;- dplyr::group_by(metaPlasmaMediTabBC, Feature_ID, Sample) %&gt;%
   dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %&gt;%
   dplyr::ungroup() %&gt;%
+  dplyr::filter(!Feature_ID %in% rmFeats) %&gt;%
   dplyr::left_join(smpAnno, &#39;Sample&#39;)
 
 # Incorporate m/z_RT information
@@ -3002,13 +2963,8 @@ ggplot(merge_metaPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
 
 # Convert tidy long table to SummarizedExperiment object and save it for further
 # analysis
-metaPlasmaMedi &lt;- df2SummExp(merge_metaPlasmaMediTab,
-                             row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
-                             values = &#39;mediAbundance&#39;,
-                             row_anno = &#39;m/z_RT&#39;,
-                             col_anno = c(&#39;Patient&#39;, &#39;Condition&#39;, &#39;Recurrence&#39;,
-                                          &#39;Age&#39;, &#39;Gender&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
-                                          &#39;Identifier&#39;))
+metaPlasmaMedi &lt;- df2SummExp(merge_metaPlasmaMediTab, row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
+                             values = &#39;mediAbundance&#39;, row_anno = &#39;m/z_RT&#39;, col_anno = anno)
 saveRDS(metaPlasmaMedi, &#39;./data/AG_Hopf/metaPlasmaMedi.rds&#39;)</code></pre>
 <pre class="r"><code># Missing values imputation
 # Load normalized data
@@ -3101,11 +3057,16 @@ smpNam &lt;- colNam[2:length(colNam)]
 colNam[2:length(colNam)] &lt;- paste0(smpNam, &#39;_&#39;, rep(c(1,2,3), length(smpNam)/3))
 colnames(lipPlasmaTab) &lt;- colNam
 
-# Remove those features whose retention time is smaller than 0.3 and greater than 9 min
+# Remove those features whose retention times are smaller than 0.3 and greater than 9 min
 RT &lt;- stringr::str_extract(lipPlasmaTab$`m/z_RT`, &#39;/.*&#39;) %&gt;%
   stringr::str_remove(&#39;/&#39;) %&gt;%
   as.numeric()
 lipPlasmaTab &lt;- lipPlasmaTab[RT &gt;= 0.3 &amp; RT &lt;= 9,]
+# Remove those features whose intensities are smaller than 300?
+# MZ &lt;- stringr::str_extract(lipPlasmaTab$`m/z_RT`, &#39;.*/&#39;) %&gt;%
+#   stringr::str_remove(&#39;/&#39;) %&gt;%
+#   as.numeric()
+# sum(MZ &lt; 300) #NA
 
 # Create feature IDs for m/z_RT to simplify downstream operations
 lipPlasmaTab$Feature_ID &lt;- paste0(&#39;Feature&#39;, seq(nrow(lipPlasmaTab)))</code></pre>
@@ -3146,13 +3107,13 @@ ggplot(lipPlasmaTab, aes(x=Sample_ID, y=Abundance)) +
   scale_y_log10() +
   labs(x = &#39;Sample&#39;, title = &#39;Original data&#39;) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-38-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-40-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-38-1">
-Past versions of unnamed-chunk-38-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-40-1">
+Past versions of unnamed-chunk-40-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-38-1" class="collapse">
+<div id="fig-unnamed-chunk-40-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -3171,18 +3132,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-38-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-38-1.png" target="_blank">7d94680</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-40-1.png" target="_blank">7d94680</a>
 </td>
 <td>
 LiaoQianWu
@@ -3193,7 +3143,7 @@ LiaoQianWu
 </tr>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-38-1.png" target="_blank">0bbd8eb</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-40-1.png" target="_blank">0bbd8eb</a>
 </td>
 <td>
 LiaoQianWu
@@ -3211,85 +3161,6 @@ LiaoQianWu
 ggplot(lipPlasmaTab, aes(x=Sample_ID, y=log2Abundance)) +
   geom_boxplot() +
   labs(x = &#39;Sample&#39;, y = &#39;Log2(Abundance)&#39;, title = &#39;Log2-transformed data&#39;) +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-39-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-39-1">
-Past versions of unnamed-chunk-39-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-39-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-39-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-39-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>Percentage of missing values in data</p>
-<pre class="r"><code># Display percentage of missing values
-abun &lt;- lipPlasmaTab$Abundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
-<pre><code>0.18% observations are missing.</code></pre>
-<p>Display distribution of vsn normalized data</p>
-<pre class="r"><code># Convert long table to wide data
-abunMat &lt;- dplyr::select(lipPlasmaTab, Feature_ID, Sample_ID, Abundance) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;Abundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;) %&gt;%
-  as.matrix()
-
-# Perform VSN
-fit &lt;- vsnMatrix(abunMat)
-abunVsnMat &lt;- predict(fit, abunMat) %&gt;%
-  tibble::as_tibble(rownames = &#39;Feature_ID&#39;)
-lipPlasmaVsnTab &lt;- tidyr::pivot_longer(abunVsnMat,
-                                       cols = -&#39;Feature_ID&#39;,
-                                       names_to = &#39;Sample_ID&#39;,
-                                       values_to = &#39;vsnAbundance&#39;) %&gt;%
-  dplyr::mutate(Identifier = stringr::str_remove(Sample_ID, &#39;_2_.&#39;),
-                Batch = stringr::str_remove(Sample_ID, &#39;SC_T_A_.*_2_&#39;)) %&gt;%
-  dplyr::left_join(smpAnno, by = &#39;Identifier&#39;)
-
-# Display VSN normalized data
-ggplot(lipPlasmaVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
-  geom_boxplot() +
-  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
-       title = &#39;Vsn normalized data&#39;) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-41-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
@@ -3351,117 +3222,36 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Display distribution of median normalized data</p>
-<pre class="r"><code># Perform median normalization (median scaling and log2-transformation)
-lipPlasmaMediTab &lt;- limma::normalizeBetweenArrays(abunMat, method = &#39;scale&#39;) %&gt;%
-  tibble::as_tibble(rownames = &#39;Feature_ID&#39;) %&gt;%
-  tidyr::pivot_longer(cols = -&#39;Feature_ID&#39;,
-                      names_to = &#39;Sample_ID&#39;,
-                      values_to = &#39;mediAbundance&#39;) %&gt;%
-  dplyr::mutate(mediAbundance = log2(mediAbundance),
-                Identifier = stringr::str_remove(Sample_ID, &#39;_2_.&#39;),
+<p>Percentage of missing values in data</p>
+<pre class="r"><code># Display percentage of missing values
+abun &lt;- lipPlasmaTab$Abundance
+cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
+<pre><code>0.18% observations are missing.</code></pre>
+<p>Display distribution of vsn normalized data</p>
+<pre class="r"><code># Convert long table to wide data
+abunMat &lt;- dplyr::select(lipPlasmaTab, Feature_ID, Sample_ID, Abundance) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;Abundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;) %&gt;%
+  as.matrix()
+
+# Perform VSN
+fit &lt;- vsnMatrix(abunMat)
+abunVsnMat &lt;- predict(fit, abunMat) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature_ID&#39;)
+lipPlasmaVsnTab &lt;- tidyr::pivot_longer(abunVsnMat,
+                                       cols = -&#39;Feature_ID&#39;,
+                                       names_to = &#39;Sample_ID&#39;,
+                                       values_to = &#39;vsnAbundance&#39;) %&gt;%
+  dplyr::mutate(Identifier = stringr::str_remove(Sample_ID, &#39;_2_.&#39;),
                 Batch = stringr::str_remove(Sample_ID, &#39;SC_T_A_.*_2_&#39;)) %&gt;%
   dplyr::left_join(smpAnno, by = &#39;Identifier&#39;)
 
-# Display median normalized data
-ggplot(lipPlasmaMediTab, aes(x=Sample_ID, y=mediAbundance)) +
+# Display VSN normalized data
+ggplot(lipPlasmaVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
   geom_boxplot() +
   labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
-       title = &#39;Median normalized data&#39;) +
+       title = &#39;Vsn normalized data&#39;) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-42-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-42-1">
-Past versions of unnamed-chunk-42-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-42-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-42-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-42-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-42-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>Compute standard deviation of each feature among triplicate measures.
-Dashed line indicates mean standard deviation.</p>
-<pre class="r"><code># Calculate standard deviations of each feature among triplicates
-# Log2-transformation
-log2Std &lt;- dplyr::group_by(lipPlasmaTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(Std = sd(log2Abundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
-  dplyr::mutate(Method = &#39;Log2&#39;) %&gt;%
-  dplyr::select(Method, Std)
-# VSN
-vsnStd &lt;- dplyr::group_by(lipPlasmaVsnTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(Std = sd(vsnAbundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
-  dplyr::mutate(Method = &#39;VSN&#39;) %&gt;%
-  dplyr::select(Method, Std)
-# Median normalization
-mediStd &lt;- dplyr::group_by(lipPlasmaMediTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(Std = sd(mediAbundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
-  dplyr::mutate(Method = &#39;Median norm&#39;) %&gt;%
-  dplyr::select(Method, Std)
-# Bind standard deviation tables into one for plotting histogram
-stdTab &lt;- rbind(log2Std, vsnStd, mediStd)
-stdMean &lt;- dplyr::group_by(stdTab, Method) %&gt;%
-  dplyr::summarise(Mean = mean(Std, na.rm = T))
-
-ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
-  geom_histogram(alpha = 0.4, binwidth = 0.2, position = &#39;identity&#39;) +
-  geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
-             linetype=&quot;dashed&quot;, linewidth = 0.7, show.legend = F) +
-  labs(x = &#39;Standard deviation&#39;, y = &#39;Count&#39;,
-       title = &#39;Standard deviation of each feature among triplicates&#39;) +
-  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-43-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-43-1">
@@ -3522,38 +3312,24 @@ LiaoQianWu
 </table>
 </div>
 </div>
-</div>
-<div id="pca-1" class="section level2">
-<h2>PCA</h2>
-<p>Assess similarity among triplicate measures normalized by different
-methods for quality control</p>
-<p><strong>Log2-transformed data</strong></p>
-<pre class="r"><code># Perform PCA to assess similarity among triplicates
-# Log2-transformation
-# Remove rows (features) that have any NA values
-naFeats &lt;- unique(lipPlasmaTab$Feature_ID[is.na(lipPlasmaTab$Abundance)])
-abunLog2MatSub &lt;- dplyr::select(lipPlasmaTab,
-                                Feature_ID, Sample_ID, log2Abundance) %&gt;%
-  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;log2Abundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;)
+<p>Display distribution of median normalized data</p>
+<pre class="r"><code># Perform median normalization (median scaling and log2-transformation)
+lipPlasmaMediTab &lt;- limma::normalizeBetweenArrays(abunMat, method = &#39;scale&#39;) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature_ID&#39;) %&gt;%
+  tidyr::pivot_longer(cols = -&#39;Feature_ID&#39;,
+                      names_to = &#39;Sample_ID&#39;,
+                      values_to = &#39;mediAbundance&#39;) %&gt;%
+  dplyr::mutate(mediAbundance = log2(mediAbundance),
+                Identifier = stringr::str_remove(Sample_ID, &#39;_2_.&#39;),
+                Batch = stringr::str_remove(Sample_ID, &#39;SC_T_A_.*_2_&#39;)) %&gt;%
+  dplyr::left_join(smpAnno, by = &#39;Identifier&#39;)
 
-# Extract sample condition annotations
-condition &lt;- dplyr::select(lipPlasmaTab,
-                           Sample_ID, Patient, Condition, Recurrence) %&gt;%
-  dplyr::filter(!duplicated(Sample_ID))
-
-pcLog2Res &lt;- prcomp(t(abunLog2MatSub), center = T, scale. = F)
-pcLog2Tab &lt;- pcLog2Res$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
-  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, &#39;_2_.&#39;),
-                Batch = rep(c(&#39;1&#39;,&#39;2&#39;,&#39;3&#39;), nrow(.)/3))
-
-ggplot(pcLog2Tab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Log2-transformed data&#39;) +
-  th</code></pre>
+# Display median normalized data
+ggplot(lipPlasmaMediTab, aes(x=Sample_ID, y=mediAbundance)) +
+  geom_boxplot() +
+  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
+       title = &#39;Median normalized data&#39;) +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-44-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-44-1">
@@ -3614,90 +3390,38 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code>ggplot(pcLog2Tab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Log2-transformed data&#39;) +
-  th</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-44-2.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-44-2">
-Past versions of unnamed-chunk-44-2.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-44-2" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-44-2.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-44-2.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-44-2.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p><strong>Vsn normalized data</strong></p>
-<pre class="r"><code># VSN
-abunVsnMatSub &lt;- dplyr::select(lipPlasmaVsnTab,
-                               Feature_ID, Sample_ID, vsnAbundance) %&gt;%
-  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;)
+<p>Compute standard deviation of each feature among triplicate measures.
+Dashed line indicates mean standard deviation.</p>
+<pre class="r"><code># Calculate standard deviations of each feature among triplicates
+# Log2-transformation
+log2Std &lt;- dplyr::group_by(lipPlasmaTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(Std = sd(log2Abundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::mutate(Method = &#39;Log2&#39;) %&gt;%
+  dplyr::select(Method, Std)
+# VSN
+vsnStd &lt;- dplyr::group_by(lipPlasmaVsnTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(Std = sd(vsnAbundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::mutate(Method = &#39;VSN&#39;) %&gt;%
+  dplyr::select(Method, Std)
+# Median normalization
+mediStd &lt;- dplyr::group_by(lipPlasmaMediTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(Std = sd(mediAbundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::mutate(Method = &#39;Median norm&#39;) %&gt;%
+  dplyr::select(Method, Std)
+# Bind standard deviation tables into one for plotting histogram
+stdTab &lt;- rbind(log2Std, vsnStd, mediStd)
+stdMean &lt;- dplyr::group_by(stdTab, Method) %&gt;%
+  dplyr::summarise(Mean = mean(Std, na.rm = T))
 
-pcVsnRes &lt;- prcomp(t(abunVsnMatSub), center = T, scale. = F)
-pcVsnTab &lt;- pcVsnRes$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
-  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, &#39;_2_.&#39;),
-                Batch = rep(c(&#39;1&#39;,&#39;2&#39;,&#39;3&#39;), nrow(.)/3)) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
-
-ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Vsn normalized data&#39;) +
+ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
+  geom_histogram(alpha = 0.4, binwidth = 0.2, position = &#39;identity&#39;) +
+  geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
+             linetype=&quot;dashed&quot;, linewidth = 0.7, show.legend = F) +
+  labs(x = &#39;Standard deviation&#39;, y = &#39;Count&#39;,
+       title = &#39;Standard deviation of each feature among triplicates&#39;) +
   th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-45-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
@@ -3759,89 +3483,37 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code>ggplot(pcVsnTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Vsn normalized data&#39;) +
-  th</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-45-2.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-45-2">
-Past versions of unnamed-chunk-45-2.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-45-2" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-45-2.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-45-2.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-45-2.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
 </div>
-</div>
-<p><strong>Median normalized data</strong></p>
-<pre class="r"><code># Median normalization
-abunMediMatSub &lt;- dplyr::select(lipPlasmaMediTab,
-                                Feature_ID, Sample_ID, mediAbundance) %&gt;%
+<div id="pca-1" class="section level2">
+<h2>PCA</h2>
+<p>Assess similarity among triplicate measures normalized by different
+methods for quality control</p>
+<p><strong>Log2-transformed data</strong></p>
+<pre class="r"><code># Perform PCA to assess similarity among triplicates
+# Log2-transformation
+# Remove rows (features) that have any NA values
+naFeats &lt;- unique(lipPlasmaTab$Feature_ID[is.na(lipPlasmaTab$Abundance)])
+abunLog2MatSub &lt;- dplyr::select(lipPlasmaTab,
+                                Feature_ID, Sample_ID, log2Abundance) %&gt;%
   dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;mediAbundance&#39;) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;log2Abundance&#39;) %&gt;%
   tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
-pcMediRes &lt;- prcomp(t(abunMediMatSub), center = T, scale. = F)
-pcMediTab &lt;- pcMediRes$x[, 1:10] %&gt;%
+# Extract sample condition annotations
+condition &lt;- dplyr::select(lipPlasmaTab,
+                           Sample_ID, Patient, Condition, Recurrence) %&gt;%
+  dplyr::filter(!duplicated(Sample_ID))
+
+pcLog2Res &lt;- prcomp(t(abunLog2MatSub), center = T, scale. = F)
+pcLog2Tab &lt;- pcLog2Res$x[, 1:10] %&gt;%
   tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
   dplyr::mutate(Sample = stringr::str_remove(Sample_ID, &#39;_2_.&#39;),
                 Batch = rep(c(&#39;1&#39;,&#39;2&#39;,&#39;3&#39;), nrow(.)/3))
 
-ggplot(pcMediTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
+ggplot(pcLog2Tab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Median normalized data&#39;) +
+  labs(title = &#39;Log2-transformed data&#39;) +
   th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-46-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
@@ -3903,10 +3575,10 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code>ggplot(pcMediTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
+<pre class="r"><code>ggplot(pcLog2Tab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
   geom_point() +
   geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Median normalized data&#39;) +
+  labs(title = &#39;Log2-transformed data&#39;) +
   th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-46-2.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
@@ -3968,34 +3640,26 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Check correlations between triplicate measures processed using
-different data normalization methods due to batch effects. Red diagonal
-shows perfect positive correlation, which is for inspecting data
-distribution. <br/></p>
-<p><strong>Log2-transformed data</strong></p>
-<pre class="r"><code># Make scatterplots to see relationships between triplicates
-# Log2-transformation
-# Retrieve data according to Batch (different triplicates)
-log2B1 &lt;- dplyr::filter(lipPlasmaTab, Batch == &#39;1&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, log2Abundance) %&gt;%
-  dplyr::rename(Batch1 = log2Abundance)
-log2B2 &lt;- dplyr::filter(lipPlasmaTab, Batch == &#39;2&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, log2Abundance) %&gt;%
-  dplyr::rename(Batch2 = log2Abundance)
-log2B3 &lt;- dplyr::filter(lipPlasmaTab, Batch == &#39;3&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, log2Abundance) %&gt;%
-  dplyr::rename(Batch3 = log2Abundance)
+<p><strong>Vsn normalized data</strong></p>
+<pre class="r"><code># VSN
+abunVsnMatSub &lt;- dplyr::select(lipPlasmaVsnTab,
+                               Feature_ID, Sample_ID, vsnAbundance) %&gt;%
+  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
-# Batch 1 and 2
-log2ScatTabB12 &lt;- dplyr::left_join(log2B1, log2B2, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(log2ScatTabB12, aes(x=Batch1, y=Batch2)) +
+pcVsnRes &lt;- prcomp(t(abunVsnMatSub), center = T, scale. = F)
+pcVsnTab &lt;- pcVsnRes$x[, 1:10] %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, &#39;_2_.&#39;),
+                Batch = rep(c(&#39;1&#39;,&#39;2&#39;,&#39;3&#39;), nrow(.)/3)) %&gt;%
+  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
+
+ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
-  facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Log2-transformed data&#39;) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
-  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
-                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Vsn normalized data&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-47-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-47-1">
@@ -4056,16 +3720,11 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code># Batch 2 and 3
-log2ScatTabB23 &lt;- dplyr::left_join(log2B2, log2B3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(log2ScatTabB23, aes(x=Batch2, y=Batch3)) +
+<pre class="r"><code>ggplot(pcVsnTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
   geom_point() +
-  facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Log2-transformed data&#39;) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
-  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
-                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Vsn normalized data&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-47-2.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-47-2">
@@ -4126,98 +3785,25 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code># Batch 1 and 3
-log2ScatTabB13 &lt;- dplyr::left_join(log2B1, log2B3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(log2ScatTabB13, aes(x=Batch1, y=Batch3)) +
-  geom_point() +
-  facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Log2-transformed data&#39;) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
-  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
-                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-47-3.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-47-3">
-Past versions of unnamed-chunk-47-3.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-47-3" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-47-3.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-47-3.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-47-3.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p><strong>Vsn normalized data</strong></p>
-<pre class="r"><code># VSN
-vsnB1 &lt;- dplyr::filter(lipPlasmaVsnTab, Batch == &#39;1&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
-  dplyr::rename(Batch1 = vsnAbundance)
-vsnB2 &lt;- dplyr::filter(lipPlasmaVsnTab, Batch == &#39;2&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
-  dplyr::rename(Batch2 = vsnAbundance)
-vsnB3 &lt;- dplyr::filter(lipPlasmaVsnTab, Batch == &#39;3&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
-  dplyr::rename(Batch3 = vsnAbundance)
+<p><strong>Median normalized data</strong></p>
+<pre class="r"><code># Median normalization
+abunMediMatSub &lt;- dplyr::select(lipPlasmaMediTab,
+                                Feature_ID, Sample_ID, mediAbundance) %&gt;%
+  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;mediAbundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
-# Batch 1 and 2
-vsnScatTabB12 &lt;- dplyr::left_join(vsnB1, vsnB2, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(vsnScatTabB12, aes(x=Batch1, y=Batch2)) +
+pcMediRes &lt;- prcomp(t(abunMediMatSub), center = T, scale. = F)
+pcMediTab &lt;- pcMediRes$x[, 1:10] %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, &#39;_2_.&#39;),
+                Batch = rep(c(&#39;1&#39;,&#39;2&#39;,&#39;3&#39;), nrow(.)/3))
+
+ggplot(pcMediTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
   geom_point() +
-  facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Vsn normalized data&#39;) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
-  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
-                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Median normalized data&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-48-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-48-1">
@@ -4278,16 +3864,11 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code># Batch 2 and 3
-vsnScatTabB23 &lt;- dplyr::left_join(vsnB2, vsnB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(vsnScatTabB23, aes(x=Batch2, y=Batch3)) +
+<pre class="r"><code>ggplot(pcMediTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
   geom_point() +
-  facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Vsn normalized data&#39;) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
-  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
-                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Median normalized data&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-48-2.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-48-2">
@@ -4348,94 +3929,30 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code># Batch 1 and 3
-vsnScatTabB13 &lt;- dplyr::left_join(vsnB1, vsnB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(vsnScatTabB13, aes(x=Batch1, y=Batch3)) +
-  geom_point() +
-  facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Vsn normalized data&#39;) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
-  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
-                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-48-3.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-48-3">
-Past versions of unnamed-chunk-48-3.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-48-3" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-48-3.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-48-3.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-48-3.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p><strong>Median normalized data</strong></p>
-<pre class="r"><code># Median Normalization
-mediB1 &lt;- dplyr::filter(lipPlasmaMediTab, Batch == &#39;1&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, mediAbundance) %&gt;%
-  dplyr::rename(Batch1 = mediAbundance)
-mediB2 &lt;- dplyr::filter(lipPlasmaMediTab, Batch == &#39;2&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, mediAbundance) %&gt;%
-  dplyr::rename(Batch2 = mediAbundance)
-mediB3 &lt;- dplyr::filter(lipPlasmaMediTab, Batch == &#39;3&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, mediAbundance) %&gt;%
-  dplyr::rename(Batch3 = mediAbundance)
+<p>Check correlations between triplicate measures processed using
+different data normalization methods due to batch effects. Red diagonal
+shows perfect positive correlation, which is for inspecting data
+distribution. <br/></p>
+<p><strong>Log2-transformed data</strong></p>
+<pre class="r"><code># Make scatterplots to see relationships between triplicates
+# Log2-transformation
+# Retrieve data according to Batch (different triplicates)
+log2B1 &lt;- dplyr::filter(lipPlasmaTab, Batch == &#39;1&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, log2Abundance) %&gt;%
+  dplyr::rename(Batch1 = log2Abundance)
+log2B2 &lt;- dplyr::filter(lipPlasmaTab, Batch == &#39;2&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, log2Abundance) %&gt;%
+  dplyr::rename(Batch2 = log2Abundance)
+log2B3 &lt;- dplyr::filter(lipPlasmaTab, Batch == &#39;3&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, log2Abundance) %&gt;%
+  dplyr::rename(Batch3 = log2Abundance)
 
 # Batch 1 and 2
-mediScatTabB12 &lt;- dplyr::left_join(mediB1, mediB2, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(mediScatTabB12, aes(x=Batch1, y=Batch2)) +
+log2ScatTabB12 &lt;- dplyr::left_join(log2B1, log2B2, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(log2ScatTabB12, aes(x=Batch1, y=Batch2)) +
   geom_point() +
   facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Median normalized data&#39;) +
+  labs(title = &#39;Log2-transformed data&#39;) +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
   geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
   theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
@@ -4501,11 +4018,11 @@ LiaoQianWu
 </div>
 </div>
 <pre class="r"><code># Batch 2 and 3
-mediScatTabB23 &lt;- dplyr::left_join(mediB2, mediB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(mediScatTabB23, aes(x=Batch2, y=Batch3)) +
+log2ScatTabB23 &lt;- dplyr::left_join(log2B2, log2B3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(log2ScatTabB23, aes(x=Batch2, y=Batch3)) +
   geom_point() +
   facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Median normalized data&#39;) +
+  labs(title = &#39;Log2-transformed data&#39;) +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
   geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
   theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
@@ -4560,11 +4077,11 @@ LiaoQianWu
 </div>
 </div>
 <pre class="r"><code># Batch 1 and 3
-mediScatTabB13 &lt;- dplyr::left_join(mediB1, mediB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(mediScatTabB13, aes(x=Batch1, y=Batch3)) +
+log2ScatTabB13 &lt;- dplyr::left_join(log2B1, log2B3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(log2ScatTabB13, aes(x=Batch1, y=Batch3)) +
   geom_point() +
   facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Median normalized data&#39;) +
+  labs(title = &#39;Log2-transformed data&#39;) +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
   geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
   theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
@@ -4618,43 +4135,28 @@ LiaoQianWu
 </table>
 </div>
 </div>
-</div>
-<div id="batch-correction-1" class="section level2">
-<h2>Batch correction</h2>
-<p>Vsn normalized data is selected. <br/> <br/></p>
-<p>Display distribution of vsn normalized data after batch
-correction</p>
-<pre class="r"><code># Perform batch correction to see if triplicates can be clustered
-# Convert long table to wide data
-abunVsnMat &lt;- dplyr::select(lipPlasmaVsnTab,
-                            Feature_ID, Sample_ID, vsnAbundance) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;) %&gt;%
-  as.matrix()
-# Define sample batches
-batch &lt;- rep(c(&#39;1&#39;, &#39;2&#39;, &#39;3&#39;), ncol(abunVsnMat)/3)
-# Define design matrix to keep particular effects, e.g., treatments
-condition &lt;- dplyr::select(lipPlasmaVsnTab, Sample_ID, Sample, Batch, Patient,
-                           Condition, Recurrence) %&gt;%
-  dplyr::filter(!duplicated(Sample_ID))
-designMat &lt;- model.matrix(~condition$Condition)
-# Perform batch correction (limma)
-lipPlasmaVsnTabBC &lt;- limma::removeBatchEffect(abunVsnMat,
-                                              batch = batch,
-                                              design = designMat) %&gt;%
-  tibble::as_tibble(rownames = &#39;Feature_ID&#39;) %&gt;%
-  tidyr::pivot_longer(cols = -&#39;Feature_ID&#39;,
-                      names_to = &#39;Sample_ID&#39;,
-                      values_to = &#39;vsnAbundance&#39;) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
+<p><strong>Vsn normalized data</strong></p>
+<pre class="r"><code># VSN
+vsnB1 &lt;- dplyr::filter(lipPlasmaVsnTab, Batch == &#39;1&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
+  dplyr::rename(Batch1 = vsnAbundance)
+vsnB2 &lt;- dplyr::filter(lipPlasmaVsnTab, Batch == &#39;2&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
+  dplyr::rename(Batch2 = vsnAbundance)
+vsnB3 &lt;- dplyr::filter(lipPlasmaVsnTab, Batch == &#39;3&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
+  dplyr::rename(Batch3 = vsnAbundance)
 
-# Display batch corrected VSN normalized data to check if there is any negative
-# values
-ggplot(lipPlasmaVsnTabBC, aes(x=Sample_ID, y=vsnAbundance)) +
-  geom_boxplot() +
-  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
-       title = &#39;Vsn normalized data (after batch correction)&#39;) +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
+# Batch 1 and 2
+vsnScatTabB12 &lt;- dplyr::left_join(vsnB1, vsnB2, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(vsnScatTabB12, aes(x=Batch1, y=Batch2)) +
+  geom_point() +
+  facet_wrap(vars(Sample), ncol = 8) +
+  labs(title = &#39;Vsn normalized data&#39;) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
+                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-50-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-50-1">
@@ -4715,27 +4217,50 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Compute standard deviation of each feature among triplicate
-samples</p>
-<pre class="r"><code># Calculate standard deviations of each feature among triplicates
-# Batch corrected VSN
-vsnStdBC &lt;- dplyr::group_by(lipPlasmaVsnTabBC, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(Std = sd(vsnAbundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
-  dplyr::mutate(Method = &#39;BC_VSN&#39;) %&gt;%
-  dplyr::select(Method, Std)
-# Bind standard deviation tables into one for plotting histogram
-stdTab &lt;- rbind(vsnStd, vsnStdBC)
-stdMean &lt;- dplyr::group_by(stdTab, Method) %&gt;%
-  dplyr::summarise(Mean = mean(Std, na.rm = T))
+<pre class="r"><code># Batch 2 and 3
+vsnScatTabB23 &lt;- dplyr::left_join(vsnB2, vsnB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(vsnScatTabB23, aes(x=Batch2, y=Batch3)) +
+  geom_point() +
+  facet_wrap(vars(Sample), ncol = 8) +
+  labs(title = &#39;Vsn normalized data&#39;) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
+                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-50-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Batch 1 and 3
+vsnScatTabB13 &lt;- dplyr::left_join(vsnB1, vsnB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(vsnScatTabB13, aes(x=Batch1, y=Batch3)) +
+  geom_point() +
+  facet_wrap(vars(Sample), ncol = 8) +
+  labs(title = &#39;Vsn normalized data&#39;) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
+                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-50-3.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Median normalized data</strong></p>
+<pre class="r"><code># Median Normalization
+mediB1 &lt;- dplyr::filter(lipPlasmaMediTab, Batch == &#39;1&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, mediAbundance) %&gt;%
+  dplyr::rename(Batch1 = mediAbundance)
+mediB2 &lt;- dplyr::filter(lipPlasmaMediTab, Batch == &#39;2&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, mediAbundance) %&gt;%
+  dplyr::rename(Batch2 = mediAbundance)
+mediB3 &lt;- dplyr::filter(lipPlasmaMediTab, Batch == &#39;3&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, mediAbundance) %&gt;%
+  dplyr::rename(Batch3 = mediAbundance)
 
-ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
-  geom_histogram(alpha = 0.4, binwidth = 0.2, position = &#39;identity&#39;) +
-  geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
-             linetype=&quot;dashed&quot;, linewidth = 0.7, show.legend = F) +
-  labs(x = &#39;Standard Deviation&#39;, y = &#39;Count&#39;,
-       title = &#39;Standard deviation of each feature among triplicates&#39;) +
-  th</code></pre>
+# Batch 1 and 2
+mediScatTabB12 &lt;- dplyr::left_join(mediB1, mediB2, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(mediScatTabB12, aes(x=Batch1, y=Batch2)) +
+  geom_point() +
+  facet_wrap(vars(Sample), ncol = 8) +
+  labs(title = &#39;Median normalized data&#39;) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
+                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-51-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-51-1">
@@ -4796,27 +4321,113 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>PCA</p>
-<pre class="r"><code># Perform PCA
-# Remove rows (features) that have any NA values
-naFeats &lt;- unique(lipPlasmaVsnTabBC$Feature_ID[
-  is.na(lipPlasmaVsnTabBC$vsnAbundance)])
-abunVsnMatSubBC &lt;- dplyr::select(lipPlasmaVsnTabBC,
-                                 Feature_ID, Sample_ID, vsnAbundance) %&gt;%
-  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
+<pre class="r"><code># Batch 2 and 3
+mediScatTabB23 &lt;- dplyr::left_join(mediB2, mediB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(mediScatTabB23, aes(x=Batch2, y=Batch3)) +
+  geom_point() +
+  facet_wrap(vars(Sample), ncol = 8) +
+  labs(title = &#39;Median normalized data&#39;) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
+                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-51-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-51-2">
+Past versions of unnamed-chunk-51-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-51-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-51-2.png" target="_blank">7d94680</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-08
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-51-2.png" target="_blank">0bbd8eb</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-25
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code># Batch 1 and 3
+mediScatTabB13 &lt;- dplyr::left_join(mediB1, mediB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(mediScatTabB13, aes(x=Batch1, y=Batch3)) +
+  geom_point() +
+  facet_wrap(vars(Sample), ncol = 8) +
+  labs(title = &#39;Median normalized data&#39;) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
+                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-51-3.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="batch-correction-1" class="section level2">
+<h2>Batch correction</h2>
+<p>Vsn normalized data is selected. <br/> <br/></p>
+<p>Display distribution of vsn normalized data after batch
+correction</p>
+<pre class="r"><code># Perform batch correction to see if triplicates can be clustered
+# Convert long table to wide data
+abunVsnMat &lt;- dplyr::select(lipPlasmaVsnTab,
+                            Feature_ID, Sample_ID, vsnAbundance) %&gt;%
   tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;)
-
-pcVsnResBC &lt;- prcomp(t(abunVsnMatSubBC), center = T, scale. = F)
-pcVsnTabBC &lt;- pcVsnResBC$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;) %&gt;%
+  as.matrix()
+# Define sample batches
+batch &lt;- rep(c(&#39;1&#39;, &#39;2&#39;, &#39;3&#39;), ncol(abunVsnMat)/3)
+# Define design matrix to keep particular effects, e.g., treatments
+condition &lt;- dplyr::select(lipPlasmaVsnTab, Sample_ID, Sample, Batch, Patient,
+                           Condition, Recurrence) %&gt;%
+  dplyr::filter(!duplicated(Sample_ID))
+designMat &lt;- model.matrix(~condition$Condition)
+# Perform batch correction (limma)
+lipPlasmaVsnTabBC &lt;- limma::removeBatchEffect(abunVsnMat,
+                                              batch = batch,
+                                              design = designMat) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature_ID&#39;) %&gt;%
+  tidyr::pivot_longer(cols = -&#39;Feature_ID&#39;,
+                      names_to = &#39;Sample_ID&#39;,
+                      values_to = &#39;vsnAbundance&#39;) %&gt;%
   dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
 
-ggplot(pcVsnTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Vsn normalized data (after batch correction)&#39;) +
-  th</code></pre>
+# Display batch corrected VSN normalized data to check if there is any negative
+# values
+ggplot(lipPlasmaVsnTabBC, aes(x=Sample_ID, y=vsnAbundance)) +
+  geom_boxplot() +
+  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
+       title = &#39;Vsn normalized data (after batch correction)&#39;) +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-52-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-52-1">
@@ -4877,81 +4488,27 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code>ggplot(pcVsnTabBC, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Vsn normalized data (after batch correction)&#39;) +
-  th</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-52-2.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-52-2">
-Past versions of unnamed-chunk-52-2.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-52-2" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-52-2.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-52-2.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-<div id="data-fusion-1" class="section level2">
-<h2>Data fusion</h2>
-<p>Mean of triplicates is taken. <br/> <br/></p>
-<p>Display distribution of merged data</p>
-<pre class="r"><code># Merge triplicates (take mean)
-merge_lipPlasmaVsnTab &lt;- dplyr::group_by(lipPlasmaVsnTabBC, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %&gt;%
+<p>Compute standard deviation of each feature among triplicate
+samples</p>
+<pre class="r"><code># Calculate standard deviations of each feature among triplicates
+# Batch corrected VSN
+vsnStdBC &lt;- dplyr::group_by(lipPlasmaVsnTabBC, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(Std = sd(vsnAbundance, na.rm = T)) %&gt;%
   dplyr::ungroup() %&gt;%
-  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
+  dplyr::mutate(Method = &#39;BC_VSN&#39;) %&gt;%
+  dplyr::select(Method, Std)
+# Bind standard deviation tables into one for plotting histogram
+stdTab &lt;- rbind(vsnStd, vsnStdBC)
+stdMean &lt;- dplyr::group_by(stdTab, Method) %&gt;%
+  dplyr::summarise(Mean = mean(Std, na.rm = T))
 
-# Incorporate m/z_RT information
-MZRT &lt;- dplyr::select(lipPlasmaTab, `m/z_RT`, Feature_ID) %&gt;%
-  dplyr::filter(!duplicated(Feature_ID))
-merge_lipPlasmaVsnTab &lt;- dplyr::left_join(merge_lipPlasmaVsnTab, MZRT,
-                                          by = &#39;Feature_ID&#39;)
-
-ggplot(merge_lipPlasmaVsnTab, aes(x=Sample, y=vsnAbundance)) +
-  geom_boxplot() +
-  labs(y = &#39;Normalized abundance&#39;, title = &#39;Vsn normalized data&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
+  geom_histogram(alpha = 0.4, binwidth = 0.2, position = &#39;identity&#39;) +
+  geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
+             linetype=&quot;dashed&quot;, linewidth = 0.7, show.legend = F) +
+  labs(x = &#39;Standard Deviation&#39;, y = &#39;Count&#39;,
+       title = &#39;Standard deviation of each feature among triplicates&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-53-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-53-1">
@@ -5001,53 +4558,103 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Percentage of missing values</p>
-<pre class="r"><code># Display percentage of missing values
-abun &lt;- merge_lipPlasmaVsnTab$vsnAbundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
-<pre><code>0.09% observations are missing.</code></pre>
-<pre class="r"><code># Convert tidy long table to SummarizedExperiment object and save it for further
-# analysis
-lipPlasmaVsn &lt;- df2SummExp(merge_lipPlasmaVsnTab,
-                           row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
-                           values = &#39;vsnAbundance&#39;,
-                           row_anno = &#39;m/z_RT&#39;,
-                           col_anno = c(&#39;Patient&#39;, &#39;Condition&#39;, &#39;Recurrence&#39;,
-                                        &#39;Age&#39;, &#39;Gender&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
-                                        &#39;Identifier&#39;))
-saveRDS(lipPlasmaVsn, &#39;./data/AG_Hopf/lipPlasmaVsn.rds&#39;)</code></pre>
 <p>PCA</p>
 <pre class="r"><code># Perform PCA
 # Remove rows (features) that have any NA values
-naFeats &lt;- unique(merge_lipPlasmaVsnTab$Feature_ID[
-  is.na(merge_lipPlasmaVsnTab$vsnAbundance)])
-abunVsnMatSub &lt;- dplyr::select(merge_lipPlasmaVsnTab,
-                               Feature_ID, Sample, vsnAbundance) %&gt;%
+naFeats &lt;- unique(lipPlasmaVsnTabBC$Feature_ID[
+  is.na(lipPlasmaVsnTabBC$vsnAbundance)])
+abunVsnMatSubBC &lt;- dplyr::select(lipPlasmaVsnTabBC,
+                                 Feature_ID, Sample_ID, vsnAbundance) %&gt;%
   dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
   tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
-# Extract sample condition annotations
-condition &lt;- dplyr::select(merge_lipPlasmaVsnTab,
-                           Sample, Patient, Condition, Recurrence) %&gt;%
-  dplyr::filter(!duplicated(Sample)) %&gt;%
-  dplyr::mutate(Time_point = dplyr::case_when(
-    Condition == &#39;Baseline&#39; ~ &#39;0&#39;,
-    Condition != &#39;Baseline&#39; ~ &#39;2&#39;
-  ))
+pcVsnResBC &lt;- prcomp(t(abunVsnMatSubBC), center = T, scale. = F)
+pcVsnTabBC &lt;- pcVsnResBC$x[, 1:10] %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
+  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
 
-pcVsnRes &lt;- prcomp(t(abunVsnMatSub), center = T, scale. = F)
-pcVsnTab &lt;- pcVsnRes$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample&#39;)
-
-ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Time_point, shape=Condition,
-                     group=Patient)) +
-  geom_point(size = 3) +
+ggplot(pcVsnTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
+  geom_point() +
   geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  scale_color_discrete(name = &#39;Time point&#39;,
-                       labels = c(&#39;Baseline&#39;, &#39;2 years later&#39;)) +
+  labs(title = &#39;Vsn normalized data (after batch correction)&#39;) +
   th</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-54-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-54-1">
+Past versions of unnamed-chunk-54-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-54-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-54-1.png" target="_blank">7d94680</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-08
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-54-1.png" target="_blank">0bbd8eb</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-25
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code>ggplot(pcVsnTabBC, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
+  geom_point() +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Vsn normalized data (after batch correction)&#39;) +
+  th</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-54-2.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="data-fusion-1" class="section level2">
+<h2>Data fusion</h2>
+<p>Mean of triplicates is taken. <br/> <br/></p>
+<p>Display distribution of merged data</p>
+<pre class="r"><code># Merge triplicates (take mean)
+merge_lipPlasmaVsnTab &lt;- dplyr::group_by(lipPlasmaVsnTabBC, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
+
+# Incorporate m/z_RT information
+MZRT &lt;- dplyr::select(lipPlasmaTab, `m/z_RT`, Feature_ID) %&gt;%
+  dplyr::filter(!duplicated(Feature_ID))
+merge_lipPlasmaVsnTab &lt;- dplyr::left_join(merge_lipPlasmaVsnTab, MZRT,
+                                          by = &#39;Feature_ID&#39;)
+
+ggplot(merge_lipPlasmaVsnTab, aes(x=Sample, y=vsnAbundance)) +
+  geom_boxplot() +
+  labs(y = &#39;Normalized abundance&#39;, title = &#39;Vsn normalized data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-55-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-55-1">
@@ -5108,8 +4715,74 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p><br/> -&gt; PCA mainly captures source of variation in time points
-when samples were taken. <br/> <br/></p>
+<p>Percentage of missing values</p>
+<pre class="r"><code># Display percentage of missing values
+abun &lt;- merge_lipPlasmaVsnTab$vsnAbundance
+cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
+<pre><code>0.09% observations are missing.</code></pre>
+<p><strong>Remove features quantified in less than 2/3 of samples in all
+four sample groups</strong> <strong>of interest (Baseline/Follow-up
+Recurrence/Non-recurrence)</strong><br />
+</p>
+<pre class="r"><code># Prepare sample time point information for feature filtering
+merge_lipPlasmaVsnTab &lt;- dplyr::mutate(merge_lipPlasmaVsnTab,
+                                       TimePoint = dplyr::case_when(
+                                         Condition == &#39;Baseline&#39; ~ &#39;Baseline&#39;,
+                                         Condition != &#39;Baseline&#39; ~ &#39;2 years later&#39;))
+
+# Remove features quantified in less than 2/3 of samples in all sample groups of interest
+rmFeats &lt;- dplyr::group_by(merge_lipPlasmaVsnTab, Feature_ID, TimePoint, Recurrence) %&gt;%
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(vsnAbundance)) / length(vsnAbundance), 2)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::filter(frac_nonNA &lt; 0.67) %&gt;%
+  dplyr::group_by(Feature_ID) %&gt;%
+  dplyr::summarise(Count = length(Feature_ID)) %&gt;%
+  dplyr::filter(Count == 4) %&gt;%
+  dplyr::pull(Feature_ID)
+merge_lipPlasmaVsnTab &lt;- dplyr::filter(merge_lipPlasmaVsnTab, !Feature_ID %in% rmFeats)
+
+# Convert tidy long table to SummarizedExperiment object and save it for further analysis
+lipPlasmaVsn &lt;- df2SummExp(merge_lipPlasmaVsnTab, row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
+                            values = &#39;vsnAbundance&#39;, row_anno = &#39;m/z_RT&#39;, col_anno = anno)
+# saveRDS(lipPlasmaVsn, &#39;./data/AG_Hopf/lipPlasmaVsn.rds&#39;)</code></pre>
+<p>Display dimensions of filtered dataset</p>
+<pre class="r"><code>dim(lipPlasmaVsn)</code></pre>
+<pre><code>[1] 2353   40</code></pre>
+<p>PCA</p>
+<pre class="r"><code># Perform PCA
+# Remove rows (features) that have any NA values
+naFeats &lt;- unique(merge_lipPlasmaVsnTab$Feature_ID[
+  is.na(merge_lipPlasmaVsnTab$vsnAbundance)])
+abunVsnMatSub &lt;- dplyr::select(merge_lipPlasmaVsnTab,
+                               Feature_ID, Sample, vsnAbundance) %&gt;%
+  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;)
+
+# Extract sample condition annotations
+condition &lt;- dplyr::select(merge_lipPlasmaVsnTab,
+                           Sample, Patient, Condition, Recurrence) %&gt;%
+  dplyr::filter(!duplicated(Sample)) %&gt;%
+  dplyr::mutate(Time_point = dplyr::case_when(
+    Condition == &#39;Baseline&#39; ~ &#39;0&#39;,
+    Condition != &#39;Baseline&#39; ~ &#39;2&#39;
+  ))
+
+pcVsnRes &lt;- prcomp(t(abunVsnMatSub), center = T, scale. = F)
+pcVsnTab &lt;- pcVsnRes$x[, 1:10] %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
+  dplyr::left_join(condition, by = &#39;Sample&#39;)
+
+ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Time_point, shape=Condition,
+                     group=Patient)) +
+  geom_point(size = 3) +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  scale_color_discrete(name = &#39;Time point&#39;,
+                       labels = c(&#39;Baseline&#39;, &#39;2 years later&#39;)) +
+  th</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-59-1.png" width="960" style="display: block; margin: auto;" />
+<br/> -&gt; PCA mainly captures source of variation in time points when
+samples were taken. <br/> <br/></p>
 <p>Variance explained by each PC</p>
 <pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
 varExplained &lt;- pcVsnRes$sdev^2 / sum(pcVsnRes$sdev^2)
@@ -5121,13 +4794,13 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   geom_col() +
   labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;) +
   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-56-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-60-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-56-1">
-Past versions of unnamed-chunk-56-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-60-1">
+Past versions of unnamed-chunk-60-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-56-1" class="collapse">
+<div id="fig-unnamed-chunk-60-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -5146,24 +4819,24 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-56-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-56-1.png" target="_blank">7d94680</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-60-1.png" target="_blank">7d94680</a>
 </td>
 <td>
 LiaoQianWu
 </td>
 <td>
 2023-05-08
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-60-1.png" target="_blank">0bbd8eb</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-25
 </td>
 </tr>
 </tbody>
@@ -5211,7 +4884,7 @@ abunMediMatBC &lt;- dplyr::select(lipPlasmaMediTabBC,
   tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;mediAbundance&#39;) %&gt;%
   tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
-pcMediResBC &lt;- PCA(abunMediMatBC)
+pcMediResBC &lt;- doPCA(abunMediMatBC)
 pcMediTabBC &lt;- pcMediResBC$x[, 1:10] %&gt;%
   tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
   dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
@@ -5226,6 +4899,7 @@ ggplot(pcMediTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
 merge_lipPlasmaMediTab &lt;- dplyr::group_by(lipPlasmaMediTabBC, Feature_ID, Sample) %&gt;%
   dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %&gt;%
   dplyr::ungroup() %&gt;%
+  dplyr::filter(!Feature_ID %in% rmFeats) %&gt;%
   dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
 
 # Incorporate m/z_RT information
@@ -5241,13 +4915,8 @@ ggplot(merge_lipPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
 
 # Convert tidy long table to SummarizedExperiment object and save it for further
 # analysis
-lipPlasmaMedi &lt;- df2SummExp(merge_lipPlasmaMediTab,
-                            row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
-                            values = &#39;mediAbundance&#39;,
-                            row_anno = &#39;m/z_RT&#39;,
-                            col_anno = c(&#39;Patient&#39;, &#39;Condition&#39;, &#39;Recurrence&#39;,
-                                         &#39;Age&#39;, &#39;Gender&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
-                                         &#39;Identifier&#39;))
+lipPlasmaMedi &lt;- df2SummExp(merge_lipPlasmaMediTab, row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
+                            values = &#39;mediAbundance&#39;, row_anno = &#39;m/z_RT&#39;, col_anno = anno)
 saveRDS(lipPlasmaMedi, &#39;./data/AG_Hopf/lipPlasmaMedi.rds&#39;)</code></pre>
 <pre class="r"><code># Missing values imputation
 # Load normalized data
@@ -5362,11 +5031,16 @@ colNam[2:length(colNam)] &lt;- paste0(smpNam, &#39;_&#39;, c(rep(1, length(smpNa
                                                   rep(3, length(smpNam)/3)))
 colnames(metaTissueTab) &lt;- colNam
 
-# Remove those features whose retention time is smaller than 0.3 and greater than 8.5 min
+# Remove those features whose retention times are smaller than 0.3 and greater than 8.5 min
 RT &lt;- stringr::str_extract(metaTissueTab$`MZ/RT`, &#39;/.*&#39;) %&gt;%
   stringr::str_remove(&#39;/&#39;) %&gt;%
   as.numeric()
 metaTissueTab &lt;- metaTissueTab[RT &gt;= 0.3 &amp; RT &lt;= 8.5,]
+# Remove those features whose intensities are smaller than 300?
+# MZ &lt;- stringr::str_extract(metaTissueTab$`MZ/RT`, &#39;.*/&#39;) %&gt;%
+#   stringr::str_remove(&#39;/&#39;) %&gt;%
+#   as.numeric()
+# sum(MZ &lt; 300) #328
 
 # Create feature IDs for MZ/RT to simplify downstream operations
 metaTissueTab$Feature_ID &lt;- paste0(&#39;Feature&#39;, seq(nrow(metaTissueTab)))</code></pre>
@@ -5407,13 +5081,13 @@ ggplot(metaTissueTab, aes(x=Sample_ID, y=Abundance)) +
   scale_y_log10() +
   labs(x = &#39;Sample&#39;, title = &#39;Original data&#39;) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-62-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-66-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-62-1">
-Past versions of unnamed-chunk-62-1.png
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-66-1">
+Past versions of unnamed-chunk-66-1.png
 </button>
 </p>
-<div id="fig-unnamed-chunk-62-1" class="collapse">
+<div id="fig-unnamed-chunk-66-1" class="collapse">
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
 <thead>
@@ -5432,7 +5106,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-62-1.png" target="_blank">3959bda</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-66-1.png" target="_blank">3959bda</a>
 </td>
 <td>
 LiaoQianWu
@@ -5443,13 +5117,24 @@ LiaoQianWu
 </tr>
 <tr>
 <td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-62-1.png" target="_blank">7d94680</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-66-1.png" target="_blank">7d94680</a>
 </td>
 <td>
 LiaoQianWu
 </td>
 <td>
 2023-05-08
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-66-1.png" target="_blank">0bbd8eb</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-25
 </td>
 </tr>
 </tbody>
@@ -5461,175 +5146,6 @@ LiaoQianWu
 ggplot(metaTissueTab, aes(x=Sample_ID, y=log2Abundance)) +
   geom_boxplot() +
   labs(x = &#39;Sample&#39;, y = &#39;Log2(Abundance)&#39;, title = &#39;Log2-transformed data&#39;) +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-63-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-63-1">
-Past versions of unnamed-chunk-63-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-63-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-63-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-63-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-63-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>Percentage of missing values in data</p>
-<pre class="r"><code># Display percentage of missing values 
-abun &lt;- metaTissueTab$Abundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
-<pre><code>0.32% observations are missing.</code></pre>
-<p>Display distribution of vsn normalized data</p>
-<pre class="r"><code># Convert long table to wide data
-abunMat &lt;- dplyr::select(metaTissueTab, Feature_ID, Sample_ID, Abundance) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;Abundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;) %&gt;%
-  as.matrix()
-
-# Perform VSN
-fit &lt;- vsnMatrix(abunMat)
-abunVsnMat &lt;- predict(fit, abunMat) %&gt;%
-  tibble::as_tibble(rownames = &#39;Feature_ID&#39;)
-metaTissueVsnTab &lt;- tidyr::pivot_longer(abunVsnMat,
-                                        cols = -&#39;Feature_ID&#39;,
-                                        names_to = &#39;Sample_ID&#39;,
-                                        values_to = &#39;vsnAbundance&#39;) %&gt;%
-  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, &#39;_.$&#39;),
-                Batch = stringr::str_remove(Sample_ID, &#39;^.*_.*_&#39;)) %&gt;%
-  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
-
-# Display VSN normalized data
-ggplot(metaTissueVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
-  geom_boxplot() +
-  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
-       title = &#39;Vsn normalized data&#39;) +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-65-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-65-1">
-Past versions of unnamed-chunk-65-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-65-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-65-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-65-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-65-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<pre class="r"><code># Every 6 measures are from same patients.</code></pre>
-<p>Display distribution of median normalized data</p>
-<pre class="r"><code># Perform median normalization (median scaling and log2-transformation)
-metaTissueMediTab &lt;- limma::normalizeBetweenArrays(abunMat, method = &#39;scale&#39;) %&gt;%
-  tibble::as_tibble(rownames = &#39;Feature_ID&#39;) %&gt;%
-  tidyr::pivot_longer(cols = -&#39;Feature_ID&#39;,
-                      names_to = &#39;Sample_ID&#39;,
-                      values_to = &#39;mediAbundance&#39;) %&gt;%
-  dplyr::mutate(mediAbundance = log2(mediAbundance),
-                Sample = stringr::str_remove(Sample_ID, &#39;_.$&#39;),
-                Batch = stringr::str_remove(Sample_ID, &#39;^.*_.*_&#39;)) %&gt;%
-  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
-
-# Display median normalized data
-ggplot(metaTissueMediTab, aes(x=Sample_ID, y=mediAbundance)) +
-  geom_boxplot() +
-  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
-       title = &#39;Median normalized data&#39;) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-67-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
@@ -5691,131 +5207,36 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Compute standard deviation of each feature among triplicate measures.
-Dashed line indicates mean standard deviation.</p>
-<pre class="r"><code># Calculate standard deviations of each feature among triplicates
-# Log2-transformation
-log2Std &lt;- dplyr::group_by(metaTissueTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(Std = sd(log2Abundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
-  dplyr::mutate(Method = &#39;Log2&#39;) %&gt;%
-  dplyr::select(Method, Std)
-# VSN
-vsnStd &lt;- dplyr::group_by(metaTissueVsnTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(Std = sd(vsnAbundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
-  dplyr::mutate(Method = &#39;VSN&#39;) %&gt;%
-  dplyr::select(Method, Std)
-# Median normalization
-mediStd &lt;- dplyr::group_by(metaTissueMediTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(Std = sd(mediAbundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
-  dplyr::mutate(Method = &#39;Median norm&#39;) %&gt;%
-  dplyr::select(Method, Std)
-# Bind standard deviation tables into one for plotting histogram
-stdTab &lt;- rbind(log2Std, vsnStd, mediStd)
-stdMean &lt;- dplyr::group_by(stdTab, Method) %&gt;%
-  dplyr::summarise(Mean = mean(Std, na.rm = T))
+<p>Percentage of missing values in data</p>
+<pre class="r"><code># Display percentage of missing values 
+abun &lt;- metaTissueTab$Abundance
+cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
+<pre><code>0.32% observations are missing.</code></pre>
+<p>Display distribution of vsn normalized data</p>
+<pre class="r"><code># Convert long table to wide data
+abunMat &lt;- dplyr::select(metaTissueTab, Feature_ID, Sample_ID, Abundance) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;Abundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;) %&gt;%
+  as.matrix()
 
-ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
-  geom_histogram(alpha = 0.5, binwidth = 0.2, position = &#39;identity&#39;) +
-  geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
-             linetype=&quot;dashed&quot;, linewidth = 0.7, show.legend = F) +
-  labs(x = &#39;Standard deviation&#39;, y = &#39;Count&#39;,
-       title = &#39;Standard deviation of each feature among triplicates&#39;) +
-  th</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-68-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-68-1">
-Past versions of unnamed-chunk-68-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-68-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-68-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-68-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-68-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>-&gt; All three methods got similar standard deviations.</p>
-</div>
-<div id="pca-2" class="section level2">
-<h2>PCA</h2>
-<p>Assess similarity among triplicate measures normalized by different
-methods for quality control</p>
-<p><strong>Log2-transformed data</strong></p>
-<pre class="r"><code># Perform PCA to assess similarity among triplicates
-# Log2-transformation
-# Remove rows (features) that have any NA values
-naFeats &lt;- unique(metaTissueTab$Feature_ID[is.na(metaTissueTab$Abundance)])
-abunLog2MatSub &lt;- dplyr::select(metaTissueTab,
-                                Feature_ID, Sample_ID, log2Abundance) %&gt;%
-  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;log2Abundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;)
+# Perform VSN
+fit &lt;- vsnMatrix(abunMat)
+abunVsnMat &lt;- predict(fit, abunMat) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature_ID&#39;)
+metaTissueVsnTab &lt;- tidyr::pivot_longer(abunVsnMat,
+                                        cols = -&#39;Feature_ID&#39;,
+                                        names_to = &#39;Sample_ID&#39;,
+                                        values_to = &#39;vsnAbundance&#39;) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, &#39;_.$&#39;),
+                Batch = stringr::str_remove(Sample_ID, &#39;^.*_.*_&#39;)) %&gt;%
+  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
 
-# Extract sample condition annotations
-condition &lt;- dplyr::select(metaTissueTab,
-                           Sample_ID, Sample, Batch) %&gt;%
-  dplyr::filter(!duplicated(Sample_ID))
-
-pcLog2Res &lt;- prcomp(t(abunLog2MatSub), center = T, scale. = F)
-pcLog2Tab &lt;- pcLog2Res$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
-
-ggplot(pcLog2Tab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Log2-transformed data&#39;) +
-  th</code></pre>
+# Display VSN normalized data
+ggplot(metaTissueVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
+  geom_boxplot() +
+  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
+       title = &#39;Vsn normalized data&#39;) +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-69-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-69-1">
@@ -5839,6 +5260,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-69-1.png" target="_blank">5c9ec0b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-69-1.png" target="_blank">3959bda</a>
@@ -5876,106 +5308,25 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p><strong>Vsn normalized data</strong></p>
-<pre class="r"><code># VSN
-abunVsnMatSub &lt;- dplyr::select(metaTissueVsnTab,
-                               Feature_ID, Sample_ID, vsnAbundance) %&gt;%
-  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;)
+<pre class="r"><code># Every 6 measures are from same patients.</code></pre>
+<p>Display distribution of median normalized data</p>
+<pre class="r"><code># Perform median normalization (median scaling and log2-transformation)
+metaTissueMediTab &lt;- limma::normalizeBetweenArrays(abunMat, method = &#39;scale&#39;) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature_ID&#39;) %&gt;%
+  tidyr::pivot_longer(cols = -&#39;Feature_ID&#39;,
+                      names_to = &#39;Sample_ID&#39;,
+                      values_to = &#39;mediAbundance&#39;) %&gt;%
+  dplyr::mutate(mediAbundance = log2(mediAbundance),
+                Sample = stringr::str_remove(Sample_ID, &#39;_.$&#39;),
+                Batch = stringr::str_remove(Sample_ID, &#39;^.*_.*_&#39;)) %&gt;%
+  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
 
-pcVsnRes &lt;- prcomp(t(abunVsnMatSub), center = T, scale. = F)
-pcVsnTab &lt;- pcVsnRes$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
-
-ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Vsn normalized data&#39;) +
-  th</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-70-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-70-1">
-Past versions of unnamed-chunk-70-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-70-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-70-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-70-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-70-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<pre class="r"><code># ggplot(pcVsnTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
-#   geom_point() +
-#   geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-#   labs(title = &#39;Vsn normalized data&#39;)</code></pre>
-<p><strong>Median normalized data</strong></p>
-<pre class="r"><code># Median normalization
-abunMediMatSub &lt;- dplyr::select(metaTissueMediTab,
-                                Feature_ID, Sample_ID, mediAbundance) %&gt;%
-  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;mediAbundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;)
-
-pcMediRes &lt;- prcomp(t(abunMediMatSub), center = T, scale. = F)
-pcMediTab &lt;- pcMediRes$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
-
-ggplot(pcMediTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Median normalized data&#39;) +
-  th</code></pre>
+# Display median normalized data
+ggplot(metaTissueMediTab, aes(x=Sample_ID, y=mediAbundance)) +
+  geom_boxplot() +
+  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
+       title = &#39;Median normalized data&#39;) +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-71-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-71-1">
@@ -5999,6 +5350,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/5c9ec0be03a8fabd05de4e2fa3a641d8ec0ee09c/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-71-1.png" target="_blank">5c9ec0b</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-06-07
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-71-1.png" target="_blank">3959bda</a>
@@ -6025,28 +5387,39 @@ LiaoQianWu
 </table>
 </div>
 </div>
-</div>
-<div id="data-fusion-2" class="section level2">
-<h2>Data fusion</h2>
-<p>Vsn normalized data is selected and mean of triplicates is taken.
-<br/> <br/></p>
-<p>Display distribution of merged data</p>
-<pre class="r"><code># Merge triplicates (take mean)
-merge_metaTissueVsnTab &lt;- dplyr::group_by(metaTissueVsnTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %&gt;%
+<p>Compute standard deviation of each feature among triplicate measures.
+Dashed line indicates mean standard deviation.</p>
+<pre class="r"><code># Calculate standard deviations of each feature among triplicates
+# Log2-transformation
+log2Std &lt;- dplyr::group_by(metaTissueTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(Std = sd(log2Abundance, na.rm = T)) %&gt;%
   dplyr::ungroup() %&gt;%
-  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
+  dplyr::mutate(Method = &#39;Log2&#39;) %&gt;%
+  dplyr::select(Method, Std)
+# VSN
+vsnStd &lt;- dplyr::group_by(metaTissueVsnTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(Std = sd(vsnAbundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::mutate(Method = &#39;VSN&#39;) %&gt;%
+  dplyr::select(Method, Std)
+# Median normalization
+mediStd &lt;- dplyr::group_by(metaTissueMediTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(Std = sd(mediAbundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::mutate(Method = &#39;Median norm&#39;) %&gt;%
+  dplyr::select(Method, Std)
+# Bind standard deviation tables into one for plotting histogram
+stdTab &lt;- rbind(log2Std, vsnStd, mediStd)
+stdMean &lt;- dplyr::group_by(stdTab, Method) %&gt;%
+  dplyr::summarise(Mean = mean(Std, na.rm = T))
 
-# Incorporate MZ/RT information
-MZRT &lt;- dplyr::select(metaTissueTab, `MZ/RT`, Feature_ID) %&gt;%
-  dplyr::filter(!duplicated(Feature_ID))
-merge_metaTissueVsnTab &lt;- dplyr::left_join(merge_metaTissueVsnTab, MZRT,
-                                           by = &#39;Feature_ID&#39;)
-
-ggplot(merge_metaTissueVsnTab, aes(x=Sample, y=vsnAbundance)) +
-  geom_boxplot() +
-  labs(y = &#39;Normalized abundance&#39;, title = &#39;Vsn normalized data&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
+  geom_histogram(alpha = 0.5, binwidth = 0.2, position = &#39;identity&#39;) +
+  geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
+             linetype=&quot;dashed&quot;, linewidth = 0.7, show.legend = F) +
+  labs(x = &#39;Standard deviation&#39;, y = &#39;Count&#39;,
+       title = &#39;Standard deviation of each feature among triplicates&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-72-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-72-1">
@@ -6107,46 +5480,104 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Percentage of missing values</p>
-<pre class="r"><code># Display percentage of missing values
-abun &lt;- merge_metaTissueVsnTab$vsnAbundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
-<pre><code>0.17% observations are missing.</code></pre>
-<pre class="r"><code># Convert tidy long table to SummarizedExperiment object and save it for further
-# analysis
-metaTissueVsn &lt;- df2SummExp(merge_metaTissueVsnTab,
-                            row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
-                            values = &#39;vsnAbundance&#39;,
-                            row_anno = &#39;MZ/RT&#39;,
-                            col_anno = c(&#39;Patient&#39;, &#39;Condition&#39;, &#39;Recurrence&#39;,
-                                         &#39;Age&#39;, &#39;Gender&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
-                                         &#39;Identifier&#39;))
-saveRDS(metaTissueVsn, &#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)</code></pre>
-<p>PCA</p>
-<pre class="r"><code># Perform PCA
+<p>-&gt; All three methods got similar standard deviations.</p>
+</div>
+<div id="pca-2" class="section level2">
+<h2>PCA</h2>
+<p>Assess similarity among triplicate measures normalized by different
+methods for quality control</p>
+<p><strong>Log2-transformed data</strong></p>
+<pre class="r"><code># Perform PCA to assess similarity among triplicates
+# Log2-transformation
 # Remove rows (features) that have any NA values
-naFeats &lt;- unique(merge_metaTissueVsnTab$Feature_ID[
-  is.na(merge_metaTissueVsnTab$vsnAbundance)])
-abunVsnMatSub &lt;- dplyr::select(merge_metaTissueVsnTab,
-                               Feature_ID, Sample, vsnAbundance) %&gt;%
+naFeats &lt;- unique(metaTissueTab$Feature_ID[is.na(metaTissueTab$Abundance)])
+abunLog2MatSub &lt;- dplyr::select(metaTissueTab,
+                                Feature_ID, Sample_ID, log2Abundance) %&gt;%
   dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;log2Abundance&#39;) %&gt;%
   tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
 # Extract sample condition annotations
-condition &lt;- dplyr::select(merge_metaTissueVsnTab,
-                         Sample, Patient, Condition, Recurrence) %&gt;%
-  dplyr::filter(!duplicated(Sample))
+condition &lt;- dplyr::select(metaTissueTab,
+                           Sample_ID, Sample, Batch) %&gt;%
+  dplyr::filter(!duplicated(Sample_ID))
+
+pcLog2Res &lt;- prcomp(t(abunLog2MatSub), center = T, scale. = F)
+pcLog2Tab &lt;- pcLog2Res$x[, 1:10] %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
+  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
+
+ggplot(pcLog2Tab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
+  geom_point() +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Log2-transformed data&#39;) +
+  th</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-73-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-73-1">
+Past versions of unnamed-chunk-73-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-73-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-73-1.png" target="_blank">7d94680</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-08
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-73-1.png" target="_blank">0bbd8eb</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-25
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>Vsn normalized data</strong></p>
+<pre class="r"><code># VSN
+abunVsnMatSub &lt;- dplyr::select(metaTissueVsnTab,
+                               Feature_ID, Sample_ID, vsnAbundance) %&gt;%
+  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
 pcVsnRes &lt;- prcomp(t(abunVsnMatSub), center = T, scale. = F)
 pcVsnTab &lt;- pcVsnRes$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample&#39;)
+  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
+  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
 
-ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Condition, shape=Recurrence,
-                     group=Patient)) +
-  geom_point(size = 3) +
+ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
+  geom_point() +
   geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Vsn normalized data&#39;) +
   th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-74-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
@@ -6197,19 +5628,28 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p><br/> -&gt; PCA mainly captures source of variation in tissue
-conditions. <br/> <br/></p>
-<p>Variance explained by each PC</p>
-<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
-varExplained &lt;- pcVsnRes$sdev^2 / sum(pcVsnRes$sdev^2)
-PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
-varTab &lt;- data.frame(PC = factor(PC, levels = PC),
-                     Var_explained = varExplained)
+<pre class="r"><code># ggplot(pcVsnTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
+#   geom_point() +
+#   geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+#   labs(title = &#39;Vsn normalized data&#39;)</code></pre>
+<p><strong>Median normalized data</strong></p>
+<pre class="r"><code># Median normalization
+abunMediMatSub &lt;- dplyr::select(metaTissueMediTab,
+                                Feature_ID, Sample_ID, mediAbundance) %&gt;%
+  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;mediAbundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
-ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
-  geom_col() +
-  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+pcMediRes &lt;- prcomp(t(abunMediMatSub), center = T, scale. = F)
+pcMediTab &lt;- pcMediRes$x[, 1:10] %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
+  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
+
+ggplot(pcMediTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
+  geom_point() +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Median normalized data&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-75-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-75-1">
@@ -6259,119 +5699,82 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code># Store median normalized data for computing log(FC) later
-# Merge triplicates (take mean)
-merge_metaTissueMediTab &lt;- dplyr::group_by(metaTissueMediTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %&gt;%
+</div>
+<div id="data-fusion-2" class="section level2">
+<h2>Data fusion</h2>
+<p>Vsn normalized data is selected and mean of triplicates is taken.
+<br/> <br/></p>
+<p>Display distribution of merged data</p>
+<pre class="r"><code># Merge triplicates (take mean)
+merge_metaTissueVsnTab &lt;- dplyr::group_by(metaTissueVsnTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %&gt;%
   dplyr::ungroup() %&gt;%
   dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
 
-# Incorporate m/z_RT information
+# Incorporate MZ/RT information
 MZRT &lt;- dplyr::select(metaTissueTab, `MZ/RT`, Feature_ID) %&gt;%
   dplyr::filter(!duplicated(Feature_ID))
-merge_metaTissueMediTab &lt;- dplyr::left_join(merge_metaTissueMediTab, MZRT,
-                                            by = &#39;Feature_ID&#39;)
+merge_metaTissueVsnTab &lt;- dplyr::left_join(merge_metaTissueVsnTab, MZRT,
+                                           by = &#39;Feature_ID&#39;)
 
-ggplot(merge_metaTissueMediTab, aes(x=Sample, y=mediAbundance)) +
+ggplot(merge_metaTissueVsnTab, aes(x=Sample, y=vsnAbundance)) +
   geom_boxplot() +
-  labs(y = &#39;Normalized abundance&#39;, title = &#39;Median normalized data&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  labs(y = &#39;Normalized abundance&#39;, title = &#39;Vsn normalized data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-76-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Percentage of missing values</p>
+<pre class="r"><code># Display percentage of missing values
+abun &lt;- merge_metaTissueVsnTab$vsnAbundance
+cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
+<pre><code>0.17% observations are missing.</code></pre>
+<p><strong>Remove features quantified in less than 2/3 of samples in all
+four sample groups</strong> <strong>of interest (Normal/Tumor
+Recurrence/Non-recurrence)</strong><br />
+</p>
+<pre class="r"><code># Remove features quantified in less than 2/3 of samples in all sample groups of interest
+rmFeats &lt;- dplyr::group_by(merge_metaTissueVsnTab, Feature_ID, Condition, Recurrence) %&gt;%
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(vsnAbundance)) / length(vsnAbundance), 2)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::filter(frac_nonNA &lt; 0.67) %&gt;%
+  dplyr::group_by(Feature_ID) %&gt;%
+  dplyr::summarise(Count = length(Feature_ID)) %&gt;%
+  dplyr::filter(Count == 4) %&gt;%
+  dplyr::pull(Feature_ID)
+merge_metaTissueVsnTab &lt;- dplyr::filter(merge_metaTissueVsnTab, !Feature_ID %in% rmFeats)
 
-# Convert tidy long table to SummarizedExperiment object and save it for further
-# analysis
-metaTissueMedi &lt;- df2SummExp(merge_metaTissueMediTab,
-                             row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
-                             values = &#39;mediAbundance&#39;,
-                             row_anno = &#39;MZ/RT&#39;,
-                             col_anno = c(&#39;Patient&#39;, &#39;Condition&#39;, &#39;Recurrence&#39;,
-                                          &#39;Age&#39;, &#39;Gender&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
-                                          &#39;Identifier&#39;))
-saveRDS(metaTissueMedi, &#39;./data/AG_Hopf/metaTissueMedi.rds&#39;)</code></pre>
-</div>
-</div>
-<div id="tissue-lipidomics" class="section level1">
-<h1>Tissue Lipidomics</h1>
-<div id="normalization-3" class="section level2">
-<h2>Normalization</h2>
-<pre class="r"><code># Load dataset
-lipTissueTab &lt;- read.table(
-  &#39;./data/AG_Hopf/TISSUE_LIPIDOMICS_20230222.Feature list.txt&#39;,
-  header = T, sep = &#39;\t&#39;, dec = &#39;,&#39;) %&gt;%
-  dplyr::mutate(m.z.meas. = paste0(m.z.meas., &#39;/&#39;, RT..min.)) %&gt;%
-  dplyr::select(-RT..min., -starts_with(&#39;Blank&#39;), -starts_with(&#39;QC&#39;)) %&gt;%
-  dplyr::rename(`MZ/RT` = m.z.meas.)
+# Convert tidy long table to SummarizedExperiment object and save it for further analysis
+metaTissueVsn &lt;- df2SummExp(merge_metaTissueVsnTab, row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
+                            values = &#39;vsnAbundance&#39;, row_anno = &#39;MZ/RT&#39;, col_anno = anno)
+# saveRDS(metaTissueVsn, &#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)</code></pre>
+<p>Display dimensions of filtered dataset</p>
+<pre class="r"><code>dim(metaTissueVsn)</code></pre>
+<pre><code>[1] 775  40</code></pre>
+<p>PCA</p>
+<pre class="r"><code># Perform PCA
+# Remove rows (features) that have any NA values
+naFeats &lt;- unique(merge_metaTissueVsnTab$Feature_ID[
+  is.na(merge_metaTissueVsnTab$vsnAbundance)])
+abunVsnMatSub &lt;- dplyr::select(merge_metaTissueVsnTab,
+                               Feature_ID, Sample, vsnAbundance) %&gt;%
+  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
-# Prepare sample ID table for changing sample names
-smpIDs &lt;- readxl::read_excel(&#39;./data/AG_Hopf/TISSUE.Sample IDs.xlsx&#39;) %&gt;%
-  dplyr::select(`Number on MS vials`, `Code from OpenBis`) %&gt;%
-  dplyr::rename(Sample_ID = `Number on MS vials`,
-                Identifier = `Code from OpenBis`) %&gt;%
-  dplyr::mutate(Sample_ID = paste0(&#39;Sample&#39;, Sample_ID),
-                Identifier = stringr::str_remove(Identifier, &#39;_2&#39;))
-smpIDs2 &lt;- readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;) %&gt;%
-  colData() %&gt;%
+# Extract sample condition annotations
+condition &lt;- dplyr::select(merge_metaTissueVsnTab,
+                         Sample, Patient, Condition, Recurrence) %&gt;%
+  dplyr::filter(!duplicated(Sample))
+
+pcVsnRes &lt;- prcomp(t(abunVsnMatSub), center = T, scale. = F)
+pcVsnTab &lt;- pcVsnRes$x[, 1:10] %&gt;%
   tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
-  dplyr::select(Identifier, Sample) %&gt;%
-  dplyr::mutate(Identifier = stringr::str_remove(Identifier, &#39;_3&#39;))
-smpIDs &lt;- dplyr::left_join(smpIDs, smpIDs2, by = &#39;Identifier&#39;)
-rm(smpIDs2)
+  dplyr::left_join(condition, by = &#39;Sample&#39;)
 
-# Take care of sample and feature identifications
-colNam &lt;- colnames(lipTissueTab) %&gt;%
-  stringr::str_remove_all(&#39;\\._|_lipids|batch|_pos_.*&#39;)
-smpNam &lt;- colNam[2:length(colNam)] %&gt;%
-  stringr::str_remove(&#39;_.$&#39;) %&gt;%
-  plyr::mapvalues(smpIDs$Sample_ID, smpIDs$Sample)
-colNam[2:length(colNam)] &lt;- paste0(smpNam, &#39;_&#39;, c(rep(1, length(smpNam)/3),
-                                                  rep(2, length(smpNam)/3),
-                                                  rep(3, length(smpNam)/3)))
-colnames(lipTissueTab) &lt;- colNam
-
-# Remove those features whose retention time is smaller than 0.3 and greater than 9 min
-RT &lt;- stringr::str_extract(lipTissueTab$`MZ/RT`, &#39;/.*&#39;) %&gt;%
-  stringr::str_remove(&#39;/&#39;) %&gt;%
-  as.numeric()
-lipTissueTab &lt;- lipTissueTab[RT &gt;= 0.3 &amp; RT &lt;= 9,]
-
-# Create feature IDs for MZ/RT to simplify downstream operations
-lipTissueTab$Feature_ID &lt;- paste0(&#39;Feature&#39;, seq(nrow(lipTissueTab)))</code></pre>
-<p>Display data dimensions (120 triplicate samples and 2159
-features)</p>
-<pre class="r"><code>dim(dplyr::select(lipTissueTab, -c(`MZ/RT`, Feature_ID)))</code></pre>
-<pre><code>[1] 2159  120</code></pre>
-<p>List duplicated features that have same m/z and retention time</p>
-<pre class="r"><code># Check duplicated MZ/RT (features) to see if further actions are needed
-cat(&#39;The following features have duplication:\n&#39;,
-    paste(unique(lipTissueTab$`MZ/RT`[duplicated(lipTissueTab$`MZ/RT`)]),
-          collapse = &#39;  &#39;))</code></pre>
-<pre><code>The following features have duplication:
- 394.87422/1.11</code></pre>
-<p>Display distribution of original data</p>
-<pre class="r"><code># Load sample metadata from preprocessed Targeted Metabolomics SE object
-smpAnno &lt;- colData(readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;)) %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
-  dplyr::mutate(Identifier = stringr::str_remove(Identifier, &#39;_3$&#39;))
-
-# Convert messy wide data to tidy long table
-lipTissueTab &lt;- tidyr::pivot_longer(lipTissueTab,
-                                    cols = -c(&#39;MZ/RT&#39;, &#39;Feature_ID&#39;),
-                                    names_to = &#39;Sample_ID&#39;,
-                                    values_to = &#39;Abundance&#39;) %&gt;%
-  # Convert zero values to NA since zeros are not real zeros, but undetected,
-  # might be extremely small or normal values and perform log2-transformation on
-  # feature abundance
-  dplyr::mutate(Abundance = replace(Abundance, Abundance == 0, NA),
-                Sample = stringr::str_remove(Sample_ID, &#39;_.$&#39;),
-                Batch = stringr::str_remove(Sample_ID, &#39;^.*_.*_&#39;),
-                log2Abundance = log2(Abundance)) %&gt;%
-  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
-
-# Display original data distribution
-ggplot(lipTissueTab, aes(x=Sample_ID, y=Abundance)) +
-  geom_boxplot() +
-  scale_y_log10() +
-  labs(x = &#39;Sample&#39;, title = &#39;Original data&#39;) +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
+ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Condition, shape=Recurrence,
+                     group=Patient)) +
+  geom_point(size = 3) +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-80-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-80-1">
@@ -6432,12 +5835,19 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Display distribution of log2-transformed data</p>
-<pre class="r"><code># Display log2-transformed data distribution
-ggplot(lipTissueTab, aes(x=Sample_ID, y=log2Abundance)) +
-  geom_boxplot() +
-  labs(x = &#39;Sample&#39;, y = &#39;Log2(Abundance)&#39;, title = &#39;Log2-transformed data&#39;) +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
+<p><br/> -&gt; PCA mainly captures source of variation in tissue
+conditions. <br/> <br/></p>
+<p>Variance explained by each PC</p>
+<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
+varExplained &lt;- pcVsnRes$sdev^2 / sum(pcVsnRes$sdev^2)
+PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
+varTab &lt;- data.frame(PC = factor(PC, levels = PC),
+                     Var_explained = varExplained)
+
+ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
+  geom_col() +
+  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-81-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-81-1">
@@ -6498,300 +5908,120 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Percentage of missing values in data</p>
-<pre class="r"><code># Display percentage of missing values 
-abun &lt;- lipTissueTab$Abundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
-<pre><code>0.18% observations are missing.</code></pre>
-<p>Display distribution of vsn normalized data</p>
-<pre class="r"><code># Convert long table to wide data
-abunMat &lt;- dplyr::select(lipTissueTab, Feature_ID, Sample_ID, Abundance) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;Abundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;) %&gt;%
-  as.matrix()
-
-# Perform VSN
-fit &lt;- vsnMatrix(abunMat)
-abunVsnMat &lt;- predict(fit, abunMat) %&gt;%
-  tibble::as_tibble(rownames = &#39;Feature_ID&#39;)
-lipTissueVsnTab &lt;- tidyr::pivot_longer(abunVsnMat,
-                                       cols = -&#39;Feature_ID&#39;,
-                                       names_to = &#39;Sample_ID&#39;,
-                                       values_to = &#39;vsnAbundance&#39;) %&gt;%
-  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, &#39;_.$&#39;),
-                Batch = stringr::str_remove(Sample_ID, &#39;^.*_.*_&#39;)) %&gt;%
+<pre class="r"><code># Store median normalized data for computing log(FC) later
+# Merge triplicates (take mean)
+merge_metaTissueMediTab &lt;- dplyr::group_by(metaTissueMediTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::filter(!Feature_ID %in% rmFeats) %&gt;%
   dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
 
-# Display VSN normalized data
-ggplot(lipTissueVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
+# Incorporate m/z_RT information
+MZRT &lt;- dplyr::select(metaTissueTab, `MZ/RT`, Feature_ID) %&gt;%
+  dplyr::filter(!duplicated(Feature_ID))
+merge_metaTissueMediTab &lt;- dplyr::left_join(merge_metaTissueMediTab, MZRT,
+                                            by = &#39;Feature_ID&#39;)
+
+ggplot(merge_metaTissueMediTab, aes(x=Sample, y=mediAbundance)) +
   geom_boxplot() +
-  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
-       title = &#39;Vsn normalized data&#39;) +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-83-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-83-1">
-Past versions of unnamed-chunk-83-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-83-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-83-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-83-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-83-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
+  labs(y = &#39;Normalized abundance&#39;, title = &#39;Median normalized data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+# Convert tidy long table to SummarizedExperiment object and save it for further
+# analysis
+metaTissueMedi &lt;- df2SummExp(merge_metaTissueMediTab, row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
+                             values = &#39;mediAbundance&#39;, row_anno = &#39;MZ/RT&#39;, col_anno = anno)
+saveRDS(metaTissueMedi, &#39;./data/AG_Hopf/metaTissueMedi.rds&#39;)</code></pre>
 </div>
 </div>
-<p>Display distribution of median normalized data</p>
-<pre class="r"><code># Perform median normalization (median scaling and log2-transformation)
-lipTissueMediTab &lt;- limma::normalizeBetweenArrays(abunMat, method = &#39;scale&#39;) %&gt;%
-  tibble::as_tibble(rownames = &#39;Feature_ID&#39;) %&gt;%
-  tidyr::pivot_longer(cols = -&#39;Feature_ID&#39;,
-                      names_to = &#39;Sample_ID&#39;,
-                      values_to = &#39;mediAbundance&#39;) %&gt;%
-  dplyr::mutate(mediAbundance = log2(mediAbundance),
+<div id="tissue-lipidomics" class="section level1">
+<h1>Tissue Lipidomics</h1>
+<div id="normalization-3" class="section level2">
+<h2>Normalization</h2>
+<pre class="r"><code># Load dataset
+lipTissueTab &lt;- read.table(
+  &#39;./data/AG_Hopf/TISSUE_LIPIDOMICS_20230222.Feature list.txt&#39;,
+  header = T, sep = &#39;\t&#39;, dec = &#39;,&#39;) %&gt;%
+  dplyr::mutate(m.z.meas. = paste0(m.z.meas., &#39;/&#39;, RT..min.)) %&gt;%
+  dplyr::select(-RT..min., -starts_with(&#39;Blank&#39;), -starts_with(&#39;QC&#39;)) %&gt;%
+  dplyr::rename(`MZ/RT` = m.z.meas.)
+
+# Prepare sample ID table for changing sample names
+smpIDs &lt;- readxl::read_excel(&#39;./data/AG_Hopf/TISSUE.Sample IDs.xlsx&#39;) %&gt;%
+  dplyr::select(`Number on MS vials`, `Code from OpenBis`) %&gt;%
+  dplyr::rename(Sample_ID = `Number on MS vials`,
+                Identifier = `Code from OpenBis`) %&gt;%
+  dplyr::mutate(Sample_ID = paste0(&#39;Sample&#39;, Sample_ID),
+                Identifier = stringr::str_remove(Identifier, &#39;_2&#39;))
+smpIDs2 &lt;- readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;) %&gt;%
+  colData() %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
+  dplyr::select(Identifier, Sample) %&gt;%
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, &#39;_3&#39;))
+smpIDs &lt;- dplyr::left_join(smpIDs, smpIDs2, by = &#39;Identifier&#39;)
+rm(smpIDs2)
+
+# Take care of sample and feature identifications
+colNam &lt;- colnames(lipTissueTab) %&gt;%
+  stringr::str_remove_all(&#39;\\._|_lipids|batch|_pos_.*&#39;)
+smpNam &lt;- colNam[2:length(colNam)] %&gt;%
+  stringr::str_remove(&#39;_.$&#39;) %&gt;%
+  plyr::mapvalues(smpIDs$Sample_ID, smpIDs$Sample)
+colNam[2:length(colNam)] &lt;- paste0(smpNam, &#39;_&#39;, c(rep(1, length(smpNam)/3),
+                                                  rep(2, length(smpNam)/3),
+                                                  rep(3, length(smpNam)/3)))
+colnames(lipTissueTab) &lt;- colNam
+
+# Remove those features whose retention times are smaller than 0.3 and greater than 9 min
+RT &lt;- stringr::str_extract(lipTissueTab$`MZ/RT`, &#39;/.*&#39;) %&gt;%
+  stringr::str_remove(&#39;/&#39;) %&gt;%
+  as.numeric()
+lipTissueTab &lt;- lipTissueTab[RT &gt;= 0.3 &amp; RT &lt;= 9,]
+# Remove those features whose intensities are smaller than 300?
+# MZ &lt;- stringr::str_extract(lipTissueTab$`MZ/RT`, &#39;.*/&#39;) %&gt;%
+#   stringr::str_remove(&#39;/&#39;) %&gt;%
+#   as.numeric()
+# sum(MZ &lt; 300) #58
+
+# Create feature IDs for MZ/RT to simplify downstream operations
+lipTissueTab$Feature_ID &lt;- paste0(&#39;Feature&#39;, seq(nrow(lipTissueTab)))</code></pre>
+<p>Display data dimensions (120 triplicate samples and 2159
+features)</p>
+<pre class="r"><code>dim(dplyr::select(lipTissueTab, -c(`MZ/RT`, Feature_ID)))</code></pre>
+<pre><code>[1] 2159  120</code></pre>
+<p>List duplicated features that have same m/z and retention time</p>
+<pre class="r"><code># Check duplicated MZ/RT (features) to see if further actions are needed
+cat(&#39;The following features have duplication:\n&#39;,
+    paste(unique(lipTissueTab$`MZ/RT`[duplicated(lipTissueTab$`MZ/RT`)]),
+          collapse = &#39;  &#39;))</code></pre>
+<pre><code>The following features have duplication:
+ 394.87422/1.11</code></pre>
+<p>Display distribution of original data</p>
+<pre class="r"><code># Load sample metadata from preprocessed Targeted Metabolomics SE object
+smpAnno &lt;- colData(readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;)) %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, &#39;_3$&#39;))
+
+# Convert messy wide data to tidy long table
+lipTissueTab &lt;- tidyr::pivot_longer(lipTissueTab,
+                                    cols = -c(&#39;MZ/RT&#39;, &#39;Feature_ID&#39;),
+                                    names_to = &#39;Sample_ID&#39;,
+                                    values_to = &#39;Abundance&#39;) %&gt;%
+  # Convert zero values to NA since zeros are not real zeros, but undetected,
+  # might be extremely small or normal values and perform log2-transformation on
+  # feature abundance
+  dplyr::mutate(Abundance = replace(Abundance, Abundance == 0, NA),
                 Sample = stringr::str_remove(Sample_ID, &#39;_.$&#39;),
-                Batch = stringr::str_remove(Sample_ID, &#39;^.*_.*_&#39;)) %&gt;%
+                Batch = stringr::str_remove(Sample_ID, &#39;^.*_.*_&#39;),
+                log2Abundance = log2(Abundance)) %&gt;%
   dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
 
-# Display median normalized data
-ggplot(lipTissueMediTab, aes(x=Sample_ID, y=mediAbundance)) +
+# Display original data distribution
+ggplot(lipTissueTab, aes(x=Sample_ID, y=Abundance)) +
   geom_boxplot() +
-  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
-       title = &#39;Median normalized data&#39;) +
+  scale_y_log10() +
+  labs(x = &#39;Sample&#39;, title = &#39;Original data&#39;) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-84-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-84-1">
-Past versions of unnamed-chunk-84-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-84-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-84-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-84-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-84-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>Compute standard deviation of each feature among triplicate measures.
-Dashed line indicates mean standard deviation.</p>
-<pre class="r"><code># Calculate standard deviations of each feature among triplicates
-# Log2-transformation
-log2Std &lt;- dplyr::group_by(lipTissueTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(Std = sd(log2Abundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
-  dplyr::mutate(Method = &#39;Log2&#39;) %&gt;%
-  dplyr::select(Method, Std)
-# VSN
-vsnStd &lt;- dplyr::group_by(lipTissueVsnTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(Std = sd(vsnAbundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
-  dplyr::mutate(Method = &#39;VSN&#39;) %&gt;%
-  dplyr::select(Method, Std)
-# Median normalization
-mediStd &lt;- dplyr::group_by(lipTissueMediTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(Std = sd(mediAbundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
-  dplyr::mutate(Method = &#39;Median norm&#39;) %&gt;%
-  dplyr::select(Method, Std)
-# Bind standard deviation tables into one for plotting histogram
-stdTab &lt;- rbind(log2Std, vsnStd, mediStd)
-stdMean &lt;- dplyr::group_by(stdTab, Method) %&gt;%
-  dplyr::summarise(Mean = mean(Std, na.rm = T))
-
-ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
-  geom_histogram(alpha = 0.5, binwidth = 0.2, position = &#39;identity&#39;) +
-  geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
-             linetype=&quot;dashed&quot;, linewidth = 0.7, show.legend = F) +
-  labs(x = &#39;Standard deviation&#39;, y = &#39;Count&#39;,
-       title = &#39;Standard deviation of each feature among triplicates&#39;) +
-  th</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-85-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-85-1">
-Past versions of unnamed-chunk-85-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-85-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-85-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-85-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-85-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>-&gt; VSN and median normalization got similar mean standard
-deviations.</p>
-</div>
-<div id="pca-3" class="section level2">
-<h2>PCA</h2>
-<p>Assess similarity among triplicate measures normalized by different
-methods for quality control</p>
-<p><strong>Log2-transformed data</strong></p>
-<pre class="r"><code># Perform PCA to assess similarity among triplicates
-# Log2-transformation
-# Remove rows (features) that have any NA values
-naFeats &lt;- unique(lipTissueTab$Feature_ID[is.na(lipTissueTab$Abundance)])
-abunLog2MatSub &lt;- dplyr::select(lipTissueTab,
-                                Feature_ID, Sample_ID, log2Abundance) %&gt;%
-  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;log2Abundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;)
-
-# Extract sample condition annotations
-condition &lt;- dplyr::select(lipTissueTab,
-                         Sample_ID, Sample, Batch) %&gt;%
-  dplyr::filter(!duplicated(Sample_ID))
-
-pcLog2Res &lt;- prcomp(t(abunLog2MatSub), center = T, scale. = F)
-pcLog2Tab &lt;- pcLog2Res$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
-
-ggplot(pcLog2Tab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Log2-transformed data&#39;) +
-  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-86-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-86-1">
@@ -6852,24 +6082,12 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p><strong>Vsn normalized data</strong></p>
-<pre class="r"><code># VSN
-abunVsnMatSub &lt;- dplyr::select(lipTissueVsnTab,
-                               Feature_ID, Sample_ID, vsnAbundance) %&gt;%
-  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;)
-
-pcVsnRes &lt;- prcomp(t(abunVsnMatSub), center = T, scale. = F)
-pcVsnTab &lt;- pcVsnRes$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
-
-ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Vsn normalized data&#39;) +
-  th</code></pre>
+<p>Display distribution of log2-transformed data</p>
+<pre class="r"><code># Display log2-transformed data distribution
+ggplot(lipTissueTab, aes(x=Sample_ID, y=log2Abundance)) +
+  geom_boxplot() +
+  labs(x = &#39;Sample&#39;, y = &#39;Log2(Abundance)&#39;, title = &#39;Log2-transformed data&#39;) +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-87-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-87-1">
@@ -6919,113 +6137,36 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code># ggplot(pcVsnTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
-#   geom_point() +
-#   geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-#   labs(title = &#39;Vsn normalized data&#39;)</code></pre>
-<p><strong>Median normalized data</strong></p>
-<pre class="r"><code># Median normalization
-abunMediMatSub &lt;- dplyr::select(lipTissueMediTab,
-                                Feature_ID, Sample_ID, mediAbundance) %&gt;%
-  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;mediAbundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;)
+<p>Percentage of missing values in data</p>
+<pre class="r"><code># Display percentage of missing values 
+abun &lt;- lipTissueTab$Abundance
+cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
+<pre><code>0.18% observations are missing.</code></pre>
+<p>Display distribution of vsn normalized data</p>
+<pre class="r"><code># Convert long table to wide data
+abunMat &lt;- dplyr::select(lipTissueTab, Feature_ID, Sample_ID, Abundance) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;Abundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;) %&gt;%
+  as.matrix()
 
-pcMediRes &lt;- prcomp(t(abunMediMatSub), center = T, scale. = F)
-pcMediTab &lt;- pcMediRes$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
+# Perform VSN
+fit &lt;- vsnMatrix(abunMat)
+abunVsnMat &lt;- predict(fit, abunMat) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature_ID&#39;)
+lipTissueVsnTab &lt;- tidyr::pivot_longer(abunVsnMat,
+                                       cols = -&#39;Feature_ID&#39;,
+                                       names_to = &#39;Sample_ID&#39;,
+                                       values_to = &#39;vsnAbundance&#39;) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, &#39;_.$&#39;),
+                Batch = stringr::str_remove(Sample_ID, &#39;^.*_.*_&#39;)) %&gt;%
+  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
 
-ggplot(pcMediTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
-  labs(title = &#39;Median normalized data&#39;) +
-  th</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-88-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-88-1">
-Past versions of unnamed-chunk-88-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-88-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-88-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-88-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-88-1.png" target="_blank">0bbd8eb</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-04-25
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>Check correlations between triplicate measures processed using VSN
-due to batch effects. Red diagonal shows perfect positive correlation,
-which is for inspecting data distribution. <br/></p>
-<p><strong>Vsn normalized data</strong></p>
-<pre class="r"><code># VSN
-vsnB1 &lt;- dplyr::filter(lipTissueVsnTab, Batch == &#39;1&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
-  dplyr::rename(Batch1 = vsnAbundance)
-vsnB2 &lt;- dplyr::filter(lipTissueVsnTab, Batch == &#39;2&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
-  dplyr::rename(Batch2 = vsnAbundance)
-vsnB3 &lt;- dplyr::filter(lipTissueVsnTab, Batch == &#39;3&#39;) %&gt;%
-  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
-  dplyr::rename(Batch3 = vsnAbundance)
-
-# Batch 1 and 2
-vsnScatTabB12 &lt;- dplyr::left_join(vsnB1, vsnB2, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(vsnScatTabB12, aes(x=Batch1, y=Batch2)) +
-  geom_point() +
-  facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Vsn normalized data&#39;) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
-  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
-                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+# Display VSN normalized data
+ggplot(lipTissueVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
+  geom_boxplot() +
+  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
+       title = &#39;Vsn normalized data&#39;) +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-89-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-89-1">
@@ -7075,145 +6216,106 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code># Batch 2 and 3
-vsnScatTabB23 &lt;- dplyr::left_join(vsnB2, vsnB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(vsnScatTabB23, aes(x=Batch2, y=Batch3)) +
-  geom_point() +
-  facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Vsn normalized data&#39;) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
-  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
-                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-89-2.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-89-2">
-Past versions of unnamed-chunk-89-2.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-89-2" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-89-2.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-89-2.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<pre class="r"><code># Batch 1 and 3
-vsnScatTabB13 &lt;- dplyr::left_join(vsnB1, vsnB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
-ggplot(vsnScatTabB13, aes(x=Batch1, y=Batch3)) +
-  geom_point() +
-  facet_wrap(vars(Sample), ncol = 8) +
-  labs(title = &#39;Vsn normalized data&#39;) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
-  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
-  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
-                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-89-3.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-89-3">
-Past versions of unnamed-chunk-89-3.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-89-3" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-89-3.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-89-3.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-<div id="data-fusion-3" class="section level2">
-<h2>Data fusion</h2>
-<p>Mean of triplicates is taken. <br/> <br/></p>
-<p>Display distribution of merged data</p>
-<pre class="r"><code># Merge triplicates (take mean)
-merge_lipTissueVsnTab &lt;- dplyr::group_by(lipTissueVsnTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %&gt;%
-  dplyr::ungroup() %&gt;%
+<p>Display distribution of median normalized data</p>
+<pre class="r"><code># Perform median normalization (median scaling and log2-transformation)
+lipTissueMediTab &lt;- limma::normalizeBetweenArrays(abunMat, method = &#39;scale&#39;) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature_ID&#39;) %&gt;%
+  tidyr::pivot_longer(cols = -&#39;Feature_ID&#39;,
+                      names_to = &#39;Sample_ID&#39;,
+                      values_to = &#39;mediAbundance&#39;) %&gt;%
+  dplyr::mutate(mediAbundance = log2(mediAbundance),
+                Sample = stringr::str_remove(Sample_ID, &#39;_.$&#39;),
+                Batch = stringr::str_remove(Sample_ID, &#39;^.*_.*_&#39;)) %&gt;%
   dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
 
-# Incorporate MZ/RT information
-MZRT &lt;- dplyr::select(lipTissueTab, `MZ/RT`, Feature_ID) %&gt;%
-  dplyr::filter(!duplicated(Feature_ID))
-merge_lipTissueVsnTab &lt;- dplyr::left_join(merge_lipTissueVsnTab, MZRT,
-                                          by = &#39;Feature_ID&#39;)
-
-ggplot(merge_lipTissueVsnTab, aes(x=Sample, y=vsnAbundance)) +
+# Display median normalized data
+ggplot(lipTissueMediTab, aes(x=Sample_ID, y=mediAbundance)) +
   geom_boxplot() +
-  labs(y = &#39;Normalized abundance&#39;, title = &#39;Vsn normalized data&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+  labs(x = &#39;Sample&#39;, y = &#39;Normalized Abundance&#39;,
+       title = &#39;Median normalized data&#39;) +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-90-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-90-1">
+Past versions of unnamed-chunk-90-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-90-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-90-1.png" target="_blank">7d94680</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-05-08
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/0bbd8ebdea3501fa5b70010b29acf61a4c41d27b/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-90-1.png" target="_blank">0bbd8eb</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-04-25
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Compute standard deviation of each feature among triplicate measures.
+Dashed line indicates mean standard deviation.</p>
+<pre class="r"><code># Calculate standard deviations of each feature among triplicates
+# Log2-transformation
+log2Std &lt;- dplyr::group_by(lipTissueTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(Std = sd(log2Abundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::mutate(Method = &#39;Log2&#39;) %&gt;%
+  dplyr::select(Method, Std)
+# VSN
+vsnStd &lt;- dplyr::group_by(lipTissueVsnTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(Std = sd(vsnAbundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::mutate(Method = &#39;VSN&#39;) %&gt;%
+  dplyr::select(Method, Std)
+# Median normalization
+mediStd &lt;- dplyr::group_by(lipTissueMediTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(Std = sd(mediAbundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::mutate(Method = &#39;Median norm&#39;) %&gt;%
+  dplyr::select(Method, Std)
+# Bind standard deviation tables into one for plotting histogram
+stdTab &lt;- rbind(log2Std, vsnStd, mediStd)
+stdMean &lt;- dplyr::group_by(stdTab, Method) %&gt;%
+  dplyr::summarise(Mean = mean(Std, na.rm = T))
+
+ggplot(stdTab, aes(x=Std, col=Method, fill=Method)) +
+  geom_histogram(alpha = 0.5, binwidth = 0.2, position = &#39;identity&#39;) +
+  geom_vline(data = stdMean, aes(xintercept=Mean, col=Method),
+             linetype=&quot;dashed&quot;, linewidth = 0.7, show.legend = F) +
+  labs(x = &#39;Standard deviation&#39;, y = &#39;Count&#39;,
+       title = &#39;Standard deviation of each feature among triplicates&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-91-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-91-1">
@@ -7274,44 +6376,57 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p>Percentage of missing values</p>
-<pre class="r"><code># Display percentage of missing values
-abun &lt;- merge_lipTissueVsnTab$vsnAbundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
-<pre><code>0.11% observations are missing.</code></pre>
-<pre class="r"><code># Convert tidy long table to SummarizedExperiment object and save it for further
-# analysis
-lipTissueVsn &lt;- df2SummExp(merge_lipTissueVsnTab,
-                           row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
-                           values = &#39;vsnAbundance&#39;,
-                           row_anno = &#39;MZ/RT&#39;,
-                           col_anno = c(&#39;Patient&#39;, &#39;Condition&#39;, &#39;Recurrence&#39;,
-                                        &#39;Age&#39;, &#39;Gender&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
-                                        &#39;Identifier&#39;))
-saveRDS(lipTissueVsn, &#39;./data/AG_Hopf/lipTissueVsn.rds&#39;)</code></pre>
-<p>PCA</p>
-<pre class="r"><code># Perform PCA
+<p>-&gt; VSN and median normalization got similar mean standard
+deviations.</p>
+</div>
+<div id="pca-3" class="section level2">
+<h2>PCA</h2>
+<p>Assess similarity among triplicate measures normalized by different
+methods for quality control</p>
+<p><strong>Log2-transformed data</strong></p>
+<pre class="r"><code># Perform PCA to assess similarity among triplicates
+# Log2-transformation
 # Remove rows (features) that have any NA values
-abunVsnMatSub &lt;- dplyr::select(merge_lipTissueVsnTab,
-                               Feature_ID, Sample, vsnAbundance) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
-  tibble::column_to_rownames(&#39;Feature_ID&#39;) %&gt;%
-  dplyr::filter(complete.cases(.))
+naFeats &lt;- unique(lipTissueTab$Feature_ID[is.na(lipTissueTab$Abundance)])
+abunLog2MatSub &lt;- dplyr::select(lipTissueTab,
+                                Feature_ID, Sample_ID, log2Abundance) %&gt;%
+  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;log2Abundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
 # Extract sample condition annotations
-condition &lt;- dplyr::select(merge_lipTissueVsnTab,
-                         Sample, Patient, Condition, Recurrence) %&gt;%
-  dplyr::filter(!duplicated(Sample))
+condition &lt;- dplyr::select(lipTissueTab,
+                         Sample_ID, Sample, Batch) %&gt;%
+  dplyr::filter(!duplicated(Sample_ID))
+
+pcLog2Res &lt;- prcomp(t(abunLog2MatSub), center = T, scale. = F)
+pcLog2Tab &lt;- pcLog2Res$x[, 1:10] %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
+  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
+
+ggplot(pcLog2Tab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
+  geom_point() +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Log2-transformed data&#39;) +
+  th</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-92-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Vsn normalized data</strong></p>
+<pre class="r"><code># VSN
+abunVsnMatSub &lt;- dplyr::select(lipTissueVsnTab,
+                               Feature_ID, Sample_ID, vsnAbundance) %&gt;%
+  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
 pcVsnRes &lt;- prcomp(t(abunVsnMatSub), center = T, scale. = F)
 pcVsnTab &lt;- pcVsnRes$x[, 1:10] %&gt;%
-  tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
-  dplyr::left_join(condition, by = &#39;Sample&#39;)
+  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
+  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
 
-ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Condition, shape=Recurrence,
-                     group=Patient)) +
-  geom_point(size = 3) +
+ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
+  geom_point() +
   geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Vsn normalized data&#39;) +
   th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-93-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
@@ -7373,19 +6488,28 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<p><br/> -&gt; PCA mainly captures source of variation in tissue
-conditions. <br/> <br/></p>
-<p>Variance explained by each PC</p>
-<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
-varExplained &lt;- pcVsnRes$sdev^2 / sum(pcVsnRes$sdev^2)
-PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
-varTab &lt;- data.frame(PC = factor(PC, levels = PC),
-                     Var_explained = varExplained)
+<pre class="r"><code># ggplot(pcVsnTab, aes(x=PC3, y=PC4, col=Batch, group=Sample)) +
+#   geom_point() +
+#   geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+#   labs(title = &#39;Vsn normalized data&#39;)</code></pre>
+<p><strong>Median normalized data</strong></p>
+<pre class="r"><code># Median normalization
+abunMediMatSub &lt;- dplyr::select(lipTissueMediTab,
+                                Feature_ID, Sample_ID, mediAbundance) %&gt;%
+  dplyr::filter(!(Feature_ID %in% naFeats)) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample_ID&#39;, values_from = &#39;mediAbundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;)
 
-ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
-  geom_col() +
-  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+pcMediRes &lt;- prcomp(t(abunMediMatSub), center = T, scale. = F)
+pcMediTab &lt;- pcMediRes$x[, 1:10] %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample_ID&#39;) %&gt;%
+  dplyr::left_join(condition, by = &#39;Sample_ID&#39;)
+
+ggplot(pcMediTab, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
+  geom_point() +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  labs(title = &#39;Median normalized data&#39;) +
+  th</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-94-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-94-1">
@@ -7446,68 +6570,75 @@ LiaoQianWu
 </table>
 </div>
 </div>
-<pre class="r"><code># Store median normalized data for computing log(FC) later
-# Merge triplicates (take mean)
-merge_lipTissueMediTab &lt;- dplyr::group_by(lipTissueMediTab, Feature_ID, Sample) %&gt;%
-  dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %&gt;%
+<p>Check correlations between triplicate measures processed using VSN
+due to batch effects. Red diagonal shows perfect positive correlation,
+which is for inspecting data distribution. <br/></p>
+<p><strong>Vsn normalized data</strong></p>
+<pre class="r"><code># VSN
+vsnB1 &lt;- dplyr::filter(lipTissueVsnTab, Batch == &#39;1&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
+  dplyr::rename(Batch1 = vsnAbundance)
+vsnB2 &lt;- dplyr::filter(lipTissueVsnTab, Batch == &#39;2&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
+  dplyr::rename(Batch2 = vsnAbundance)
+vsnB3 &lt;- dplyr::filter(lipTissueVsnTab, Batch == &#39;3&#39;) %&gt;%
+  dplyr::select(Feature_ID, Sample, vsnAbundance) %&gt;%
+  dplyr::rename(Batch3 = vsnAbundance)
+
+# Batch 1 and 2
+vsnScatTabB12 &lt;- dplyr::left_join(vsnB1, vsnB2, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(vsnScatTabB12, aes(x=Batch1, y=Batch2)) +
+  geom_point() +
+  facet_wrap(vars(Sample), ncol = 8) +
+  labs(title = &#39;Vsn normalized data&#39;) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
+                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-95-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Batch 2 and 3
+vsnScatTabB23 &lt;- dplyr::left_join(vsnB2, vsnB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(vsnScatTabB23, aes(x=Batch2, y=Batch3)) +
+  geom_point() +
+  facet_wrap(vars(Sample), ncol = 8) +
+  labs(title = &#39;Vsn normalized data&#39;) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
+                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-95-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Batch 1 and 3
+vsnScatTabB13 &lt;- dplyr::left_join(vsnB1, vsnB3, by = c(&#39;Feature_ID&#39;, &#39;Sample&#39;))
+ggplot(vsnScatTabB13, aes(x=Batch1, y=Batch3)) +
+  geom_point() +
+  facet_wrap(vars(Sample), ncol = 8) +
+  labs(title = &#39;Vsn normalized data&#39;) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = &#39;pearson&#39;, size = 3.5) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;red&#39;, linewidth = 0.5) +
+  theme_bw(base_size = 12) + theme(strip.text = element_text(face = &#39;bold&#39;),
+                                   axis.title = element_text(size = 14, face = &#39;bold&#39;))</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-95-3.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="data-fusion-3" class="section level2">
+<h2>Data fusion</h2>
+<p>Mean of triplicates is taken. <br/> <br/></p>
+<p>Display distribution of merged data</p>
+<pre class="r"><code># Merge triplicates (take mean)
+merge_lipTissueVsnTab &lt;- dplyr::group_by(lipTissueVsnTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %&gt;%
   dplyr::ungroup() %&gt;%
   dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
 
-# Incorporate m/z_RT information
+# Incorporate MZ/RT information
 MZRT &lt;- dplyr::select(lipTissueTab, `MZ/RT`, Feature_ID) %&gt;%
   dplyr::filter(!duplicated(Feature_ID))
-merge_lipTissueMediTab &lt;- dplyr::left_join(merge_lipTissueMediTab, MZRT,
-                                           by = &#39;Feature_ID&#39;)
+merge_lipTissueVsnTab &lt;- dplyr::left_join(merge_lipTissueVsnTab, MZRT,
+                                          by = &#39;Feature_ID&#39;)
 
-ggplot(merge_lipTissueMediTab, aes(x=Sample, y=mediAbundance)) +
+ggplot(merge_lipTissueVsnTab, aes(x=Sample, y=vsnAbundance)) +
   geom_boxplot() +
-  labs(y = &#39;Normalized abundance&#39;, title = &#39;Median normalized data&#39;) +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-
-# Convert tidy long table to SummarizedExperiment object and save it for further
-# analysis
-lipTissueMedi &lt;- df2SummExp(merge_lipTissueMediTab,
-                             row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
-                             values = &#39;mediAbundance&#39;,
-                             row_anno = &#39;MZ/RT&#39;,
-                             col_anno = c(&#39;Patient&#39;, &#39;Condition&#39;, &#39;Recurrence&#39;,
-                                          &#39;Age&#39;, &#39;Gender&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
-                                          &#39;Identifier&#39;))
-saveRDS(lipTissueMedi, &#39;./data/AG_Hopf/lipTissueMedi.rds&#39;)</code></pre>
-</div>
-</div>
-<div id="abundance-comparisons" class="section level1">
-<h1>Abundance comparisons</h1>
-<p>Tissue vs Plasma:<br />
-Investigate overall differences of Metabolomics and Lipidomics abundance
-between Tissue and Plasma samples</p>
-<pre class="r"><code># Load normalized data
-metaTissue &lt;- readRDS(&#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)
-metaPlasma &lt;- readRDS(&#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)
-lipTissue &lt;- readRDS(&#39;./data/AG_Hopf/lipTissueVsn.rds&#39;)
-lipPlasma &lt;- readRDS(&#39;./data/AG_Hopf/lipPlasmaVsn.rds&#39;)</code></pre>
-<div id="metabolomics" class="section level2">
-<h2>Metabolomics</h2>
-<pre class="r"><code># Convert SummarizedExperiment objects to tables for plotting
-# Tissue Metabolomics
-metaTissue4Plot &lt;- summExp2df(metaTissue, assay = &#39;vsnAbundance&#39;,
-                              row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;) %&gt;%
-  dplyr::select(c(&#39;Metabolite&#39;, &#39;Sample&#39;, &#39;Value&#39;)) %&gt;%
-  dplyr::mutate(Sample_type = &#39;Tissue&#39;, Sample = paste0(&#39;Tissue_&#39;, Sample))
-
-# Plasma Metabolomics
-metaPlasma4Plot &lt;- summExp2df(metaPlasma, assay = &#39;vsnAbundance&#39;,
-                              row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;) %&gt;%
-  dplyr::select(c(&#39;Metabolite&#39;, &#39;Sample&#39;, &#39;Value&#39;)) %&gt;%
-  dplyr::mutate(Sample_type = &#39;Plasma&#39;, Sample = paste0(&#39;Plasma_&#39;, Sample))
-
-# Concatenate two tables
-metaTab4Plot &lt;- rbind(metaTissue4Plot, metaPlasma4Plot)
-
-ggplot(metaTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
-  geom_boxplot(width = 0.7) +
-  labs(y = &#39;Metabolite abundance&#39;, title = &#39;Metabolomics&#39;, col = &#39;Sample type&#39;) +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
+  labs(y = &#39;Normalized abundance&#39;, title = &#39;Vsn normalized data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
 <p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-97-1.png" width="960" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-97-1">
@@ -7557,6 +6688,131 @@ LiaoQianWu
 </table>
 </div>
 </div>
+<p>Percentage of missing values</p>
+<pre class="r"><code># Display percentage of missing values
+abun &lt;- merge_lipTissueVsnTab$vsnAbundance
+cat(paste0(round(sum(is.na(abun))/length(abun), 2), &#39;% observations are missing.&#39;))</code></pre>
+<pre><code>0.11% observations are missing.</code></pre>
+<p><strong>Remove features quantified in less than 2/3 of samples in all
+four sample groups</strong> <strong>of interest (Normal/Tumor
+Recurrence/Non-recurrence)</strong><br />
+</p>
+<pre class="r"><code># Remove features quantified in less than 2/3 of samples in all sample groups of interest
+rmFeats &lt;- dplyr::group_by(merge_lipTissueVsnTab, Feature_ID, Condition, Recurrence) %&gt;%
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(vsnAbundance)) / length(vsnAbundance), 2)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::filter(frac_nonNA &lt; 0.67) %&gt;%
+  dplyr::group_by(Feature_ID) %&gt;%
+  dplyr::summarise(Count = length(Feature_ID)) %&gt;%
+  dplyr::filter(Count == 4) %&gt;%
+  dplyr::pull(Feature_ID)
+merge_lipTissueVsnTab &lt;- dplyr::filter(merge_lipTissueVsnTab, !Feature_ID %in% rmFeats)
+
+# Convert tidy long table to SummarizedExperiment object and save it for further analysis
+lipTissueVsn &lt;- df2SummExp(merge_lipTissueVsnTab, row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
+                           values = &#39;vsnAbundance&#39;, row_anno = &#39;MZ/RT&#39;, col_anno = anno)
+# saveRDS(lipTissueVsn, &#39;./data/AG_Hopf/lipTissueVsn.rds&#39;)</code></pre>
+<p>Display dimensions of filtered dataset</p>
+<pre class="r"><code>dim(lipTissueVsn)</code></pre>
+<pre><code>[1] 1992   40</code></pre>
+<p>PCA</p>
+<pre class="r"><code># Perform PCA
+# Remove rows (features) that have any NA values
+abunVsnMatSub &lt;- dplyr::select(merge_lipTissueVsnTab,
+                               Feature_ID, Sample, vsnAbundance) %&gt;%
+  tidyr::pivot_wider(names_from = &#39;Sample&#39;, values_from = &#39;vsnAbundance&#39;) %&gt;%
+  tibble::column_to_rownames(&#39;Feature_ID&#39;) %&gt;%
+  dplyr::filter(complete.cases(.))
+
+# Extract sample condition annotations
+condition &lt;- dplyr::select(merge_lipTissueVsnTab,
+                         Sample, Patient, Condition, Recurrence) %&gt;%
+  dplyr::filter(!duplicated(Sample))
+
+pcVsnRes &lt;- prcomp(t(abunVsnMatSub), center = T, scale. = F)
+pcVsnTab &lt;- pcVsnRes$x[, 1:10] %&gt;%
+  tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
+  dplyr::left_join(condition, by = &#39;Sample&#39;)
+
+ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Condition, shape=Recurrence,
+                     group=Patient)) +
+  geom_point(size = 3) +
+  geom_line(col = &#39;grey50&#39;, linetype = &#39;dashed&#39;) +
+  th</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-101-1.png" width="960" style="display: block; margin: auto;" />
+<br/> -&gt; PCA mainly captures source of variation in tissue
+conditions. <br/> <br/></p>
+<p>Variance explained by each PC</p>
+<pre class="r"><code># Display proportion of total variance captured by all PCs explained by each PC
+varExplained &lt;- pcVsnRes$sdev^2 / sum(pcVsnRes$sdev^2)
+PC &lt;- paste0(&#39;PC&#39;, seq(length(varExplained)))
+varTab &lt;- data.frame(PC = factor(PC, levels = PC),
+                     Var_explained = varExplained)
+
+ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
+  geom_col() +
+  labs(x = &#39;&#39;, y = &#39;Variance explained (%)&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-102-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Store median normalized data for computing log(FC) later
+# Merge triplicates (take mean)
+merge_lipTissueMediTab &lt;- dplyr::group_by(lipTissueMediTab, Feature_ID, Sample) %&gt;%
+  dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::filter(!Feature_ID %in% rmFeats) %&gt;%
+  dplyr::left_join(smpAnno, by = &#39;Sample&#39;)
+
+# Incorporate m/z_RT information
+MZRT &lt;- dplyr::select(lipTissueTab, `MZ/RT`, Feature_ID) %&gt;%
+  dplyr::filter(!duplicated(Feature_ID))
+merge_lipTissueMediTab &lt;- dplyr::left_join(merge_lipTissueMediTab, MZRT,
+                                           by = &#39;Feature_ID&#39;)
+
+ggplot(merge_lipTissueMediTab, aes(x=Sample, y=mediAbundance)) +
+  geom_boxplot() +
+  labs(y = &#39;Normalized abundance&#39;, title = &#39;Median normalized data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+# Convert tidy long table to SummarizedExperiment object and save it for further
+# analysis
+lipTissueMedi &lt;- df2SummExp(merge_lipTissueMediTab, row_id = &#39;Feature_ID&#39;, col_id = &#39;Sample&#39;,
+                             values = &#39;mediAbundance&#39;, row_anno = &#39;MZ/RT&#39;, col_anno = anno)
+saveRDS(lipTissueMedi, &#39;./data/AG_Hopf/lipTissueMedi.rds&#39;)</code></pre>
+</div>
+</div>
+<div id="abundance-comparisons" class="section level1">
+<h1>Abundance comparisons</h1>
+<p>Tissue vs Plasma:<br />
+Investigate overall differences of Metabolomics and Lipidomics abundance
+between Tissue and Plasma samples</p>
+<pre class="r"><code># Load normalized data
+metaTissue &lt;- readRDS(&#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)
+metaPlasma &lt;- readRDS(&#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)
+lipTissue &lt;- readRDS(&#39;./data/AG_Hopf/lipTissueVsn.rds&#39;)
+lipPlasma &lt;- readRDS(&#39;./data/AG_Hopf/lipPlasmaVsn.rds&#39;)</code></pre>
+<div id="metabolomics" class="section level2">
+<h2>Metabolomics</h2>
+<pre class="r"><code># Convert SummarizedExperiment objects to tables for plotting
+# Tissue Metabolomics
+metaTissue4Plot &lt;- summExp2df(metaTissue, assay = &#39;vsnAbundance&#39;,
+                              row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;) %&gt;%
+  dplyr::select(c(&#39;Metabolite&#39;, &#39;Sample&#39;, &#39;Value&#39;)) %&gt;%
+  dplyr::mutate(Sample_type = &#39;Tissue&#39;, Sample = paste0(&#39;Tissue_&#39;, Sample))
+
+# Plasma Metabolomics
+metaPlasma4Plot &lt;- summExp2df(metaPlasma, assay = &#39;vsnAbundance&#39;,
+                              row_id = &#39;Metabolite&#39;, col_id = &#39;Sample&#39;) %&gt;%
+  dplyr::select(c(&#39;Metabolite&#39;, &#39;Sample&#39;, &#39;Value&#39;)) %&gt;%
+  dplyr::mutate(Sample_type = &#39;Plasma&#39;, Sample = paste0(&#39;Plasma_&#39;, Sample))
+
+# Concatenate two tables
+metaTab4Plot &lt;- rbind(metaTissue4Plot, metaPlasma4Plot)
+
+ggplot(metaTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
+  geom_boxplot(width = 0.7) +
+  labs(y = &#39;Metabolite abundance&#39;, title = &#39;Metabolomics&#39;, col = &#39;Sample type&#39;) +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-105-1.png" width="960" style="display: block; margin: auto;" /></p>
 </div>
 <div id="lipidomics" class="section level2">
 <h2>Lipidomics</h2>
@@ -7579,56 +6835,8 @@ ggplot(lipTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
   geom_boxplot(width = 0.7) +
   labs(y = &#39;Lipid abundance&#39;, title = &#39;Lipidomics&#39;, col = &#39;Sample type&#39;) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-98-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-98-1">
-Past versions of unnamed-chunk-98-1.png
-</button>
-</p>
-<div id="fig-unnamed-chunk-98-1" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/3959bda2b761e6042f9d33c2e48b406617714006/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-98-1.png" target="_blank">3959bda</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-06-07
-</td>
-</tr>
-<tr>
-<td>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/7d94680f9cbe7e3d4f4a1cd4abf7dfd3f36df98a/docs/figure/preprocessing_untargeted.Rmd/unnamed-chunk-98-1.png" target="_blank">7d94680</a>
-</td>
-<td>
-LiaoQianWu
-</td>
-<td>
-2023-05-08
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<p>The overall metabolite and lipid levels of Plasma samples are higher
+<p><img src="figure/preprocessing_untargeted.Rmd/unnamed-chunk-106-1.png" width="960" style="display: block; margin: auto;" />
+The overall metabolite and lipid levels of Plasma samples are higher
 than those of Tissue samples.</p>
 <br>
 <p>
