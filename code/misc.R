@@ -545,17 +545,20 @@ rmCorrFeats <- function(data, cutoff = 0.8, distance_method = "pearson",
 }
 
 
-splitData <- function(x, y, trainSet_ratio = 0.8) {
-  #' Split labeled data into training and test sets
+splitData <- function(x, y, testSet_ratio = 0.2, seed = NULL) {
+  #' Split labeled data into training and test sets in which varied classes are balanced
   #' 
   #' Parameters
   #' x: A sample x feature matrix containing explanatory variables
   #' y: A response vector containing sample labels that correspond to samples in x
-  #' trainSet_ratio: A numeric value specifying the ratio of the size of the training
+  #' testSet_ratio: A numeric value specifying the ratio of the size of the test
   #' set to that of the total dataset
+  #' seed: A numerical value specifying the seed used for generating reproducible
+  #' training and test sets. Default is NULL
   #' 
   #' Return
-  #' A list containing training and test sets
+  #' A vector of indices defining the test set and the rest of the data is used
+  #' as the training set
   
   # Sanity check
   # stopifnot(nrow(x) == length(y))
@@ -563,36 +566,59 @@ splitData <- function(x, y, trainSet_ratio = 0.8) {
     stop("Row length of x (sample) should be same as length of y.")
   }
   
-  # Combine explanatory variables and response variable into a dataset
-  combinedTab <- data.frame(cbind(x, y))
+  # Set seed for reproducible results
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+  
   # Split data and balance samples with different labels in training and test sets
   smpIdx <- seq_along(y)
-  trainIdx <- lapply(unique(y), function(label) {
+  testIdx <- lapply(unique(y), function(label) {
     ySub <- smpIdx[y == label]
-    sample(ySub, size = as.integer(length(ySub) * trainSet_ratio)) 
-  }) %>% do.call(c, .)
-  trainData <- combinedTab[trainIdx,]
-  testData <- combinedTab[-trainIdx,]
-  return(list(trainingData = trainData, testData = testData))
+    sample(ySub, size = as.integer(length(ySub) * testSet_ratio)) 
+  }) %>% do.call(c, .) %>% sample()
+  return(testIdx)
 }
 
 
-runRF <- function(x, y, posLabel, iter = 1, trainSet_ratio = 0.8, ntree = 10000,
-                  plot_ROC = F) {
-  #' Perform random forest for classification problem. Trained RF model is evaluated
-  #' using ROC curve. If there are more than two classes, one-vs-all is used to
-  #' turn multi-class classification into binary classification for creating ROC
-  #' curve and compute AUC (Area Under ROC Curve). Furthermore, feature importance
-  #' is also computed.
+calcROC <- function(response, predictor, plot_ROC = F) {
+  #' Make ROC (Receiver Operating Characteristic) curve and compute AUC (Area Under
+  #' ROC Curve) to evaluate trained model for binary classification problem
+  if (plot_ROC) {
+    par(pty = 's')
+    rocRes <- pROC::roc(response = response, predictor = predictor, plot = T,
+                        legacy.axes = T, print.auc = T, print.auc.x = 0.4,
+                        xlab = 'False positive rate', ylab = 'True positive rate',
+                        main = 'ROC Curve for Random Forest',
+                        cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4)
+    par(pty = 'm')
+  } else {
+    rocRes <- pROC::roc(response = response, predictor = predictor, plot = F)
+  }
+  return(rocRes)
+}
+
+
+runRF <- function(x, y, targetClass, iter = 1, testSet_ratio = 0.2, seed = NULL,
+                  ntree = 10000, plot_ROC = F) {
+  # This function is currently for binary classification problem. For multi-class
+  # classification, data split and bootstrap in random forest has to be reviewed
+  # and refined!!!!
+  
+  #' Perform random forest for binary classification problem. Trained RF model is
+  #' evaluated using AUC (Area Under ROC Curve) and feature importance is computed
+  #' and retrieved
   #' 
   #' Parameters
   #' x: A sample x feature matrix containing explanatory variables
-  #' y: A response vector containing sample labels that correspond to the samples in x
-  #' posLabel: A character or a numeric value indicating the positive sample labels
-  #' that are encoded with 1 and the rest of labels are encoded with 0
+  #' y: A response vector containing sample labels (classes) that correspond to the samples in x
+  #' targetClass: A character or a numeric value indicating the target class of which
+  #' the samples are encoded with 1 and the other samples are encoded with 0
   #' iter: A numeric value specifying the number of time to run random forest
-  #' trainSet_ratio: A numeric value specifying the ratio of the size of the training
+  #' testSet_ratio: A numeric value specifying the ratio of the size of the test
   #' set to that of the total dataset
+  #' seed: A numerical value specifying the seed used for generating reproducible
+  #' training and test sets. Default is NULL
   #' ntree: A numeric value specifying the number of trees to grow, which should not
   #' be set to too low to ensure that every input row gets predicted at least a few times
   #' plot_ROC: A logical variable indicating whether ROC curve is plotted
@@ -609,18 +635,26 @@ runRF <- function(x, y, posLabel, iter = 1, trainSet_ratio = 0.8, ntree = 10000,
   if (!(nrow(x) == length(y))) {
     stop("Row length of x (sample) should be same as length of y.")
   }
+  if (!targetClass %in% unique(y)) {
+    stop("Argument for 'targetClass' should be one of classes in y")
+  }
   if (iter < 1) {
     stop("Argument for 'iter' should be integer greater than or equal to 1.")
   }
-  if (trainSet_ratio < 0 | trainSet_ratio > 1) {
-    stop("Argument for 'trainSet_ratio' should be numeric between 0 and 1.")
+  if (testSet_ratio < 0 | testSet_ratio > 1) {
+    stop("Argument for 'testSet_ratio' should be numeric between 0 and 1.")
   }
   
-  # Create vectors to save results
+  # Create containers to save results
   mtryList <- c()
   aucList <- c()
-  matMDA <- c()
-  matMDG <- c()
+  matMDA <- matrix(data = NA, nrow = ncol(x), ncol = iter,
+                   dimnames = list(colnames(x), as.character(seq_len(iter))))
+  matMDG <- matrix(data = NA, nrow = ncol(x), ncol = iter,
+                   dimnames = list(colnames(x), as.character(seq_len(iter))))
+  
+  # Encode target sample label with 1 and the rest with 0
+  y <- ifelse(test = y == targetClass, yes = 1, no = 0)
   
   for (i in seq_len(iter)) {
     # Print progress
@@ -628,54 +662,161 @@ runRF <- function(x, y, posLabel, iter = 1, trainSet_ratio = 0.8, ntree = 10000,
       print(paste0('RF', i, ' is building...'))
     }
     
-    # Separate data into training and test sets
-    splitDat <- splitData(x, y, trainSet_ratio = trainSet_ratio)
-    trainData <- splitDat$trainingData
-    testData <- splitDat$testData
-    # Turn response variable into factor to conduct random forests for classification
-    trainData$y <- as.factor(trainData$y)
-    testData$y <- as.factor(testData$y)
+    # Separate data into training and test sets and turn response variable into
+    # factor to conduct random forests for classification
+    testIdx <- splitData(x, y, testSet_ratio = testSet_ratio, seed = seed)
+    x_train <- x[-testIdx,, drop = F]
+    y_train <- y[-testIdx] %>% as.factor()
+    x_test <- x[testIdx,, drop = F]
+    y_test <- y[testIdx] %>% as.factor()
     
     # Tune mtry
-    tuneRes <- randomForest::tuneRF(x = trainData[, -which(colnames(trainData) == 'y')],
-                                    y = trainData$y, ntreeTry = 1000, stepFactor = 1.5,
+    tuneRes <- randomForest::tuneRF(x = x_train, y = y_train, ntreeTry = 1000, stepFactor = 1.5,
                                     improve = 0.01, trace = F, plot = F, dobest = F)
-    # Retrieve mtry with least OOB error
+    # Retrieve and save mtry with least OOB error
     mtry <- tuneRes[order(tuneRes[, 2]),][1, 1]
-    # Save best mtry
     mtryList <- c(mtryList, mtry)
     # Run random forest
-    rfRes <- randomForest::randomForest(y ~ ., data = trainData, mtry = mtry, ntree = ntree,
-                                        # xtest = testData[, -which(colnames(testData) == 'y')],
-                                        # ytest = testData$y,
+    rfRes <- randomForest::randomForest(x = x_train, y = y_train, mtry = mtry, ntree = ntree,
+                                        # xtest = x_test, ytest = y_test,
                                         importance = T, proximity = T, keep.forest = T)
     
     # Evaluate model by AUC of ROC curve
-    pred_rfRes <- predict(rfRes, newdata = testData, type = 'prob')
-    # Encode positive sample labels with 1s and the rest with 0s
-    colnames(pred_rfRes) <- ifelse(test = colnames(pred_rfRes) == posLabel, yes = '1', no = '0')
-    response <- ifelse(test = testData$y == posLabel, yes = 1, no = 0)
-    if (plot_ROC) {
-      par(pty = 's')
-      rocRes <- pROC::roc(response = response, predictor = pred_rfRes[, '1'],
-                       plot = T, legacy.axes = T, print.auc = T, print.auc.x = 0.4,
-                       xlab = 'False positive rate', ylab = 'True positive rate',
-                       main = 'ROC Curve for Random Forest',
-                       cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4)
-      par(pty = 'm')
-    } else {
-      rocRes <- pROC::roc(response = response, predictor = pred_rfRes[, '1'], plot = F)
-    }
+    y_pred <- predict(rfRes, newdata = x_test, type = 'prob')
+    rocRes <- calcROC(response = y_test, predictor = y_pred[, '1'], plot_ROC = plot_ROC)
     # Save AUC
     aucList <- c(aucList, rocRes$auc)
     
-    # Retrieve feature importance values from RF object
-    matMDA <- cbind(matMDA, rfRes$importance[, 'MeanDecreaseAccuracy'])
-    matMDG <- cbind(matMDG, rfRes$importance[, 'MeanDecreaseGini'])
-    colnames(matMDA) <- colnames(matMDG) <- seq_len(iter)
+    # Retrieve and save feature importance values from RF object
+    matMDA[, 1] <- rfRes$importance[, 'MeanDecreaseAccuracy']
+    matMDG[, 1] <- rfRes$importance[, 'MeanDecreaseGini']
   }
   
   return(list(mtry = mtryList, auc = aucList, MDA = matMDA, MDG = matMDG))
+}
+
+
+runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', fold = 10,
+                      used_lambda = 'lambda.1se', iter = 20, testSet_ratio = 0.2,
+                      seed = NULL, plot_ROC = F) {
+  #' Use regularized logistic regression model for binary classification problem
+  #' and feature selection. Trained model is evaluated by AUC
+  #' 
+  #' Parameters
+  #' x: A sample x feature matrix containing explanatory variables
+  #' y: A response vector containing sample labels that correspond to the samples in x
+  #' targetClass: A character or a numeric value indicating the target class of which
+  #' the samples are encoded with 1 and the other samples are encoded with 0
+  #' regularized_method: A character specifying the regularized method to use, which
+  #' should be 'lasso' (default) or 'ridge'
+  #' fold: A numeric value specifying the number of folds for cross-validation for
+  #' optimizing lambda. Default is 10, and it can be as large as the sample size
+  #' (leave-one-out cross-validation), but it is not recommended for large datasets
+  #' used_lambda: A character specifying the tuned lambda to use, which should be
+  #' one of 'lambda.1se' (default) or 'lambda.min'
+  #' iter: A numeric value specifying the number of time to run random forest
+  #' testSet_ratio: A numeric value specifying the ratio of the size of the test
+  #' set to that of the total dataset
+  #' seed: A numerical value specifying the seed used for generating reproducible
+  #' training and test sets. Default is NULL
+  #' plot_ROC: A logical variable indicating whether ROC curve is plotted
+  #' 
+  #' Return
+  #' A list containing the following components:
+  #' coefficient: A matrix containing optimized coefficients. Rows and columns present
+  #' features and independent trained models
+  #' usedLambda: A vector of used lambda for selected trained models
+  #' auc: A vector of computed AUC from trained models
+  
+  # Sanity check
+  if (!(nrow(x) == length(y))) {
+    stop("Row length of x (sample) should be same as length of y.")
+  }
+  if (!(targetClass %in% unique(y))) {
+    stop("Argument for 'targetClass' should be one of classes in y")
+  }
+  if (!(regularized_method %in% c('lasso', 'ridge'))) {
+    stop("Argument for 'regularized_method' should be 'lasso' or 'ridge'.")
+  }
+  if (!(used_lambda %in% c('lambda.1se', 'lambda.min'))) {
+    stop("Argument for 'used_lambda' should be 'lambda.1se' or 'lambda.min'.")
+  }
+  if (iter < 1) {
+    stop("Argument for 'iter' should be integer greater than or equal to 1.")
+  }
+  if (testSet_ratio < 0 | testSet_ratio > 1) {
+    stop("Argument for 'testSet_ratio' should be numeric between 0 and 1.")
+  }
+  
+  # Create containers to save results
+  matCoeffi  <- matrix(data = NA, nrow = ncol(x), ncol = iter,
+                       dimnames = list(colnames(x), as.character(seq_len(iter))))
+  lambdaList <- c()
+  aucList <- c()
+  
+  ####
+  numNonZeroList <- c()
+  
+  # Encode target sample label with 1 and the other with 0
+  # Will be coerced into factor and target class is the last level in alphabetical order
+  y <- ifelse(test = y == targetClass, yes = 1, no = 0)
+  
+  # Define penalty term for model according to regularized method specified
+  if (regularized_method == 'lasso') {
+    alpha <- 1
+  } else if (regularized_method == 'ridge') {
+    alpha <- 0
+  }
+  
+  for (i in seq_len(iter)) {
+    # Print progress
+    if (i %% 10 == 0) {
+      print(paste0('LR model', i, ' is running...'))
+    }
+    
+    # Bootstrap data and use OOB samples as test set
+    trainIdx <- sample(seq_along(y), size = round(length(y)*(1-testSet_ratio)), replace = T)
+    x_train <- x[trainIdx,, drop = F]
+    y_train <- y[trainIdx]
+    x_test <- x[-trainIdx,, drop = F]
+    y_test <- y[-trainIdx]
+    # Separate data into training and test sets
+    # testIdx <- splitData(x, y, testSet_ratio = testSet_ratio, seed = seed)
+    # x_train <- x[-testIdx,, drop = F]
+    # y_train <- y[-testIdx]
+    # x_test <- x[testIdx,, drop = F]
+    # y_test <- y[testIdx]
+    
+    # Train logistic regression model
+    lrRes <- glmnet::cv.glmnet(x = x_train, y = y_train, family = 'binomial', type.measure = 'auc',
+                               nfolds = fold, alpha = alpha, standardize = F, intercept = T)
+    # Save selected lambda of trained model
+    lambdaList <- c(lambdaList, round(lrRes[[used_lambda]], 4))
+    # Retrieve and save coefficients of fitted model
+    matCoeffi[, i] <- as.matrix(coef(lrRes, s = lrRes[[used_lambda]]))[-1, 1]
+    
+    ####
+    coeffi <- as.matrix(coef(lrRes, s = lrRes[[used_lambda]]))[-1, 1]
+    numNonZeroList <- c(numNonZeroList, sum(coeffi != 0))
+    
+    # Evaluate model by AUC of ROC curve
+    y_pred <- predict(lrRes, s = lrRes[[used_lambda]], newx = x_test, type = 'response')
+    rocRes <- calcROC(response = y_test, predictor = y_pred[, 1], plot_ROC = plot_ROC)
+    # Save AUC
+    aucList <- c(aucList, rocRes$auc)
+  }
+  
+  return(list(coefficient = matCoeffi, usedLambda = lambdaList, auc = aucList))
+}
+
+
+calcCI <- function(stats, gamma = 0.95) {
+  #' Compute upper and lower bounds of confidence interval
+  p <- (1-gamma) / 2
+  lower <- as.numeric(quantile(stats, p))
+  p <- gamma + ((1-gamma) / 2)
+  upper <- as.numeric(quantile(stats, p))
+  return(c(lower = lower, upper = upper))
 }
 
 
