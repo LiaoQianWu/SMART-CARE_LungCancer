@@ -1093,7 +1093,7 @@ if (identical(colnames(proTumorMat), colnames(proNormalMat)) &
   print('Align samples or features first.')
 }
 # Retrieve samples metadata for creating SE object
-colAnno <- dplyr::select(as.data.frame(colData(proTumor)), Patient, Recurrence)
+colAnno <- as.data.frame(colData(proTumor))
 proTissueDiff <- SummarizedExperiment(assays = proTissueDiffMat, colData = colAnno)
 
 # Display significant associations between PCs and metadata variables
