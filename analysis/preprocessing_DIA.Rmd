@@ -555,13 +555,13 @@ ggplot(proTissueTabNorm_Klin, aes(x=Sample, y=Value)) +
 Display significant associations between learned PCs (Var1) and tissue conditions or batches (Var2)
 ```{r}
 # Perform PCA
-proTissueRes_klin <- doSOA(proTissueNorm_Klin, meta_var = c('Condition', 'Batch'),
+proTissueRes_Klin <- doSOA(proTissueNorm_Klin, meta_var = c('Condition', 'Batch'),
                            pca_method = 'ppca', num_PCs = 20, do_onlyPCA = T)
-pcaRes <- proTissueRes_klin$pcaRes
-pcTab <- proTissueRes_klin$pcTab
+pcaRes <- proTissueRes_Klin$pcaRes
+pcTab <- proTissueRes_Klin$pcTab
 
 # Display PCs of interest
-proTissueRes_klin$tPCASigRes
+proTissueRes_Klin$tPCASigRes
 ```
 
 Display variance explained by each PC
@@ -629,8 +629,8 @@ ggplot(proTissueMediTab_Klin, aes(x=Sample, y=mediAbundance)) +
   geom_boxplot() +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 
-proTissueMedi_klin <- df2SummExp(proTissueMediTab_Klin, row_id = 'Feature', col_id = 'Sample',
+proTissueMedi_Klin <- df2SummExp(proTissueMediTab_Klin, row_id = 'Feature', col_id = 'Sample',
                                  values = 'mediAbundance', row_anno = c('PG.Genes'),
                                  col_anno = c(anno, 'Adjuvant', 'Batch'))
-# saveRDS(proTissueMedi_klin, './data/AG_Klingmuller/proTissueMedi_DIA.rds')
+saveRDS(proTissueMedi_Klin, './data/AG_Klingmuller/proTissueMedi_DIA.rds')
 ```

@@ -103,7 +103,7 @@ ggsave('./output/group_meeting/proPlasma_Kri_DIA_DDA_comparison.png', device = '
        dpi = 400, height = 8, width = 8)
 ```
 
-```{r message=F, include=T, eval=F}
+```{r message=F, include=F, eval=F}
 # Display significant associations between features and cancer recurrence
 # DIA
 # Prepare protein-gene table for changing protein names to gene names
@@ -142,14 +142,13 @@ proBase_DDA <- proPlasma_DDA[, smpBaseIdx]
 proBaseRes_DDA <- doSOA(proBase_DDA, meta_var = 'Recurrence', num_PCfeats = 30)
 tFeatSigRes_DDA <- proBaseRes_DDA$tFeatSigRes %>%
   dplyr::select(-c(Test, Var2)) %>%
-  dplyr::rename(Protein = Var1, tStat = Stat)
-
-# Display features that can significantly separate recurrence and non-recurrence
-# patients
-dplyr::mutate(tFeatSigRes_DDA, Gene = plyr::mapvalues(Protein,
-                                                      from = featInfo_DDA$PG.Groups,
-                                                      to = featInfo_DDA$PG.Genes,
-                                                      warn_missing = F))
+  dplyr::rename(Protein = Var1, tStat = Stat) %>%
+  dplyr::mutate(Gene = plyr::mapvalues(Protein,
+                                       from = featInfo_DDA$PG.Groups,
+                                       to = featInfo_DDA$PG.Genes,
+                                       warn_missing = F))
+# Display features significantly separating recurrence and non-recurrence patients
+tFeatSigRes_DDA
 
 # Display overlaps between DIA and DDA significant proteins
 # Select first protein as representative if there are more than one
@@ -186,7 +185,7 @@ Note that both Baseline and Follow-up samples were used.
 # Load preprocessed data
 proTissue_DIA <- readRDS('./data/AG_Krijgsveld/proTissueNorm_DIA.rds')
 proTissue_DDA <- readRDS('./data/AG_Krijgsveld/proTissueNorm.rds')
-proTissue_DIA_klin <- readRDS('./data/AG_Klingmuller/proTissueNorm_DIA.rds')
+proTissue_DIA_Klin <- readRDS('./data/AG_Klingmuller/proTissueNorm_DIA.rds')
 ```
 
 DIA (5658) vs DDA (5193) Tissue Proteomics both from AG Krijgsveld => 4636 common features
@@ -245,7 +244,7 @@ DIA Tissue Proteomics from AG Klingmüller (8257) vs DDA Tissue Proteomics from 
 Krijgsveld (5193) => 5022 common features
 ```{r}
 # Extract data matrix
-dat1 <- SummarizedExperiment::assay(proTissue_DIA_klin)
+dat1 <- SummarizedExperiment::assay(proTissue_DIA_Klin)
 dat2 <- SummarizedExperiment::assay(proTissue_DDA)
 
 # Make two matrices share same sample and feature spaces and in same row and column order
@@ -286,7 +285,7 @@ DIA Tissue Proteomics from AG Krijgsveld (5658) vs AG Klingmüller (8257) => 545
 ```{r}
 # Extract data matrix
 dat1 <- SummarizedExperiment::assay(proTissue_DIA)
-dat2 <- SummarizedExperiment::assay(proTissue_DIA_klin)
+dat2 <- SummarizedExperiment::assay(proTissue_DIA_Klin)
 
 # Make two matrices share same sample and feature spaces and in same row and column order
 # Keep only common samples

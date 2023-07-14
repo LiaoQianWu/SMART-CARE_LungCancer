@@ -628,7 +628,7 @@ tPCASigRes
 proTissue <- readRDS('./data/AG_Krijgsveld/proTissueNorm_DIA.rds')
 # Prepare protein-gene table for changing protein names to gene names
 featInfo <- tibble::as_tibble(rowData(proTissue), rownames = 'Protein.Groups')
-# Manually modify metadata information (time point, metastasis)
+# Manually modify metadata information (metastasis)
 tmp_metadata <- as.data.frame(colData(proTissue)) %>%
   dplyr::mutate(
     Metastasis = case_when(
@@ -1068,9 +1068,7 @@ tPCASigRes
 ## Difference in tissue conditions
 Differences between Tumor and Normal samples (Tumor matrix - Normal matrix):\
 
-Display significant associations between features (Var1) and cancer recurrence
-(Var2) and observe molecular signatures in input data through heatmap. Note that
-features in heatmap are ordered by their t-statistics.
+Display significant associations between learned PCs (Var1) and metadata variables (Var2)
 ```{r}
 # Subset tumor samples
 smpTumorIdx <- which(colData(proTissue)$Condition == 'Tumor')
@@ -1088,6 +1086,7 @@ proNormalMat <- SummarizedExperiment::assay(proNormal)
 if (identical(colnames(proTumorMat), colnames(proNormalMat)) &
     identical(rownames(proTumorMat), rownames(proNormalMat))) {
   proTissueDiffMat <- proTumorMat - proNormalMat
+  # Remove features fully missing
   allNAsIdx <- which(apply(proTissueDiffMat, 1, function(x) {all(is.na(x))}))
   proTissueDiffMat <- proTissueDiffMat[-allNAsIdx,]
 } else {
@@ -1097,6 +1096,17 @@ if (identical(colnames(proTumorMat), colnames(proNormalMat)) &
 colAnno <- dplyr::select(as.data.frame(colData(proTumor)), Patient, Recurrence)
 proTissueDiff <- SummarizedExperiment(assays = proTissueDiffMat, colData = colAnno)
 
+# Display significant associations between PCs and metadata variables
+proTissueDiffAssoRes <- doSOA(proTissueDiff, meta_var = c('Recurrence', 'Gender', 'Age',
+                                                          'Smoking', 'Stage', 'Metastasis'),
+                              do_onlyPCA = T, pca_method = 'ppca', num_PCs = 15)
+proTissueDiffAssoRes$tPCASigRes
+```
+
+Display significant associations between features (Var1) and cancer recurrence
+(Var2) and observe molecular signatures in input data through heatmap. Note that
+features in heatmap are ordered by their t-statistics.
+```{r}
 # Perform analysis
 proTissueDiffRes <- doSOA(proTissueDiff, meta_var = 'Recurrence', pca_method = 'ppca',
                           num_PCs = 15, num_PCfeats = 30)
