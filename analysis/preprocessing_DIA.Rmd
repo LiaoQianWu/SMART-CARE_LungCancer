@@ -49,7 +49,7 @@ anno <- c('Condition', 'Patient', 'Recurrence', 'Gender', 'Age', 'Smoking',
           'Stage', 'Identifier')
 ```
 
-# Plasma Proteomics
+# Plasma Proteomics (AG Krijgsveld)
 
 ```{r message = F}
 # Load unprocessed data
@@ -226,7 +226,7 @@ proPlasmaMedi <- df2SummExp(proPlasmaMediTab, row_id = 'Feature', col_id = 'Samp
 
 
 
-# Tissue Proteomics
+# Tissue Proteomics (AG Krijgsveld)
 
 ```{r message = F}
 # Load unprocessed data
@@ -610,6 +610,9 @@ ggplot(pcTab, aes(x=PC2, y=PC8, col=Batch, group=Patient)) +
   geom_line(col = 'grey50', linetype = 'dashed') +
   th
 ```
+=> There is slight batch effect between Method Development and Discovery samples.
+However, for current data analysis (single- and multi-omics), Discovery samples
+are excluded, so batch correction is not going to be performed yet.
 
 ```{r eval=F}
 # Store median normalized data for computing log2(FC)

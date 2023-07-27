@@ -1,0 +1,341 @@
+---
+title: 'Preprocessing: Method development lung cancer patient cohort'
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+---
+
+<font size='4'> Description: Preprocess Plasma and Tissue DIA Proteomics generated
+by Karim Aljakouch from AG Krijgsveld, simply including data cleansing and data
+normalization (VSN). All needed information of each dataset (2 in total) was then
+stored in SummarizedExperiment objects for further analyses. </font>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+```
+
+Load libraries
+```{r library loading, message = FALSE}
+library('readr')
+library('readxl')
+library('vsn')
+library('visdat')
+library('SummarizedExperiment')
+library('tidyverse')
+# Load user-defined functions
+source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
+
+# List sample annotations to keep in SE objects
+anno <- c('Condition', 'Patient', 'Recurrence', 'Gender', 'Age', 'Smoking',
+          'Stage', 'Identifier')
+```
+
+# Plasma Proteomics
+
+```{r message = F}
+# Load unprocessed data
+proPlasmaTab <- readr::read_delim('./data/AG_Krijgsveld/20230726_Thorax_Method_Est_plasma.txt') %>%
+  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %>%
+  tidyr::pivot_longer(cols = -c('Protein.Group', 'Protein.Names', 'Genes'),
+                      names_to = 'Identifier',
+                      values_to = 'Abundance') %>%
+  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, '_HUMAN'),
+                Identifier = stringr::str_remove_all(Identifier, '_4\\.raw$'))
+
+# Load sample metadata from preprocessed Targeted Metabolomics SE object
+smpAnno <- colData(readRDS('./data/AG_Hell/metaPlasmaNorm.rds')) %>%
+  tibble::as_tibble(rownames = 'Sample') %>%
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'),
+                TimePoint = dplyr::case_when(Condition == 'Baseline' ~ 'Bseline',
+                                             Condition != 'Baseline' ~ '2 years later'))
+
+# Combine all information into a table
+proPlasmaTab <- dplyr::left_join(proPlasmaTab, smpAnno, by = 'Identifier') %>%
+  # Exclude Sample 'G045W7J8_P_B' due to extremely high missingness (72%)
+  dplyr::filter(Sample != 'G045W7J8_P_B')
+
+# Convert long data to SE object (wide data)
+proPlasma <- df2SummExp(proPlasmaTab, row_id = 'Protein.Group', col_id = 'Sample',
+                        values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
+                        col_anno = anno)
+```
+
+Display dimensions of data (39 samples and 1097 features)
+```{r}
+dim(proPlasma)
+```
+=> Baseline sample 'G045W7J8_P_B' is excluded due to extremely high missingness (72%).
+<br/>
+<br/>
+
+Display data missingness
+```{r}
+exprMat <- SummarizedExperiment::assay(proPlasma)
+visdat::vis_miss(exprMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0, size = 11, face = 'bold'),
+        axis.text.y = element_blank(),
+        axis.title.y = element_text(size = 13, face = 'bold'),
+        legend.text = element_text(size = 12, face = 'bold'))
+```
+
+Display distribution of original data
+```{r}
+ggplot(proPlasmaTab, aes(x=Sample, y=Abundance)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(y = 'Protein abundance') +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+**Remove features quantified in less than 2/3 of samples in all four sample groups**
+**of interest (Baseline/Follow-up Recurrence/Non-recurrence) for more reliable data normalization**\
+Missing data is more likely to happen in proteins with small abundances due to detection
+limit. Image comparison between two sample groups, certain proteins are highly missing
+in one group and present in the other
+```{r message = F}
+# Remove features quantified in less than 2/3 of samples in all sample groups of interest
+# Grouping like this since Baseline and Follow-up samples will be analyzed separately
+rmFeats <- dplyr::group_by(proPlasmaTab, Protein.Group, TimePoint, Recurrence) %>%
+  # Compute proportion of observed data points of each group
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
+  dplyr::ungroup() %>%
+  # Keep proteins observed in less than 2/3 of samples of groups
+  dplyr::filter(frac_nonNA < 0.67) %>%
+  dplyr::group_by(Protein.Group) %>%
+  dplyr::summarise(Count = length(Protein.Group)) %>%
+  # Keep proteins observed in less than 2/3 of samples of all groups
+  dplyr::filter(Count == 4) %>%
+  dplyr::pull(Protein.Group)
+proPlasmaTab <- dplyr::filter(proPlasmaTab, !Protein.Group %in% rmFeats)
+
+# Convert long data to SE object
+proPlasma <- df2SummExp(proPlasmaTab, row_id = 'Protein.Group', col_id = 'Sample',
+                        values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
+                        col_anno = anno)
+```
+
+Display dimensions of filtered data (39 samples and 648 features)
+```{r}
+dim(proPlasma)
+```
+
+Display data missingness
+```{r}
+exprMat <- SummarizedExperiment::assay(proPlasma)
+visdat::vis_miss(exprMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0, size = 11, face = 'bold'),
+        axis.text.y = element_blank(),
+        axis.title.y = element_text(size = 13, face = 'bold'),
+        legend.text = element_text(size = 12, face = 'bold'))
+```
+
+Display distribution of filtered data
+```{r}
+ggplot(proPlasmaTab, aes(x=Sample, y=Abundance)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(y = 'Protein abundance') +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Perform VSN and display distribution of normalized data
+```{r}
+# Perform VSN
+exprMat <- as.matrix(SummarizedExperiment::assay(proPlasma))
+fit <- vsnMatrix(exprMat)
+proPlasmaNorm <- proPlasma
+SummarizedExperiment::assay(proPlasmaNorm) <- predict(fit, exprMat)
+
+# Save normalized data
+# saveRDS(proPlasmaNorm, './data/AG_Krijgsveld/new_proPlasmaNorm_DIA.rds')
+
+# Convert SE object to long data for plotting
+proPlasmaTabNorm <- summExp2df(proPlasmaNorm, assay = 'Abundance',
+                               row_id = 'Protein.Group', col_id = 'Sample')
+
+ggplot(proPlasmaTabNorm, aes(x=Sample, y=Value)) +
+  geom_boxplot() +
+  labs(y = 'Normalized protein abundance') +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+```{r eval=F}
+# Store median normalized data for computing log2(FC)
+exprMat <- as.matrix(assay(proPlasma))
+sampleAnno <- tibble::as_tibble(colData(proPlasma), rownames = 'Sample')
+featAnno <- tibble::as_tibble(rowData(proPlasma), rownames = 'Feature')
+proPlasmaMediTab <- limma::normalizeBetweenArrays(exprMat, method = 'scale') %>%
+  tibble::as_tibble(rownames = 'Feature') %>%
+  tidyr::pivot_longer(cols = -'Feature',
+                      names_to = 'Sample',
+                      values_to = 'mediAbundance') %>%
+  dplyr::mutate(mediAbundance = log2(mediAbundance)) %>%
+  dplyr::left_join(sampleAnno, by = 'Sample') %>%
+  dplyr::left_join(featAnno, by = 'Feature')
+
+ggplot(proPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
+  geom_boxplot() +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+proPlasmaMedi <- df2SummExp(proPlasmaMediTab, row_id = 'Feature', col_id = 'Sample',
+                            values = 'mediAbundance', row_anno = c('Protein.Names', 'Genes'),
+                            col_anno = anno)
+# saveRDS(proPlasmaMedi, './data/AG_Krijgsveld/new_proPlasmaMedi_DIA.rds')
+```
+
+
+
+
+# Tissue Proteomics
+
+```{r message = F}
+# Load unprocessed data
+proTissueTab <- readr::read_delim('./data/AG_Krijgsveld/20230726_Thorax_Method_Est_tissue.txt') %>%
+  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %>%
+  tidyr::pivot_longer(cols = -c('Protein.Group', 'Protein.Names', 'Genes'),
+                      names_to = 'Identifier',
+                      values_to = 'Abundance') %>%
+  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, '_HUMAN'),
+                Identifier = stringr::str_remove_all(Identifier, '_4\\.raw$'))
+
+# Load sample metadata from preprocessed Targeted Metabolomics SE object
+smpAnno <- colData(readRDS('./data/AG_Hell/metaTissueNorm.rds')) %>%
+  tibble::as_tibble(rownames = 'Sample') %>%
+  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
+
+# Combine all information into a table
+proTissueTab <- dplyr::left_join(proTissueTab, smpAnno, by = 'Identifier')
+
+# Convert long data to SE object (wide data)
+proTissue <- df2SummExp(proTissueTab, row_id = 'Protein.Group', col_id = 'Sample',
+                        values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
+                        col_anno = anno)
+```
+
+Display dimensions of data (40 samples and 7537 features)
+```{r}
+dim(proTissue)
+```
+
+Display data missingness
+```{r}
+exprMat <- SummarizedExperiment::assay(proTissue)
+visdat::vis_miss(exprMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0, size = 11, face = 'bold'),
+        axis.text.y = element_blank(),
+        axis.title.y = element_text(size = 13, face = 'bold'),
+        legend.text = element_text(size = 12, face = 'bold'))
+```
+
+Display distribution of original data
+```{r}
+ggplot(proTissueTab, aes(x=Sample, y=Abundance)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(y = 'Protein abundance') +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+**Remove features quantified in less than 2/3 of samples in all four sample groups**
+**of interest (Normal/Tumor Recurrence/Non-recurrence) for more reliable data normalization**
+```{r message = F}
+# Remove features quantified in less than 2/3 of samples in all sample groups of interest
+rmFeats <- dplyr::group_by(proTissueTab, Protein.Group, Condition, Recurrence) %>%
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(frac_nonNA < 0.67) %>%
+  dplyr::group_by(Protein.Group) %>%
+  dplyr::summarise(Count = length(Protein.Group)) %>%
+  dplyr::filter(Count == 4) %>%
+  dplyr::pull(Protein.Group)
+proTissueTab <- dplyr::filter(proTissueTab, !Protein.Group %in% rmFeats)
+
+# Convert long data to SE object
+proTissue <- df2SummExp(proTissueTab, row_id = 'Protein.Group', col_id = 'Sample',
+                        values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
+                        col_anno = anno)
+```
+
+Display dimensions of filtered data (40 samples and 6873 features)
+```{r}
+dim(proTissue)
+```
+
+Display data missingness
+```{r}
+exprMat <- SummarizedExperiment::assay(proTissue)
+visdat::vis_miss(exprMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0, size = 11, face = 'bold'),
+        axis.text.y = element_blank(),
+        axis.title.y = element_text(size = 13, face = 'bold'),
+        legend.text = element_text(size = 12, face = 'bold'))
+```
+
+Display distribution of filtered data
+```{r}
+ggplot(proTissueTab, aes(x=Sample, y=Abundance)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(y = 'Protein abundance') +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Perform VSN and display distribution of normalized data
+```{r}
+# Perform VSN
+exprMat <- as.matrix(SummarizedExperiment::assay(proTissue))
+fit <- vsnMatrix(exprMat)
+proTissueNorm <- proTissue
+SummarizedExperiment::assay(proTissueNorm) <- predict(fit, exprMat)
+
+# Save normalized data
+# saveRDS(proTissueNorm, './data/AG_Krijgsveld/new_proTissueNorm_DIA.rds')
+
+# Convert SE object to long data for plotting
+proTissueTabNorm <- summExp2df(proTissueNorm, assay = 'Abundance',
+                               row_id = 'Protein.Group', col_id = 'Sample')
+
+ggplot(proTissueTabNorm, aes(x=Sample, y=Value)) +
+  geom_boxplot() +
+  labs(y = 'Normalized protein abundance') +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+```{r eval=F}
+# Store median normalized data for computing log2(FC)
+exprMat <- as.matrix(assay(proTissue))
+sampleAnno <- tibble::as_tibble(colData(proTissue), rownames = 'Sample')
+featAnno <- tibble::as_tibble(rowData(proTissue), rownames = 'Feature')
+proTissueMediTab <- limma::normalizeBetweenArrays(exprMat, method = 'scale') %>%
+  tibble::as_tibble(rownames = 'Feature') %>%
+  tidyr::pivot_longer(cols = -'Feature',
+                      names_to = 'Sample',
+                      values_to = 'mediAbundance') %>%
+  dplyr::mutate(mediAbundance = log2(mediAbundance)) %>%
+  dplyr::left_join(sampleAnno, by = 'Sample') %>%
+  dplyr::left_join(featAnno, by = 'Feature')
+
+ggplot(proTissueMediTab, aes(x=Sample, y=mediAbundance)) +
+  geom_boxplot() +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+proTissueMedi <- df2SummExp(proTissueMediTab, row_id = 'Feature', col_id = 'Sample',
+                            values = 'mediAbundance', row_anno = c('Protein.Names', 'Genes'),
+                            col_anno = anno)
+# saveRDS(proTissueMedi, './data/AG_Krijgsveld/new_proTissueMedi_DIA.rds')
+```
