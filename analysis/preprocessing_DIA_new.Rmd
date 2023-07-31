@@ -8,7 +8,7 @@ output:
     code_folding: hide
 ---
 
-<font size='4'> Description: Preprocess Plasma and Tissue DIA Proteomics generated
+<font size='4'> Description: Preprocess New Plasma and Tissue DIA Proteomics generated
 by Karim Aljakouch from AG Krijgsveld, simply including data cleansing and data
 normalization (VSN). All needed information of each dataset (2 in total) was then
 stored in SummarizedExperiment objects for further analyses. </font>

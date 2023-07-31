@@ -51,6 +51,7 @@ Tissue samples, which also indicates that Tissue samples are more noisy.
 ### 2.1 [Plasma and Tissue Targeted Metabolomics and DDA Proteomics](preliminary_analysis_targeted_DDA.html)
 ### 2.2 [Plasma and Tissue Untargeted Metabolomics and Lipidomics](preliminary_analysis_untargeted.html)
 ### 2.3 [Plasma and Tissue DIA Proteomics (Krijgsveld & Klingmüller)](preliminary_analysis_DIA.html)
+### 2.4 [New Plasma and Tissue DIA Proteomics (Krijgsveld)](preliminary_analysis_DIA_new.html)
 
 ---
 
