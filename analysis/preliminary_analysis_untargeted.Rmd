@@ -266,11 +266,15 @@ significance test.
 Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDAMetaBaseRes$name[1:6]
-topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+topSigFeats <- proDAMetaBaseRes[1:6,] %>%
+  dplyr::select(name, pval, MZ_RT) %>%
+  dplyr::rename(Feature = name, pVal = pval)
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats$Feature,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(topSigFeats, by = 'Feature') %>%
+  dplyr::mutate(MZ_RT = paste0(MZ_RT, '\n(p = ', round(pVal, 4), ')'),
+                MZ_RT = factor(MZ_RT, levels = unique(MZ_RT))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
@@ -278,7 +282,7 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  facet_wrap(vars(Feature), scales = 'free_y') +
+  facet_wrap(vars(MZ_RT), scales = 'free') +
   th + theme(strip.text = element_text(size = 13, face = 'bold'))
   # theme(strip.text = element_text(size = 14),
   #       axis.title = element_text(size = 17), axis.text = element_text(size = 12),
@@ -286,6 +290,12 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
   #       panel.grid.major.x = element_blank())
 # ggsave('./output/AG_Hopf/boxplot_proDA_topSigFeats_BPM.png', device = 'png',
 # dpi = 400, height = 8, width = 10)
+```
+
+Assess data power by p-value histogram
+```{r}
+p <- all_proDAMetaBaseRes$pval
+hist(p, xlab = 'P-value', main = 'Baseline Plasma Metabolomics (proDA)')
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -437,32 +447,33 @@ pheatmap::pheatmap(datMat[featOrder, smpOrder],
 sigFeatSheet <- append(sigFeatSheet, list(FolloPlasmaMetab_Feats = proDAMetaFoloRes))
 ```
 
-```{r}
-ovl <- intersect(metaFoloRes$tFeatSigRes$Var1, proDAMetaFoloRes$name)
-cat('The following features', paste0('(n =', length(ovl), ')'),
-    'are tested significant by both methods:\n', ovl)
-```
-
 Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDAMetaFoloRes$name[1:6]
-topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+topSigFeats <- proDAMetaFoloRes[1:6,] %>%
+  dplyr::select(name, pval, MZ_RT) %>%
+  dplyr::rename(Feature = name, pVal = pval)
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats$Feature,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(topSigFeats, by = 'Feature') %>%
+  dplyr::mutate(MZ_RT = paste0(MZ_RT, '\n(p = ', round(pVal, 4), ')'),
+                MZ_RT = factor(MZ_RT, levels = unique(MZ_RT))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  facet_wrap(vars(Feature), scales = 'free') +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
+  facet_wrap(vars(MZ_RT), scales = 'free') +
   th + theme(strip.text = element_text(size = 13, face = 'bold'))
+```
+
+Assess data power by p-value histogram
+```{r}
+p <- all_proDAMetaFoloRes$pval
+hist(p, xlab = 'P-value', main = 'Follow-up Plasma Metabolomics (proDA)')
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -821,32 +832,33 @@ pheatmap::pheatmap(datMat[featOrder, smpOrder],
 sigFeatSheet <- append(sigFeatSheet, list(BasePlasmaLipid_Feats = proDALipBaseRes))
 ```
 
-```{r}
-ovl <- intersect(lipBaseRes$tFeatSigRes$Var1, proDALipBaseRes$name)
-cat('The following features', paste0('(n =', length(ovl), ')'),
-    'are tested significant by both methods:\n', ovl)
-```
-
 Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDALipBaseRes$name[1:6]
-topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+topSigFeats <- proDALipBaseRes[1:6,] %>%
+  dplyr::select(name, pval, MZ_RT) %>%
+  dplyr::rename(Feature = name, pVal = pval)
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats$Feature,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(topSigFeats, by = 'Feature') %>%
+  dplyr::mutate(MZ_RT = paste0(MZ_RT, '\n(p = ', round(pVal, 4), ')'),
+                MZ_RT = factor(MZ_RT, levels = unique(MZ_RT))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  facet_wrap(vars(Feature), scales = 'free') +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
+  facet_wrap(vars(MZ_RT), scales = 'free') +
   th + theme(strip.text = element_text(size = 13, face = 'bold'))
+```
+
+Assess data power by p-value histogram
+```{r}
+p <- all_proDALipBaseRes$pval
+hist(p, xlab = 'P-value', main = 'Baseline Plasma Lipidomics (proDA)')
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -1002,32 +1014,33 @@ pheatmap::pheatmap(datMat[featOrder, smpOrder], #Feature794 only has 2 observed 
 sigFeatSheet <- append(sigFeatSheet, list(FolloPlasmaLipid_Feats = proDALipFoloRes))
 ```
 
-```{r}
-ovl <- intersect(lipFoloRes$tFeatSigRes$Var1, proDALipFoloRes$name)
-cat('The following features', paste0('(n =', length(ovl), ')'),
-    'are tested significant by both methods:\n', ovl)
-```
-
 Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDALipFoloRes$name[1:6]
-topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+topSigFeats <- proDALipFoloRes[1:6,] %>%
+  dplyr::select(name, pval, MZ_RT) %>%
+  dplyr::rename(Feature = name, pVal = pval)
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats$Feature,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(topSigFeats, by = 'Feature') %>%
+  dplyr::mutate(MZ_RT = paste0(MZ_RT, '\n(p = ', round(pVal, 4), ')'),
+                MZ_RT = factor(MZ_RT, levels = unique(MZ_RT))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  facet_wrap(vars(Feature), scales = 'free') +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
+  facet_wrap(vars(MZ_RT), scales = 'free') +
   th + theme(strip.text = element_text(size = 13, face = 'bold'))
+```
+
+Assess data power by p-value histogram
+```{r}
+p <- all_proDALipFoloRes$pval
+hist(p, xlab = 'P-value', main = 'Follow-up Plasma Lipidomics (proDA)')
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -1388,20 +1401,18 @@ a <- pheatmap::pheatmap(datMat[featOrder, smpOrder],
 sigFeatSheet <- append(sigFeatSheet, list(TumorTissueMetab_Feats = proDAMetaTumorRes))
 ```
 
-```{r}
-ovl <- intersect(metaTumorRes$tFeatSigRes$Var1, proDAMetaTumorRes$name)
-cat('The following features', paste0('(n =', length(ovl), ')'),
-    'are tested significant by both methods:\n', ovl)
-```
-
 Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDAMetaTumorRes$name[1:6]
-topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+topSigFeats <- proDAMetaTumorRes[1:6,] %>%
+  dplyr::select(name, pval, MZ_RT) %>%
+  dplyr::rename(Feature = name, pVal = pval)
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats$Feature,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(topSigFeats, by = 'Feature') %>%
+  dplyr::mutate(MZ_RT = paste0(MZ_RT, '\n(p = ', round(pVal, 4), ')'),
+                MZ_RT = factor(MZ_RT, levels = unique(MZ_RT))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
@@ -1409,13 +1420,19 @@ ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recur
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  facet_wrap(vars(Feature), scales = 'free_y') +
+  facet_wrap(vars(MZ_RT), scales = 'free') +
   th + theme(strip.text = element_text(size = 13, face = 'bold'))
   # theme(strip.text = element_text(size = 14),
   #       axis.title = element_text(size = 17), axis.text = element_text(size = 12),
   #       legend.title = element_text(size = 15), legend.text = element_text(size = 15),
   #       panel.grid.major.x = element_blank())
 # ggsave('./output/AG_Hopf/boxplot_proDA_topSigFeats_TTM.png', device = 'png', dpi = 400, height = 8, width = 10)
+```
+
+Assess data power by p-value histogram
+```{r}
+p <- all_proDAMetaTumorRes$pval
+hist(p, xlab = 'P-value', main = 'Tumor Tissue Metabolomics (proDA)')
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -1578,34 +1595,33 @@ a <- pheatmap::pheatmap(datMat[featOrder, smpOrder],
 sigFeatSheet <- append(sigFeatSheet, list(NormalTissueMetab_Feats = proDAMetaNormalRes))
 ```
 
-```{r}
-ovl <- intersect(metaNormalRes$tFeatSigRes$Var1, proDAMetaNormalRes$name)
-cat('The following features', paste0('(n =', length(ovl), ')'),
-    'are tested significant by both methods:\n', ovl)
-```
-
 Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDAMetaNormalRes$name[2:7]
-topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+topSigFeats <- proDAMetaNormalRes[1:6,] %>%
+  dplyr::select(name, pval, MZ_RT) %>%
+  dplyr::rename(Feature = name, pVal = pval)
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats$Feature,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(topSigFeats, by = 'Feature') %>%
+  dplyr::mutate(MZ_RT = paste0(MZ_RT, '\n(p = ', round(pVal, 4), ')'),
+                MZ_RT = factor(MZ_RT, levels = unique(MZ_RT))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  facet_wrap(vars(Feature), scales = 'free') +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
+  facet_wrap(vars(MZ_RT), scales = 'free') +
   th + theme(strip.text = element_text(size = 13, face = 'bold'))
-# ggsave(paste0(result_path, 'AG_Hopf/metaNormal_topSigFeats.png'), device = 'png', dpi = 400,
-#        height = 8, width = 10)
+```
+
+Assess data power by p-value histogram
+```{r}
+p <- all_proDAMetaNormalRes$pval
+hist(p, xlab = 'P-value', main = 'Normal Tissue Metabolomics (proDA)')
 ```
 
 There is no significant association between PCs (Var1) and cancer recurrence (Var2).
@@ -1791,17 +1807,15 @@ through heatmap. Note that features in heatmap are ordered by their loadings.
 topFeats <- pcTopFeatTab$PC10$Feature[1:20]
 # Order features by loadings
 topFeatsIdx <- sapply(topFeats, function(feat) {which(rownames(datMat) == feat)})
-# Change protein names to gene names
-datMatSub <- datMat[topFeatsIdx, smpOrder]
-rownames(datMatSub) <- plyr::mapvalues(rownames(datMatSub),
-                                       from = featInfo$Protein.Groups,
-                                       to = featInfo$Genes,
-                                       warn_missing = F)
-pheatmap::pheatmap(datMatSub,
+pheatmap::pheatmap(datMat[topFeatsIdx, smpOrder],
                    annotation_col = smpRecur,
                    color = colorRampPalette(c('navy', 'white', 'red'))(100),
                    cluster_rows = F, cluster_cols = F,
                    scale = 'row', main = 'Differential tissue metabolomics - PC10')
+
+# Display top features with highest loadings of PC of interest
+pcTopFeats <- dplyr::left_join(pcTopFeatTab$PC10, featInfo, by = 'Feature')
+pcTopFeats
 
 # Store table in list for creating Excel file
 sigFeatSheet <- append(sigFeatSheet, list(DiffTissueMetab_PC10 = pcTopFeats))
@@ -1965,32 +1979,33 @@ pheatmap::pheatmap(datMat[featOrder, smpOrder],
 sigFeatSheet <- append(sigFeatSheet, list(TumorTissueLipid_Feats = proDALipTumorRes))
 ```
 
-```{r}
-ovl <- intersect(lipTumorRes$tFeatSigRes$Var1, proDALipTumorRes$name)
-cat('The following features', paste0('(n =', length(ovl), ')'),
-    'are tested significant by both methods:\n', ovl)
-```
-
 Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDALipTumorRes$name[1:6]
-topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+topSigFeats <- proDALipTumorRes[1:6,] %>%
+  dplyr::select(name, pval, MZ_RT) %>%
+  dplyr::rename(Feature = name, pVal = pval)
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats$Feature,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(topSigFeats, by = 'Feature') %>%
+  dplyr::mutate(MZ_RT = paste0(MZ_RT, '\n(p = ', round(pVal, 4), ')'),
+                MZ_RT = factor(MZ_RT, levels = unique(MZ_RT))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  facet_wrap(vars(Feature), scales = 'free') +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
+  facet_wrap(vars(MZ_RT), scales = 'free') +
   th + theme(strip.text = element_text(size = 13, face = 'bold'))
+```
+
+Assess data power by p-value histogram
+```{r}
+p <- all_proDALipTumorRes$pval
+hist(p, xlab = 'P-value', main = 'Tumor Tissue Lipidomics (proDA)')
 ```
 
 There is no significant association between PCs (Var1) and cancer recurrence (Var2).
@@ -2093,32 +2108,33 @@ pheatmap::pheatmap(datMat[featOrder, smpOrder],
 sigFeatSheet <- append(sigFeatSheet, list(NormalTissueLipid_Feats = proDALipNormalRes))
 ```
 
-```{r}
-ovl <- intersect(lipNormalRes$tFeatSigRes$Var1, proDALipNormalRes$name)
-cat('The following features', paste0('(n =', length(ovl), ')'),
-    'are tested significant by both methods:\n', ovl)
-```
-
 Visualize data of top 6 significant features based on proDA result
 ```{r}
 # Visualize data of top 6 significant features
-topSigFeats <- proDALipNormalRes$name[1:6]
-topSigFeatData <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+topSigFeats <- proDALipNormalRes[1:6,] %>%
+  dplyr::select(name, pval, MZ_RT) %>%
+  dplyr::rename(Feature = name, pVal = pval)
+topSigFeatData <- tibble::as_tibble(datMat[topSigFeats$Feature,], rownames = 'Feature') %>%
   tidyr::pivot_longer(cols = -'Feature',
                       names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats)) %>%
+  dplyr::left_join(topSigFeats, by = 'Feature') %>%
+  dplyr::mutate(MZ_RT = paste0(MZ_RT, '\n(p = ', round(pVal, 4), ')'),
+                MZ_RT = factor(MZ_RT, levels = unique(MZ_RT))) %>%
   dplyr::left_join(smpAnno, by = 'Sample')
 
 ggplot(topSigFeatData, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  facet_wrap(vars(Feature), scales = 'free') +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
+  facet_wrap(vars(MZ_RT), scales = 'free') +
   th + theme(strip.text = element_text(size = 13, face = 'bold'))
+```
+
+Assess data power by p-value histogram
+```{r}
+p <- all_proDALipNormalRes$pval
+hist(p, xlab = 'P-value', main = 'Normal Tissue Lipidomics (proDA)')
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -2260,7 +2276,7 @@ pheatmap::pheatmap(datMat[featOrder, smpOrder],
 
 Use probabilistic dropout model to account for missing values and identify differentially
 abundant lipid difference between Tumor and Normal tissues that are significantly
-associated with cancer recurrence. Note that there is no differentially abundant lipid.
+associated with cancer recurrence.
 ```{r}
 # Fit linear probabilistic dropout model to normalized data
 fit <- proDA::proDA(datMat, design = ~ smpAnno$Recurrence)
@@ -2414,8 +2430,10 @@ proportion <- rev(c(metaBaseSigFeats, metaFoloSigFeats,
                     lipBaseSigFeats, lipFoloSigFeats,
                     metaTumorSigFeats, metaNormalSigFeats,
                     lipTumorSigFeats, lipNormalSigFeats))
-numFeat <- rev(c(rep(nrow(metaBaseRes$data), 2), rep(nrow(lipBaseRes$data), 2),
-                 rep(nrow(metaTumorRes$data), 2), rep(nrow(lipTumorRes$data), 2)))
+numFeat <- rev(c(nrow(metaBaseRes$data), nrow(metaFoloRes$data),
+                 nrow(lipBaseRes$data), nrow(lipFoloRes$data),
+                 nrow(metaTumorRes$data), nrow(metaNormalRes$data),
+                 nrow(lipTumorRes$data), nrow(lipNormalRes$data)))
 sigFeatPropTab <- data.frame(Data = factor(dat, levels = dat),
                              Data_modality = datModal,
                              Data_of = datOf,
@@ -2463,8 +2481,10 @@ proportion <- rev(c(metaBaseSigFeats, metaFoloSigFeats, #metaPlasmaDiffSigFeats,
                     lipBaseSigFeats, lipFoloSigFeats, #lipPlasmaDiffSigFeats,
                     metaTumorSigFeats, metaNormalSigFeats, #metaTissueDiffSigFeats,
                     lipTumorSigFeats, lipNormalSigFeats)) #lipTissueDiffSigFeats
-numFeat <- rev(c(rep(nrow(metaBaseRes$data), 2), rep(nrow(lipBaseRes$data), 2),
-                 rep(nrow(metaTumorRes$data), 2), rep(nrow(lipTumorRes$data), 2)))
+numFeat <- rev(c(nrow(metaBaseRes$data), nrow(metaFoloRes$data),
+                 nrow(lipBaseRes$data), nrow(lipFoloRes$data),
+                 nrow(metaTumorRes$data), nrow(metaNormalRes$data),
+                 nrow(lipTumorRes$data), nrow(lipNormalRes$data)))
 sigFeatPropTab <- data.frame(Data = factor(dat, levels = dat),
                              Data_modality = datModal,
                              Proportion = proportion,

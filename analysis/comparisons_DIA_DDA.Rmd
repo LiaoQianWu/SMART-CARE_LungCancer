@@ -19,7 +19,7 @@ recurrence-related proteins from each dataset are also summarized.\
 
 Update: Compare New DIA Plasma and Tissue Proteomics from AG Krijgsveld with all
 aforementioned datasets. Old DIA Tissue Proteomics from AG Krijgsveld may have
-something wrong! </font>
+something wrong (bad data quality)! </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
@@ -90,7 +90,6 @@ calcFeatCorr <- function(data1, data2, show_nFeats = F) {
   return(corrRes)
 }
 
-
 doFeatAssoTest <- function(data, condition) {
   #' Conduct univariate association test between each feature and CANCER RECURRENCE (for now)
   #' 
@@ -127,7 +126,7 @@ doFeatAssoTest <- function(data, condition) {
   return(assoTestRes)
 }
 
-combineFeatAsso <- function(data1, data2, name1, name2, condition, prot_gene_tbl) {
+combineFeatAsso <- function(data1, data2, name1, name2, condition, prot_gene_tbl, alpha = 0.05) {
   #' Conduct univariate association tests between features and CANCER RECURRENCE (for now)
   #' and combine and tidy up results and information into a table for making plots
   #' 
@@ -139,6 +138,7 @@ combineFeatAsso <- function(data1, data2, name1, name2, condition, prot_gene_tbl
   #' labeling. The column for proteins should be named 'Proteins' and for genes
   #' should be named 'Genes'. Furthermore, only the first protein and gene should
   #' be kept if there are more than one
+  #' #' alpha: A numeric value specifying the significance level for hypothesis testing
   #' 
   #' Return:
   #' combinedAssoTestRes: A table containing association test results, labeling
@@ -152,14 +152,14 @@ combineFeatAsso <- function(data1, data2, name1, name2, condition, prot_gene_tbl
   # Compute associations between features and cancer recurrence and tidy up association test results
   assoTestRes_dat1 <- doFeatAssoTest(data1, condition = condition) %>%
     dplyr::mutate(Feature = stringr::str_remove(Feature, ';.*'),
-                  Sig_dat1 = dplyr::case_when(pVal <= 0.05 ~ 'Yes',
-                                              pVal > 0.05 ~ 'No')) %>%
+                  Sig_dat1 = dplyr::case_when(pVal <= alpha ~ 'Yes',
+                                              pVal > alpha ~ 'No')) %>%
     dplyr::filter(Feature %in% commonFeats) %>%
     dplyr::rename(pVal_dat1 = pVal)
   assoTestRes_dat2 <- doFeatAssoTest(data2, condition = condition) %>%
     dplyr::mutate(Feature = stringr::str_remove(Feature, ';.*'),
-                  Sig_dat2 = dplyr::case_when(pVal <= 0.05 ~ 'Yes',
-                                              pVal > 0.05 ~ 'No')) %>%
+                  Sig_dat2 = dplyr::case_when(pVal <= alpha ~ 'Yes',
+                                              pVal > alpha ~ 'No')) %>%
     dplyr::filter(Feature %in% commonFeats) %>%
     dplyr::rename(pVal_dat2 = pVal)
   
@@ -183,6 +183,107 @@ combineFeatAsso <- function(data1, data2, name1, name2, condition, prot_gene_tbl
   
   return(combinedAssoTestRes)
 }
+
+findOverlapSigFeats <- function(DIA_data1, DIA_data2, DDA_data = NULL, condition,
+                                prot_gene_tbl, alpha = 0.05) {
+  #' Extract overlaps of significant features across datasets
+  #' 
+  #' Parameters
+  #' DIA_data1, DIA_data2: SummarizedExperiment objects that contain the data matrices and metadata
+  #' DDA_data: An SE object containing the data matrix and metadata, which is used
+  #' as an extra layer of evidence to support found significant features. Defualt is NULL
+  #' condition: A character specifying the sample metadata to split the dataset
+  #' prot_gene_tbl: A table containing proteins and their encoding genes for plot
+  #' labeling. The column for proteins should be named 'Proteins' and for genes
+  #' should be named 'Genes'. Furthermore, only the first protein and gene should
+  #' be kept if there are more than one
+  #' alpha: A numeric value specifying the significance level for hypothesis testing
+  #' 
+  #' Return
+  #' A list containing the following components:
+  #' overlapFeatTab: A table containing summarized results of significance tests
+  #' across datasets. The columns of 'pVal1' and 'pVal2' hold feature significance
+  #' from input data1 and data2. Score is the product of -log10(pVal1) and -log10(pVal2)
+  #' sigFeatTab1, sigFeatTab2: Summarized information of common significant features
+  #' and needed sample and feature metadata
+  
+  # Extract common features between two datasets
+  # Select first protein as representative if there are more than one
+  cmnFeats<- intersect(stringr::str_remove(rownames(DIA_data1), ';.*'),
+                       stringr::str_remove(rownames(DIA_data2), ';.*'))
+  
+  # Do association test between each feature and cancer recurrence and organize
+  # significant features from each dataset
+  sigFeats1_DIA <- doFeatAssoTest(DIA_data1, condition = condition) %>%
+    dplyr::mutate(Feature = stringr::str_remove(Feature, ';.*'),
+                  Occurrence = dplyr::case_when(pVal <= alpha ~ 1,
+                                                pVal > alpha ~ 0)) %>%
+    dplyr::filter(Feature %in% cmnFeats)
+  sigFeats2_DIA <- doFeatAssoTest(DIA_data2, condition = condition) %>%
+    dplyr::mutate(Feature = stringr::str_remove(Feature, ';.*'),
+                  Occurrence = dplyr::case_when(pVal <= alpha ~ 1,
+                                                pVal > alpha ~ 0)) %>%
+    dplyr::filter(Feature %in% cmnFeats)
+  
+  # Summarize all information and pinpoint most promising recurrence-related features
+  summSigFeats <- dplyr::left_join(sigFeats1_DIA, sigFeats2_DIA, by = 'Feature') %>%
+    dplyr::mutate(Occurrence = Occurrence.x + Occurrence.y) %>%
+    dplyr::filter(Occurrence == 2) %>%
+    # dplyr::mutate(Score = ((-log10(pVal.x))+(-log10(pVal.y)))/2) %>%
+    dplyr::mutate(Score = (-log10(pVal.x) * -log10(pVal.y))) %>%
+    dplyr::arrange(dplyr::desc(Score)) %>%
+    dplyr::mutate(Gene = plyr::mapvalues(Feature,
+                                         from = prot_gene_tbl$Proteins,
+                                         to = prot_gene_tbl$Genes,
+                                         warn_missing = F),
+                  Gene = factor(Gene, levels = Gene)) %>%
+    dplyr::rename(Protein = Feature, pVal1 = pVal.x, pVal2 = pVal.y) %>%
+    dplyr::select(-c(Occurrence, Occurrence.x, Occurrence.y))
+  
+  # Add extra layer of evidence if provided
+  if (!is.null(DDA_data)) {
+    sigFeats_DDA <- doFeatAssoTest(DDA_data, condition = condition) %>%
+      dplyr::filter(pVal <= alpha) %>%
+      dplyr::mutate(Feature = stringr::str_remove(Feature, ';.*')) %>%
+      dplyr::pull(Feature)
+    summSigFeats <- dplyr::mutate(summSigFeats,
+                                  inDDA = dplyr::case_when(Protein %in% sigFeats_DDA ~ 'Yes',
+                                                           !(Protein %in% sigFeats_DDA) ~ 'No'))
+  }
+  
+  # Retrieve abundances of overlapped significant features from each dataset and
+  # combine all needed sample and feature information into a table
+  # Prepare patient recurrence information
+  recurInfo <- tibble::as_tibble(colData(DDA_data), rownames = 'Sample') %>%
+    dplyr::select(Sample, Recurrence)
+  # Tidy up all needed information
+  DIA_dataSub1 <- DIA_data1[, which(colData(DIA_data1)$Condition == condition)]
+  rownames(DIA_dataSub1) <- stringr::str_remove(rownames(DIA_dataSub1), ';.*')
+  sigFeats1 <- t(SummarizedExperiment::assay(DIA_dataSub1)) %>%
+    tibble::as_tibble(rownames = 'Sample') %>%
+    dplyr::select(c(Sample, summSigFeats$Protein)) %>%
+    tidyr::pivot_longer(cols = -'Sample', names_to = 'Protein', values_to = 'Abundance') %>%
+    dplyr::left_join(summSigFeats[, c('Protein', 'Gene', 'pVal1', 'inDDA')], by = 'Protein') %>%
+    dplyr::left_join(recurInfo, by = 'Sample') %>%
+    dplyr::mutate(Gene = paste0(Gene, '\n(p = ', round(pVal1, 4), ')'),
+                  Gene = dplyr::case_when(inDDA == 'Yes' ~ paste0('*', Gene),
+                                          inDDA == 'No' ~ Gene),
+                  Gene = factor(Gene, levels = unique(Gene)))
+  DIA_dataSub2 <- DIA_data2[, which(colData(DIA_data2)$Condition == condition)]
+  rownames(DIA_dataSub2) <- stringr::str_remove(rownames(DIA_dataSub2), ';.*')
+  sigFeats2 <- t(SummarizedExperiment::assay(DIA_dataSub2)) %>%
+    tibble::as_tibble(rownames = 'Sample') %>%
+    dplyr::select(c(Sample, summSigFeats$Protein)) %>%
+    tidyr::pivot_longer(cols = -'Sample', names_to = 'Protein', values_to = 'Abundance') %>%
+    dplyr::left_join(summSigFeats[, c('Protein', 'Gene', 'pVal2', 'inDDA')], by = 'Protein') %>%
+    dplyr::left_join(recurInfo, by = 'Sample') %>%
+    dplyr::mutate(Gene = paste0(Gene, '\n(p = ', round(pVal2, 4), ')'),
+                  Gene = dplyr::case_when(inDDA == 'Yes' ~ paste0('*', Gene),
+                                          inDDA == 'No' ~ Gene),
+                  Gene = factor(Gene, levels = unique(Gene)))
+  
+  return(list(overlapFeatTab = summSigFeats, sigFeatTab1 = sigFeats1, sigFeatTab2 = sigFeats2))
+}
 ```
 
 # Plasma Proteomics
@@ -194,11 +295,11 @@ proPlasma_DDA <- readRDS('./data/AG_Krijgsveld/proPlasmaNorm.rds')
 new_proPlasma_DIA <- readRDS('./data/AG_Krijgsveld/new_proPlasmaNorm_DIA.rds')
 ```
 
-## Two DIA from AG Krijgsveld
+## Two DIA both from AG Krij.
 
 Compute Pearson correlations of all common features between Plasma Proteomics datasets.
 Note that both Baseline and Follow-up samples were used.\
-New DIA (648) vs DIA (445) Plasma Proteomics both from AG Krijgsveld => 402 common features
+New DIA (590) vs DIA (421) Plasma Proteomics both from AG Krijgsveld => 387 common features
 ```{r}
 # Compute correlations of common features between two datasets
 corrRes <- calcFeatCorr(new_proPlasma_DIA, proPlasma_DIA)
@@ -233,11 +334,11 @@ ggplot(combinedAssoTestRes, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Si
   th
 ```
 
-## New DIA vs DDA both from AG Krijgsveld
+## New DIA vs DDA both from AG Krij.
 
 Compute Pearson correlations of all common features. Note that both Baseline and
 Follow-up samples were used.\
-New DIA (648) vs DDA (435) Plasma Proteomics both from AG Krijgsveld => 366 common features
+New DIA (590) vs DDA (435) Plasma Proteomics both from AG Krijgsveld => 354 common features
 ```{r}
 # Compute correlations of common features between two datasets
 corrRes <- calcFeatCorr(new_proPlasma_DIA, proPlasma_DDA)
@@ -272,11 +373,11 @@ ggplot(combinedAssoTestRes, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Si
   th
 ```
 
-## DIA vs DDA both from AG Krijgsveld
+## DIA vs DDA both from AG Krij.
 
 Compute Pearson correlations of all common features between Plasma Proteomics datasets.
 Note that both Baseline and Follow-up samples were used.\
-DIA (445) vs DDA (435) Plasma Proteomics both from AG Krijgsveld => 351 common features
+DIA (421) vs DDA (435) Plasma Proteomics both from AG Krijgsveld => 341 common features
 ```{r}
 # Compute correlations of common features between two datasets
 corrRes <- calcFeatCorr(proPlasma_DIA, proPlasma_DDA)
@@ -322,6 +423,49 @@ ggplot(combinedAssoTestRes, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Si
   th
 ```
 
+## Short summary
+
+Display summarized information of common significant features between two DIA datasets.
+Columns 'pVal1' and 'pVal2' present feature significance from input DIA data1 and
+data2. Score is product of -log10(pVal1) and -log10(pVal2) and inDDA indicates whether
+features are identified and tested significant in DDA data.\
+**Baseline Plasma**
+```{r}
+# Prepare protein-gene table for changing protein names to gene names
+featInfo <- tibble::as_tibble(rowData(new_proPlasma_DIA), rownames = 'Proteins') %>%
+  dplyr::select(Proteins, Genes) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+
+# Pinpoint significant features overlapped across datasets
+summSigFeats <- findOverlapSigFeats(proPlasma_DIA, new_proPlasma_DIA, proPlasma_DDA,
+                                    condition = 'Baseline', prot_gene_tbl = featInfo)
+summSigFeats$overlapFeatTab
+```
+
+Visualize top common significant features. Gene name starting with asterisk indicates
+that feature is supported by DDA dataset.
+```{r}
+# Visualize most promising significant features
+ggplot(summSigFeats$sigFeatTab1, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Gene), scales = 'free') +
+  labs(title = 'DIA Baseline Plasma Proteomics (AG Krijgsveld)') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
+
+ggplot(summSigFeats$sigFeatTab2, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Gene), scales = 'free') +
+  labs(title = 'New DIA Baseline Plasma Proteomics (AG Krijgsveld)') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
+```
+
 
 
 
@@ -337,12 +481,12 @@ proTissue_DIA_Klin <- proTissue_DIA_Klin[, colnames(proTissue_DIA_Klin) %in% col
 new_proTissue_DIA <- readRDS('./data/AG_Krijgsveld/new_proTissueNorm_DIA.rds')
 ```
 
-## DIA from AG Klingmüller vs New DIA from AG Krijgsveld
+## DIA from AG Klin. vs New DIA from Krij.
 
 Compute Pearson correlations of all common features between Tissue Proteomics datasets.
 Note that both Tumor and Normal samples were used.\
-DIA Tissue Proteomics from AG Klingmüller (8257) vs New DIA Tissue Proteomics from
-AG Krijgsveld (6873) => 6482 common features
+DIA Tissue Proteomics from AG Klingmüller (7693) vs New DIA Tissue Proteomics from
+AG Krijgsveld (6065) => 5763 common features
 ```{r}
 # Compute correlations of common features between two datasets
 corrRes <- calcFeatCorr(proTissue_DIA_Klin, new_proTissue_DIA)
@@ -399,12 +543,12 @@ ggplot(combinedAssoTestRes, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Si
   th
 ```
 
-## DIA from AG Klingmüller vs DDA from AG Krijgsveld
+## DIA from AG Klin. vs DDA from Krij.
 
 Compute Pearson correlations of all common features. Note that both Tumor and Normal
 samples were used.\
-DIA Tissue Proteomics from AG Klingmüller (8257) vs DDA Tissue Proteomics from AG
-Krijgsveld (5193) => 5022 common features
+DIA Tissue Proteomics from AG Klingmüller (7693) vs DDA Tissue Proteomics from AG
+Krijgsveld (5193) => 4955 common features
 ```{r}
 # Compute correlations of common features between two datasets
 corrRes <- calcFeatCorr(proTissue_DIA_Klin, proTissue_DDA)
@@ -463,11 +607,11 @@ ggplot(combinedAssoTestRes, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Si
   th
 ```
 
-## New DIA vs DDA from AG Krijgsveld
+## New DIA vs DDA both from AG Krij.
 
 Compute Pearson correlations of all common features. Note that both Tumor and Normal
 samples were used.\
-New DIA (6873) vs DDA (5193) Tissue Proteomics both from AG Krijgsveld => 4913 common features
+New DIA (6065) vs DDA (5193) Tissue Proteomics both from AG Krijgsveld => 4693 common features
 ```{r}
 # Compute correlations of common features between two datasets
 corrRes <- calcFeatCorr(new_proTissue_DIA, proTissue_DDA)
@@ -523,12 +667,102 @@ ggplot(combinedAssoTestRes, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Si
   th
 ```
 
-## DIA from AG Klingmüller vs DIA from AG Krijgsveld
+## Short summary
+
+Display summarized information of common significant features between two DIA datasets.
+Columns 'pVal1' and 'pVal2' present feature significance from input DIA data1 and
+data2. Score is product of -log10(pVal1) and -log10(pVal2) and inDDA indicates whether
+features are identified and tested significant in DDA data.\
+**Tumor Tissue**
+```{r}
+# Prepare protein-gene table for changing protein names to gene names
+featInfo <- tibble::as_tibble(rowData(new_proTissue_DIA), rownames = 'Proteins') %>%
+  dplyr::select(Proteins, Genes) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+
+# Pinpoint significant features overlapped across datasets
+summSigFeats <- findOverlapSigFeats(proTissue_DIA_Klin, new_proTissue_DIA, proTissue_DDA,
+                                    condition = 'Tumor', prot_gene_tbl = featInfo)
+summSigFeats$overlapFeatTab
+```
+
+Visualize top common significant features. Gene name starting with asterisk indicates
+that feature is supported by DDA dataset.
+```{r}
+# Visualize most promising significant features
+ggplot(summSigFeats$sigFeatTab1, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Gene), scales = 'free', nrow = 2) +
+  labs(title = 'DIA Tumor Tissue Proteomics (AG Klingmüller)') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
+
+ggplot(summSigFeats$sigFeatTab2, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Gene), scales = 'free', nrow = 2) +
+  labs(title = 'New DIA Tumor Tissue Proteomics (AG Krijgsveld)') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
+```
+
+Display summarized information of common significant features between two DIA datasets\
+**Normal Tissue**
+```{r}
+# Prepare protein-gene table for changing protein names to gene names
+featInfo <- tibble::as_tibble(rowData(new_proTissue_DIA), rownames = 'Proteins') %>%
+  dplyr::select(Proteins, Genes) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+
+# Pinpoint significant features overlapped across datasets
+summSigFeats <- findOverlapSigFeats(proTissue_DIA_Klin, new_proTissue_DIA, proTissue_DDA,
+                                    condition = 'Normal', prot_gene_tbl = featInfo)
+summSigFeats$overlapFeatTab
+```
+
+Visualize top common significant features. Gene name starting with asterisk indicates
+that feature is supported by DDA dataset.
+```{r}
+# Extract top features
+sigFeats <- summSigFeats$overlapFeatTab$Protein[1:6]
+sigFeatTab1 <- dplyr::filter(summSigFeats$sigFeatTab1, Protein %in% sigFeats)
+sigFeatTab2 <- dplyr::filter(summSigFeats$sigFeatTab2, Protein %in% sigFeats)
+
+# Visualize most promising significant features
+ggplot(sigFeatTab1, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Gene), scales = 'free') +
+  labs(title = 'DIA Tumor Tissue Proteomics (AG Klingmüller)') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
+
+ggplot(sigFeatTab2, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Gene), scales = 'free') +
+  labs(title = 'New DIA Tumor Tissue Proteomics (AG Krijgsveld)') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
+```
+
+
+
+
+## DIA from AG Klin. vs DIA from Krij.
+<font size=4> **Old DIA Tissue Proteomics from AG Krijgsveld got bad data quality.** </font>
 
 Compute Pearson correlations of all common features. Note that both Tumor and Normal
 samples were used.\
-DIA Tissue Proteomics from AG Klingmüller (8257) vs DIA Tissue Proteomics from AG
-Krijgsveld (5658) => 5451 common features
+DIA Tissue Proteomics from AG Klingmüller (7693) vs DIA Tissue Proteomics from AG
+Krijgsveld (5057) => 4893 common features
 ```{r}
 # Compute correlations of common features between two datasets
 corrRes <- calcFeatCorr(proTissue_DIA_Klin, proTissue_DIA)
@@ -540,11 +774,12 @@ ggplot(corrRes, aes(x=Correlation)) +
   th
 ```
 
-## DIA vs DDA from AG Krijgsveld
+## DIA vs DDA both from AG Krij.
+<font size=4> **Old DIA Tissue Proteomics from AG Krijgsveld got bad data quality.** </font>
 
 Compute Pearson correlations of all common features. Note that both Tumor and Normal
 samples were used.\
-DIA (5658) vs DDA (5193) Tissue Proteomics both from AG Krijgsveld => 4636 common features
+DIA (5057) vs DDA (5193) Tissue Proteomics both from AG Krijgsveld => 4358 common features
 ```{r}
 # Compute correlations of common features between two datasets
 corrRes <- calcFeatCorr(proTissue_DIA, proTissue_DDA)
@@ -565,4 +800,104 @@ ggplot(corrRes, aes(x=Correlation)) +
              axis.text = element_text(size = 20))
 ggsave('./output/group_meeting/proTissue_Kri_DIA_DDA_comparison.png', device = 'png',
        dpi = 400, height = 8, width = 8)
+```
+
+```{r include=F, eval=F}
+# Look into differences in protein-gene tables
+# DIA PP vs New DIA PP
+dat1 <- proPlasma_DIA
+dat2 <- new_proPlasma_DIA
+
+cmnFeats <- intersect(str_remove(rownames(dat1), ';.*'),
+                      str_remove(rownames(dat2), ';.*'))
+anno1 <- as_tibble(rowData(dat1), rownames = 'Proteins') %>%
+  dplyr::select(Proteins, Genes) %>% ####
+  mutate(Proteins = str_remove(Proteins, ';.*'),
+         Genes = str_remove(Genes, ';.*')) %>%
+  filter(Proteins %in% cmnFeats) %>%
+  arrange(Proteins)
+anno2 <- as_tibble(rowData(dat2), rownames = 'Proteins') %>%
+  dplyr::select(Proteins, Genes) %>% ####
+  mutate(Proteins = str_remove(Proteins, ';.*'),
+         Genes = str_remove(Genes, ';.*')) %>%
+  filter(Proteins %in% cmnFeats) %>%
+  arrange(Proteins)
+if(identical(anno1$Proteins, anno2$Proteins)) {
+  diffAnno <- left_join(anno1, anno2, by = 'Proteins') %>%
+    filter(Genes.x != Genes.y)
+}
+
+
+# DDA PP vs New DIA PP
+dat1 <- proPlasma_DDA
+dat2 <- new_proPlasma_DIA
+
+cmnFeats <- intersect(str_remove(rownames(dat1), ';.*'),
+                      str_remove(rownames(dat2), ';.*'))
+anno1 <- as_tibble(rowData(dat1), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>% ####
+  mutate(Proteins = str_remove(Proteins, ';.*'),
+         Genes = str_remove(Genes, ';.*')) %>%
+  filter(Proteins %in% cmnFeats) %>%
+  arrange(Proteins)
+anno2 <- as_tibble(rowData(dat2), rownames = 'Proteins') %>%
+  dplyr::select(Proteins, Genes) %>% ####
+  mutate(Proteins = str_remove(Proteins, ';.*'),
+         Genes = str_remove(Genes, ';.*')) %>%
+  filter(Proteins %in% cmnFeats) %>%
+  arrange(Proteins)
+if(identical(anno1$Proteins, anno2$Proteins)) {
+  diffAnno <- left_join(anno1, anno2, by = 'Proteins') %>%
+    filter(Genes.x != Genes.y)
+}
+
+
+
+
+# DIA TP (Klin.) vs New DIA TP (Krij.)
+dat1 <- proTissue_DIA_Klin
+dat2 <- new_proTissue_DIA
+
+cmnFeats <- intersect(str_remove(rownames(dat1), ';.*'),
+                      str_remove(rownames(dat2), ';.*'))
+anno1 <- as_tibble(rowData(dat1), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>% ####
+  mutate(Proteins = str_remove(Proteins, ';.*'),
+         Genes = str_remove(Genes, ';.*')) %>%
+  filter(Proteins %in% cmnFeats) %>%
+  arrange(Proteins)
+anno2 <- as_tibble(rowData(dat2), rownames = 'Proteins') %>%
+  dplyr::select(Proteins, Genes) %>% ####
+  mutate(Proteins = str_remove(Proteins, ';.*'),
+         Genes = str_remove(Genes, ';.*')) %>%
+  filter(Proteins %in% cmnFeats) %>%
+  arrange(Proteins)
+if(identical(anno1$Proteins, anno2$Proteins)) {
+  diffAnno <- left_join(anno1, anno2, by = 'Proteins') %>%
+    filter(Genes.x != Genes.y)
+}
+
+
+# IA TP (Klin.) vs DDA TP (Krij.)
+dat1 <- proTissue_DIA_Klin
+dat2 <- proTissue_DDA
+
+cmnFeats <- intersect(str_remove(rownames(dat1), ';.*'),
+                      str_remove(rownames(dat2), ';.*'))
+anno1 <- as_tibble(rowData(dat1), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>% ####
+  mutate(Proteins = str_remove(Proteins, ';.*'),
+         Genes = str_remove(Genes, ';.*')) %>%
+  filter(Proteins %in% cmnFeats) %>%
+  arrange(Proteins)
+anno2 <- as_tibble(rowData(dat2), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>% ####
+  mutate(Proteins = str_remove(Proteins, ';.*'),
+         Genes = str_remove(Genes, ';.*')) %>%
+  filter(Proteins %in% cmnFeats) %>%
+  arrange(Proteins)
+if(identical(anno1$Proteins, anno2$Proteins)) {
+  diffAnno <- left_join(anno1, anno2, by = 'Proteins') %>%
+    filter(Genes.x != Genes.y)
+}
 ```

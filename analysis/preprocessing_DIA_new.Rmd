@@ -11,7 +11,11 @@ output:
 <font size='4'> Description: Preprocess New Plasma and Tissue DIA Proteomics generated
 by Karim Aljakouch from AG Krijgsveld, simply including data cleansing and data
 normalization (VSN). All needed information of each dataset (2 in total) was then
-stored in SummarizedExperiment objects for further analyses. </font>
+stored in SummarizedExperiment objects for further analyses.\
+
+Update: Modify feature filtering criterion: Remove features quantified in less than
+2/3 of samples to avoid analysis results that one subgroup is fully missing since
+we got a great deal of significant cancer recurrence-related features. </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
@@ -99,12 +103,31 @@ ggplot(proPlasmaTab, aes(x=Sample, y=Abundance)) +
   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
-**Remove features quantified in less than 2/3 of samples in all four sample groups**
-**of interest (Baseline/Follow-up Recurrence/Non-recurrence) for more reliable data normalization**\
-Missing data is more likely to happen in proteins with small abundances due to detection
-limit. Image comparison between two sample groups, certain proteins are highly missing
-in one group and present in the other
-```{r message = F}
+**Remove features quantified in less than 2/3 of samples for more reliable data normalization**
+```{r message=F}
+# Remove features quantified in less than 2/3 of samples
+rmFeats <- dplyr::group_by(proPlasmaTab, Protein.Group) %>%
+  # Compute proportion of observed data points of each group
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
+  dplyr::ungroup() %>%
+  # Keep proteins observed in less than 2/3 of samples of groups
+  dplyr::filter(frac_nonNA < 0.67) %>%
+  dplyr::pull(Protein.Group)
+proPlasmaTab <- dplyr::filter(proPlasmaTab, !Protein.Group %in% rmFeats)
+
+# Convert long data to SE object
+proPlasma <- df2SummExp(proPlasmaTab, row_id = 'Protein.Group', col_id = 'Sample',
+                        values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
+                        col_anno = anno)
+```
+
+```{r message = F, eval=F}
+# Remove features quantified in less than 2/3 of samples in all four sample groups
+# of interest (Baseline/Follow-up Recurrence/Non-recurrence) for more reliable data normalization\
+# Missing data is more likely to happen in proteins with small abundances due to detection
+# limit. Image comparison between two sample groups, certain proteins are highly missing
+# in one group and present in the other
+
 # Remove features quantified in less than 2/3 of samples in all sample groups of interest
 # Grouping like this since Baseline and Follow-up samples will be analyzed separately
 rmFeats <- dplyr::group_by(proPlasmaTab, Protein.Group, TimePoint, Recurrence) %>%
@@ -124,9 +147,11 @@ proPlasmaTab <- dplyr::filter(proPlasmaTab, !Protein.Group %in% rmFeats)
 proPlasma <- df2SummExp(proPlasmaTab, row_id = 'Protein.Group', col_id = 'Sample',
                         values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
                         col_anno = anno)
+
+# Got 648 features after filtering
 ```
 
-Display dimensions of filtered data (39 samples and 648 features)
+Display dimensions of filtered data (39 samples and 590 features)
 ```{r}
 dim(proPlasma)
 ```
@@ -250,9 +275,28 @@ ggplot(proTissueTab, aes(x=Sample, y=Abundance)) +
   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
-**Remove features quantified in less than 2/3 of samples in all four sample groups**
-**of interest (Normal/Tumor Recurrence/Non-recurrence) for more reliable data normalization**
-```{r message = F}
+**Remove features quantified in less than 2/3 of samples for more reliable data normalization**
+```{r message=F}
+# Remove features quantified in less than 2/3 of samples
+rmFeats <- dplyr::group_by(proTissueTab, Protein.Group) %>%
+  # Compute proportion of observed data points of each group
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
+  dplyr::ungroup() %>%
+  # Keep proteins observed in less than 2/3 of samples of groups
+  dplyr::filter(frac_nonNA < 0.67) %>%
+  dplyr::pull(Protein.Group)
+proTissueTab <- dplyr::filter(proTissueTab, !Protein.Group %in% rmFeats)
+
+# Convert long data to SE object
+proTissue <- df2SummExp(proTissueTab, row_id = 'Protein.Group', col_id = 'Sample',
+                        values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
+                        col_anno = anno)
+```
+
+```{r message = F, eval=F}
+# Remove features quantified in less than 2/3 of samples in all four sample groups
+# of interest (Normal/Tumor Recurrence/Non-recurrence) for more reliable data normalization
+
 # Remove features quantified in less than 2/3 of samples in all sample groups of interest
 rmFeats <- dplyr::group_by(proTissueTab, Protein.Group, Condition, Recurrence) %>%
   dplyr::summarise(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
@@ -268,9 +312,11 @@ proTissueTab <- dplyr::filter(proTissueTab, !Protein.Group %in% rmFeats)
 proTissue <- df2SummExp(proTissueTab, row_id = 'Protein.Group', col_id = 'Sample',
                         values = 'Abundance', row_anno = c('Protein.Names', 'Genes'),
                         col_anno = anno)
+
+# Got 6873 features after filtering
 ```
 
-Display dimensions of filtered data (40 samples and 6873 features)
+Display dimensions of filtered data (40 samples and 6065 features)
 ```{r}
 dim(proTissue)
 ```
