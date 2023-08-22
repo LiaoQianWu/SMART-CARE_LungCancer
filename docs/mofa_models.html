@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Qian-Wu Liao" />
+
+
+<title>MOFA: Training models using varied omics combinations</title>
+
+<script src="site_libs/header-attrs-2.23/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">SMART-CARE: Lung Cancer Method Development Cohort</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">MOFA: Training models using varied omics
+combinations</h1>
+<h4 class="author">Qian-Wu Liao</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2023-08-22
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong>
+<code>SMART-CARE_LungCancer_MethodDev/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.0). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20230425code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20230425)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20230425code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20230425)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
+</p>
+</div>
+<div id="strongFilepathsstrongabsolute" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Using absolute paths to the files within your workflowr project makes it
+difficult for you and others to run your code on a different machine.
+Change the absolute path(s) below to the suggested relative path(s) to
+make your code more reproducible.
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+absolute
+</th>
+<th style="text-align:left;">
+relative
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev
+</td>
+<td style="text-align:left;">
+.
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree717cb2321703f047d6659449429f744bc5e74644targetblank717cb23a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/717cb2321703f047d6659449429f744bc5e74644" target="_blank">717cb23</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancerMethodDevtree717cb2321703f047d6659449429f744bc5e74644targetblank717cb23a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/tree/717cb2321703f047d6659449429f744bc5e74644" target="_blank">717cb23</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    analysis/.DS_Store
+    Ignored:    code/.DS_Store
+    Ignored:    data/.DS_Store
+    Ignored:    output/.DS_Store
+
+Untracked files:
+    Untracked:  analysis/feature_selection.Rmd
+    Untracked:  analysis/mofa_downstream_analysis.Rmd
+    Untracked:  code/Junyan/
+    Untracked:  code/about.Rmd
+    Untracked:  code/dataset_list.R
+    Untracked:  code/feature_selection_old.Rmd
+    Untracked:  code/license.Rmd
+    Untracked:  code/mofa_downstream_analysis.Rmd
+    Untracked:  code/mofa_factors_investigation.Rmd
+    Untracked:  code/mofa_varied_omics_combinations.Rmd
+    Untracked:  code/workflowr_commands.R
+    Untracked:  data/AG_Hell/
+    Untracked:  data/AG_Hopf/
+    Untracked:  data/AG_Klingmuller/
+    Untracked:  data/AG_Krijgsveld/
+    Untracked:  data/MethodDev_LungCancer_Datasets.RData
+    Untracked:  data/mofa/
+    Untracked:  data/patient_metadata.tsv
+    Untracked:  data/rf/
+    Untracked:  data/stats/
+    Untracked:  output/TAC_2023/
+    Untracked:  output/YIG_seminar/
+    Untracked:  output/preliminary_analysis_untargeted.html
+
+Unstaged changes:
+    Deleted:    analysis/mofa_varied_omics_combinations.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/mofa_models.Rmd</code>) and HTML
+(<code>docs/mofa_models.html</code>) files. If you’ve configured a
+remote Git repository (see <code>?wflow_git_remote</code>), click on the
+hyperlinks in the table below to view the files as they were in that
+past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev/blob/717cb2321703f047d6659449429f744bc5e74644/analysis/mofa_models.Rmd" target="_blank">717cb23</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-08-22
+</td>
+<td>
+Train MOFA models on latest omics data and write functions to automate
+procedures of MOFA training and analysis
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<p><font size='4'> Description: Train MOFA models with varied
+combinations of omics data. We got 12 Method Development Lung Cancer
+datasets: Two DIA Plasma/Tissue Proteomics, one DDA Plasma/Tissue
+Proteomics, one Targeted Plasma/Tissue Metabolomics, and one Untargeted
+Plasma/Tissue Metabolomics and Lipidomics. Some patient samples in some
+datasets were excluded or missing due to high level of missing values or
+patient dropout. Based on our previous finding that Plasma samples
+provide higher proportions of significant cancer recurrence-related
+features than Tissue samples, plus Plasma samples are easier to obtain
+in real-life clinical scenario, our strategy to train models are first
+using only Plasma omics data and then add Tissue omics data to see
+changes in model performance and interpretability. </font><br />
+</p>
+<p>Load libraries</p>
+<pre class="r"><code>library(MOFA2)
+library(reticulate)
+# use_python(&#39;/Users/qianwu/opt/anaconda3/bin/python&#39;)
+library(ggrepel)
+library(SummarizedExperiment)
+library(tidyverse)
+# Load user-defined functions
+source(&#39;./code/misc.R&#39;)
+source(&#39;./code/mofa_funcs.R&#39;)
+
+# Set plot theme
+th &lt;- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = &#39;bold&#39;),
+        axis.text = element_text(face = &#39;bold&#39;),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))</code></pre>
+<pre class="r"><code># Load normalized datasets
+# DDA Plasma Proteomics (Krijgsveld)
+proPlasma_DDA_Kri &lt;- readRDS(&#39;./data/AG_Krijgsveld/proPlasmaNorm.rds&#39;)
+# DIA Plasma Proteomics (Krijgsveld)
+proPlasma_DIA_Kri &lt;- readRDS(&#39;./data/AG_Krijgsveld/proPlasmaNorm_DIA.rds&#39;)
+# New DIA Plasma Proteomics (Krijgsveld)
+new_proPlasma_DIA_Kri &lt;- readRDS(&#39;./data/AG_Krijgsveld/new_proPlasmaNorm_DIA.rds&#39;)
+# Targeted Plasma Metabolomics (Hell)
+metaPlasma_tar_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaPlasmaNorm.rds&#39;)
+# Untargeted Plasma Metabolomics (Hopf)
+metaPlasma_untar_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaPlasmaVsn.rds&#39;)
+# Untargeted Plasma Lipidomics (Hopf)
+lipPlasma_untar_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/lipPlasmaVsn.rds&#39;)
+
+# DDA Tissue Proteomics (Krijgsveld)
+proTissue_DDA_Kri &lt;- readRDS(&#39;./data/AG_Krijgsveld/proTissueNorm.rds&#39;)
+# New DIA Tissue Proteomics (Krijgsveld)
+new_proTissue_DIA_Kri &lt;- readRDS(&#39;./data/AG_Krijgsveld/new_proTissueNorm_DIA.rds&#39;)
+# DIA Tissue Proteomics (Klingmüller)
+proTissue_DIA_Klin &lt;- readRDS(&#39;./data/AG_Klingmuller/proTissueNorm_DIA.rds&#39;)
+# Use only Method Development samples
+proTissue_DIA_Klin &lt;- proTissue_DIA_Klin[, colnames(proTissue_DIA_Klin) %in% colnames(proTissue_DDA_Kri)]
+# Targeted Tissue Metabolomics (Hell)
+metaTissue_tar_Hell &lt;- readRDS(&#39;./data/AG_Hell/metaTissueNorm.rds&#39;)
+# Untargeted Tissue Metabolomics (Hopf)
+metaTissue_untar_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/metaTissueVsn.rds&#39;)
+# Untargeted Tissue Lipidomics (Hopf)
+lipTissue_untar_Hopf &lt;- readRDS(&#39;./data/AG_Hopf/lipTissueVsn.rds&#39;)
+
+# ------------------------------------------------------------------------------ #
+
+# Convert SE objects to long data for creating MOFA object through &#39;create_mofa_from_df&#39;
+# to include metadata
+# DDA Plasma Proteomics (Krijgsveld)
+proPlasmaTab_DDA_Kri &lt;- mofa_summExp2df(proPlasma_DDA_Kri, smp_type = &#39;Plasma&#39;,
+                                        data_acqui = &#39;DDA&#39;, data_modal = &#39;Proteomics&#39;)
+# DIA Plasma Proteomics (Krijgsveld)
+proPlasmaTab_DIA_Kri &lt;- mofa_summExp2df(proPlasma_DIA_Kri, smp_type = &#39;Plasma&#39;,
+                                        data_acqui = &#39;DIA&#39;, data_modal = &#39;Proteomics&#39;)
+# New DIA Plasma Proteomics (Krijgsveld)
+new_proPlasmaTab_DIA_Kri &lt;- mofa_summExp2df(new_proPlasma_DIA_Kri, smp_type = &#39;Plasma&#39;,
+                                            data_acqui = &#39;New DIA&#39;, data_modal = &#39;Proteomics&#39;)
+# Targeted Plasma Metabolomics (Hell)
+metaPlasmaTab_tar_Hell &lt;- mofa_summExp2df(metaPlasma_tar_Hell, smp_type = &#39;Plasma&#39;,
+                                          data_acqui = &#39;Targeted&#39;, data_modal = &#39;Metabolomics&#39;)
+# Untargeted Plasma Metabolomics (Hopf)
+metaPlasmaTab_untar_Hopf &lt;- mofa_summExp2df(metaPlasma_untar_Hopf, smp_type = &#39;Plasma&#39;,
+                                            data_acqui = &#39;Untargeted&#39;, data_modal = &#39;Metabolomics&#39;)
+# Untargeted Plasma Lipidomics (Hopf)
+lipPlasmaTab_untar_Hopf &lt;- mofa_summExp2df(lipPlasma_untar_Hopf, smp_type = &#39;Plasma&#39;,
+                                           data_acqui = &#39;Untargeted&#39;, data_modal = &#39;Lipidomics&#39;)
+
+# DDA Tissue Proteomics (Krijgsveld)
+proTissueTab_DDA_Kri &lt;- mofa_summExp2df(proTissue_DDA_Kri, smp_type = &#39;Tissue&#39;,
+                                        data_acqui = &#39;DDA&#39;, data_modal = &#39;Proteomics&#39;)
+proTumorTab_DDA_Kri &lt;- dplyr::filter(proTissueTab_DDA_Kri, view == &#39;DDA Tumor Proteomics&#39;)
+proNormalTab_DDA_Kri &lt;- dplyr::filter(proTissueTab_DDA_Kri, view == &#39;DDA Normal Proteomics&#39;)
+# New DIA Tissue Proteomics (Krijgsveld)
+new_proTissueTab_DIA_Kri &lt;- mofa_summExp2df(new_proTissue_DIA_Kri, smp_type = &#39;Tissue&#39;,
+                                            data_acqui = &#39;New DIA&#39;, data_modal = &#39;Proteomics&#39;)
+new_proTumorTab_DIA_Kri &lt;- dplyr::filter(new_proTissueTab_DIA_Kri, view == &#39;New DIA Tumor Proteomics&#39;)
+new_proNormalTab_DIA_Kri &lt;- dplyr::filter(new_proTissueTab_DIA_Kri, view == &#39;New DIA Normal Proteomics&#39;)
+# DIA Tissue Proteomics (Klingmüller)
+proTissueTab_DIA_Klin &lt;- mofa_summExp2df(proTissue_DIA_Klin, smp_type = &#39;Tissue&#39;,
+                                        data_acqui = &#39;DIA&#39;, data_modal = &#39;Proteomics&#39;)
+proTumorTab_DIA_Klin &lt;- dplyr::filter(proTissueTab_DIA_Klin, view == &#39;DIA Tumor Proteomics&#39;)
+proNormalTab_DIA_Klin &lt;- dplyr::filter(proTissueTab_DIA_Klin, view == &#39;DIA Normal Proteomics&#39;)
+# Targeted Tissue Metabolomics (Hell)
+metaTissueTab_tar_Hell &lt;- mofa_summExp2df(metaTissue_tar_Hell, smp_type = &#39;Tissue&#39;,
+                                          data_acqui = &#39;Targeted&#39;, data_modal = &#39;Metabolomics&#39;)
+metaTumorTab_tar_Hell &lt;- dplyr::filter(metaTissueTab_tar_Hell, view == &#39;Targeted Tumor Metabolomics&#39;)
+metaNormalTab_tar_Hell &lt;- dplyr::filter(metaTissueTab_tar_Hell, view == &#39;Targeted Normal Metabolomics&#39;)
+# Untargeted Tissue Metabolomics (Hopf)
+metaTissueTab_untar_Hopf &lt;- mofa_summExp2df(metaTissue_untar_Hopf, smp_type = &#39;Tissue&#39;,
+                                            data_acqui = &#39;Untargeted&#39;, data_modal = &#39;Metabolomics&#39;)
+metaTumorTab_untar_Hopf &lt;- dplyr::filter(metaTissueTab_untar_Hopf, view == &#39;Untargeted Tumor Metabolomics&#39;)
+metaNormalTab_untar_Hopf &lt;- dplyr::filter(metaTissueTab_untar_Hopf, view == &#39;Untargeted Normal Metabolomics&#39;)
+# Untargeted Tissue Lipidomics (Hopf)
+lipTissueTab_untar_Hopf &lt;- mofa_summExp2df(lipTissue_untar_Hopf, smp_type = &#39;Tissue&#39;,
+                                           data_acqui = &#39;Untargeted&#39;, data_modal = &#39;Lipidomics&#39;)
+lipTumorTab_untar_Hopf &lt;- dplyr::filter(lipTissueTab_untar_Hopf, view == &#39;Untargeted Tumor Lipidomics&#39;)
+lipNormalTab_untar_Hopf &lt;- dplyr::filter(lipTissueTab_untar_Hopf, view == &#39;Untargeted Normal Lipidomics&#39;)</code></pre>
+<div id="only-plasma-samples" class="section level1">
+<h1>Only Plasma samples</h1>
+<div id="x-dia-pp-unt.-pm-unt.-pl" class="section level2">
+<h2>(X) DIA PP + Unt. PM + Unt. PL</h2>
+<p>DIA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted
+Plasma Lipidomics</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, num_factors = 10, save_path = &#39;./data/mofa/DIAPP_UntPM_UntPL&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/DIAPP_UntPM_UntPL.rds&#39;)</code></pre>
+<p>Overview model<br />
+Samples from patients ‘N02PM0LW’, ‘FH49U7TY’, and ‘F04ERF3M’ are missing
+in DIA Plasma Proteomics.</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-2-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-3-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2       pVal   pValAdj     Stat   Test
+1 Factor7 Recurrence 0.02917374 0.2009826 2.369856 T-test
+2 Factor6 Recurrence 0.04019653 0.2009826 2.211249 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-4-1.png" width="960" style="display: block; margin: auto;" /><img src="figure/mofa_models.Rmd/unnamed-chunk-4-2.png" width="960" style="display: block; margin: auto;" />
+=&gt; Outlier in recurrence group for Factor 6 is Patient
+‘F04ERF3M’.</p>
+</div>
+<div id="o-new-dia-pp-unt.-pm-unt.-pl" class="section level2">
+<h2>(O) New DIA PP + Unt. PM + Unt. PL</h2>
+<p>New DIA Plasma Proteomics + Untargeted Plasma Metabolomics +
+Untargeted Plasma Lipidomics</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, num_factors = 9, save_path = &#39;./data/mofa/newDIAPP_UntPM_UntPL_9Fac&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_9Fac.rds&#39;)</code></pre>
+<p>Overview model<br />
+Baseline sample from Patient ‘G045W7J8’ was excluded from New DIA Plasma
+Proteomics due to extremely high missingness.</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2        pVal    pValAdj      Stat   Test
+1 Factor7 Recurrence 0.008162451 0.07346206  2.972282 T-test
+2 Factor5 Recurrence 0.037675820 0.16954119 -2.243605 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /><img src="figure/mofa_models.Rmd/unnamed-chunk-9-2.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="x-dia-pp-t.-pm-unt.-pl" class="section level2">
+<h2>(X) DIA PP + T. PM + Unt. PL</h2>
+<p>DIA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted
+Plasma Lipidomics</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(proPlasmaTab_DIA_Kri, metaPlasmaTab_tar_Hell, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, save_path = &#39;./data/mofa/DIAPP_TPM_UntPL&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/DIAPP_TPM_UntPL.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-11-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-12-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>[1] Var1    Var2    pVal    pValAdj Stat    Test   
+&lt;0 rows&gt; (or 0-length row.names)</code></pre>
+</div>
+<div id="o-new-dia-pp-t.-pm-unt.-pl" class="section level2">
+<h2>(O) New DIA PP + T. PM + Unt. PL</h2>
+<p>New DIA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted
+Plasma Lipidomics</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_tar_Hell, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, save_path = &#39;./data/mofa/newDIAPP_TPM_UntPL&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_TPM_UntPL.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-15-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-16-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2       pVal   pValAdj     Stat   Test
+1 Factor8 Recurrence 0.01952409 0.1952409 2.563888 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-17-1.png" width="960" style="display: block; margin: auto;" />
+=&gt; Patient ‘G045W7J8’ in non-recurrence group is misclassified if
+zero is a cutoff.</p>
+</div>
+<div id="dda-pp-unt.-pm-unt.-pl" class="section level2">
+<h2>(-) DDA PP + Unt. PM + Unt. PL</h2>
+<p>DDA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted
+Plasma Lipidomics</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(proPlasmaTab_DDA_Kri, metaPlasmaTab_untar_Hopf, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, save_path = &#39;./data/mofa/DDAPP_UntPM_UntPL&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/DDAPP_UntPM_UntPL.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-20-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-21-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>      Var1       Var2       pVal   pValAdj     Stat   Test
+1 Factor10 Recurrence 0.02231777 0.1602849 2.499790 T-test
+2  Factor5 Recurrence 0.03205698 0.1602849 2.323601 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-22-1.png" width="960" style="display: block; margin: auto;" /><img src="figure/mofa_models.Rmd/unnamed-chunk-22-2.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="x-dda-pp-t.-pm-unt.-pl" class="section level2">
+<h2>(X) DDA PP + T. PM + Unt. PL</h2>
+<p>DDA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted
+Plasma Lipidomics</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(proPlasmaTab_DDA_Kri, metaPlasmaTab_tar_Hell, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, save_path = &#39;./data/mofa/DDAPP_TPM_UntPL&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/DDAPP_TPM_UntPL.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-25-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-26-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>[1] Var1    Var2    pVal    pValAdj Stat    Test   
+&lt;0 rows&gt; (or 0-length row.names)</code></pre>
+</div>
+<div id="dia-pp-new-dia-pp-unt.-pm-unt.-pl" class="section level2">
+<h2>(-) DIA PP + New DIA PP + Unt. PM + Unt. PL</h2>
+<p>DIA Plasma Proteomics + New DIA Plasma Proteomics + Untargeted Plasma
+Metabolomics + Untargeted Plasma Lipidomics</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(proPlasmaTab_DIA_Kri, new_proPlasmaTab_DIA_Kri,
+#                              metaPlasmaTab_untar_Hopf, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, num_factors = 9,
+#                         save_path = &#39;./data/mofa/DIAPP_newDIAPP_UntPM_UntPL_9Fac&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/DIAPP_newDIAPP_UntPM_UntPL_9Fac.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-29-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-30-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2        pVal    pValAdj      Stat   Test
+1 Factor7 Recurrence 0.008476664 0.07628997  2.954871 T-test
+2 Factor5 Recurrence 0.047181257 0.21231565 -2.130459 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-31-1.png" width="960" style="display: block; margin: auto;" /><img src="figure/mofa_models.Rmd/unnamed-chunk-31-2.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="x-dia-pp-new-dia-pp-t.-pm-unt.-pl" class="section level2">
+<h2>(X) DIA PP + New DIA PP + T. PM + Unt. PL</h2>
+<p>DIA Plasma Proteomics + New DIA Plasma Proteomics + Targeted Plasma
+Metabolomics + Untargeted Plasma Lipidomics</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(proPlasmaTab_DIA_Kri, new_proPlasmaTab_DIA_Kri,
+#                              metaPlasmaTab_tar_Hell, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, save_path = &#39;./data/mofa/DIAPP_newDIAPP_TPM_UntPL&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/DIAPP_newDIAPP_TPM_UntPL.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-34-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-35-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2       pVal   pValAdj      Stat   Test
+1 Factor7 Recurrence 0.04924018 0.4865245 -2.108732 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-36-1.png" width="960" style="display: block; margin: auto;" />
+=&gt; Patients ‘F04ERF3M’ and ‘N02PM0LW’ are misclassified if zero is a
+cutoff.</p>
+</div>
+<div id="factor-correlations" class="section level2">
+<h2>Factor correlations</h2>
+<p>Omics combination: DIA Plasma Proteomics + Untargeted Metabolomics +
+Untargeted Lipidomics, where DIA Plasma Proteomics is either of ‘old
+one’, ‘new one’, or ‘old one + new one’</p>
+<pre class="r"><code># Compute factor correlations between trained models
+# DIAPP + Unt. PM + Unt. PL
+mofaObj_PP &lt;- readRDS(&#39;./data/mofa/DIAPP_UntPM_UntPL.rds&#39;)
+# New DIAPP + Unt. PM + Unt. PL
+mofaObj_newPP &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_9Fac.rds&#39;)
+# DIAPP + New DIAPP + Unt. PM + Unt. PL
+mofaObj_bothPP &lt;- readRDS(&#39;./data/mofa/DIAPP_newDIAPP_UntPM_UntPL_9Fac.rds&#39;)
+# New DIAPP + T. PM + Unt. PL
+# Explain all PP, PM, and PL and not correlated with above threes
+# mofaObj_newPP_TPM &lt;- readRDS(&#39;./data/mofa/newDIAPP_TPM_UntPL.rds&#39;)
+
+MOFA2::compare_factors(list(PP = mofaObj_PP, newPP = mofaObj_newPP, bothPP = mofaObj_bothPP))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-38-1.png" width="960" style="display: block; margin: auto;" />
+=&gt; ‘newPP_Factor7’, ‘bothPP_Factor7’, and ‘PP_Factor7’ (explain
+Untargeted Lipidomics) and ‘newPP_Factor5’, ‘bothPP_Factor5’, and
+‘PP_Factor6’ (explain Untargeted Metabolomics) are highly correlated,
+which indicates these models capture similar source of variation in
+cancer recurrence.</p>
+</div>
+<div id="similarity-dia-pp-new-dia-pp" class="section level2">
+<h2>Similarity: DIA PP + New DIA PP</h2>
+<p>DIA Plasma Proteomics + New DIA Plasma Proteomics to see how much
+variation explained across two datasets</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(proPlasmaTab_DIA_Kri, new_proPlasmaTab_DIA_Kri),
+#                         view_data = T, train_mofa = T, save_path = &#39;./data/mofa/DIAPP_newDIAPP&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/DIAPP_newDIAPP.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-40-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+MOFA2::plot_factor_cor(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-41-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-41-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>[1] Var1    Var2    pVal    pValAdj Stat    Test   
+&lt;0 rows&gt; (or 0-length row.names)</code></pre>
+</div>
+</div>
+<div id="add-tissue-proteomics" class="section level1">
+<h1>Add Tissue Proteomics</h1>
+<div id="x-new-dia-pp-unt.-pm-unt.-pl-diatp-dianp-krij."
+class="section level2">
+<h2>(X) New DIA PP + Unt. PM + Unt. PL + DIATP + DIANP (Krij.)</h2>
+<p>New DIA Plasma Proteomics + Untargeted Plasma Metabolomics +
+Untargeted Plasma Lipidomics + DIA Tumor Proteomics (Krij.) + DIA Normal
+Proteomics (Krij.)</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, new_proTumorTab_DIA_Kri,
+#                              new_proNormalTab_DIA_Kri),
+#                         view_data = T, train_mofa = T, save_path = &#39;./data/mofa/newDIAPP_UntPM_UntPL_newDIATP_newDIANP&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_newDIATP_newDIANP.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-44-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-45-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>[1] Var1    Var2    pVal    pValAdj Stat    Test   
+&lt;0 rows&gt; (or 0-length row.names)</code></pre>
+</div>
+<div id="o-new-dia-pp-unt.-pm-unt.-pl-diatp-dianp-klin."
+class="section level2">
+<h2>(O) New DIA PP + Unt. PM + Unt. PL + DIATP + DIANP (Klin.)</h2>
+<p>New DIA Plasma Proteomics + Untargeted Plasma Metabolomics +
+Untargeted Plasma Lipidomics + DIA Tumor Proteomics (Klin.) + DIA Normal
+Proteomics (Klin.)</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, proTumorTab_DIA_Klin,
+#                              proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = &#39;./data/mofa/newDIAPP_UntPM_UntPL_DIATP_DIANP&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_DIATP_DIANP.rds&#39;)</code></pre>
+<p>Overview model<br />
+Baseline sample from Patient ‘G045W7J8’ was excluded from New DIA Plasma
+Proteomics due to extremely high missingness, and samples from patients
+‘D04XHF7F’ and ‘E04NMF53’ are missing in DIA Tissue Proteomics.</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-48-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-49-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2       pVal   pValAdj      Stat   Test
+1 Factor4 Recurrence 0.02719624 0.2719624 -2.404113 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-50-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="x-new-dia-pp-unt.-pm-unt.-pl-diatp-krij."
+class="section level2">
+<h2>(X) New DIA PP + Unt. PM + Unt. PL + DIATP (Krij.)</h2>
+<p>New DIA Plasma Proteomics + Untargeted Plasma Metabolomics +
+Untargeted Plasma Lipidomics + DIA Tumor Proteomics (Krij.)</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, new_proTumorTab_DIA_Kri),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = &#39;./data/mofa/newDIAPP_UntPM_UntPL_newDIATP&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_newDIATP.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-53-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-54-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>[1] Var1    Var2    pVal    pValAdj Stat    Test   
+&lt;0 rows&gt; (or 0-length row.names)</code></pre>
+</div>
+<div id="o-new-dia-pp-unt.-pm-unt.-pl-diatp-klin."
+class="section level2">
+<h2>(O) New DIA PP + Unt. PM + Unt. PL + DIATP (Klin.)</h2>
+<p>New DIA Plasma Proteomics + Untargeted Plasma Metabolomics +
+Untargeted Plasma Lipidomics + DIA Tumor Proteomics (Klin.)</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, proTumorTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 9,
+#                         save_path = &#39;./data/mofa/newDIAPP_UntPM_UntPL_DIATP_9Fac&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_DIATP_9Fac.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-57-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-58-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2       pVal   pValAdj     Stat   Test
+1 Factor6 Recurrence 0.03494361 0.3144925 2.281014 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-59-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="x-new-dia-pp-unt.-pm-unt.-pl-dianp-krij."
+class="section level2">
+<h2>(X) New DIA PP + Unt. PM + Unt. PL + DIANP (Krij.)</h2>
+<p>New DIA Plasma Proteomics + Untargeted Plasma Metabolomics +
+Untargeted Plasma Lipidomics + DIA Normal Proteomics (Krij.)</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, new_proNormalTab_DIA_Kri),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = &#39;./data/mofa/newDIAPP_UntPM_UntPL_newDIANP&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_newDIANP.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-61-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-62-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2       pVal   pValAdj     Stat   Test
+1 Factor7 Recurrence 0.02905119 0.2905119 2.371915 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-63-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="o-new-dia-pp-unt.-pm-unt.-pl-dianp-klin."
+class="section level2">
+<h2>(O) New DIA PP + Unt. PM + Unt. PL + DIANP (Klin.)</h2>
+<p>New DIA Plasma Proteomics + Untargeted Plasma Metabolomics +
+Untargeted Plasma Lipidomics + DIA Normal Proteomics (Klin.)</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 9,
+#                         save_path = &#39;./data/mofa/newDIAPP_UntPM_UntPL_DIANP_9Fac&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_DIANP_9Fac.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-65-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-66-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2       pVal   pValAdj     Stat   Test
+1 Factor5 Recurrence 0.01939999 0.1745999 2.566932 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-67-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="o-new-dia-pp-t.-pm-unt.-pl-diatp-dianp-klin."
+class="section level2">
+<h2>(O) New DIA PP + T. PM + Unt. PL + DIATP + DIANP (Klin.)</h2>
+<p>New DIA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted
+Plasma Lipidomics + DIA Tumor Proteomics (Klin.) + DIA Normal Proteomics
+(Klin.)</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_tar_Hell,
+#                              lipPlasmaTab_untar_Hopf, proTumorTab_DIA_Klin,
+#                              proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = &#39;./data/mofa/newDIAPP_TPM_UntPL_DIATP_DIANP&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_TPM_UntPL_DIATP_DIANP.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-70-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-71-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2       pVal   pValAdj      Stat   Test
+1 Factor2 Recurrence 0.02888532 0.2888532 -2.374714 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-72-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="o-new-dia-pp-t.-pm-unt.-pl-dianp-klin." class="section level2">
+<h2>(O) New DIA PP + T. PM + Unt. PL + DIANP (Klin.)</h2>
+<p>New DIA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted
+Plasma Lipidomics + DIA Normal Proteomics (Klin.)</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_tar_Hell,
+#                              lipPlasmaTab_untar_Hopf, proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = &#39;./data/mofa/newDIAPP_TPM_UntPL_DIANP&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_TPM_UntPL_DIANP.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-74-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-75-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2        pVal    pValAdj      Stat   Test
+1 Factor7 Recurrence 0.004290821 0.04290821 -3.266061 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-76-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="x-new-dia-pp-unt.-pm-unt.-pl-dianp-krij.-dianp-klin."
+class="section level2">
+<h2>(X) New DIA PP + Unt. PM + Unt. PL + DIANP (Krij.) + DIANP
+(Klin.)</h2>
+<p>New DIA Plasma Proteomics + Untargeted Plasma Metabolomics +
+Untargeted Plasma Lipidomics + DIA Normal Proteomics (Krij.) + DIA
+Normal Proteomics (Klin.)</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, new_proNormalTab_DIA_Kri,
+#                              proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 9,
+#                         save_path = &#39;./data/mofa/newDIAPP_UntPM_UntPL_newDIANP_DIANP_9Fac&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_newDIANP_DIANP_9Fac.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-78-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-79-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2       pVal  pValAdj      Stat   Test
+1 Factor8 Recurrence 0.04684722 0.421625 -2.134066 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-80-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="x-new-dia-pp-dianp-krij.-dianp-klin." class="section level2">
+<h2>(X) New DIA PP + DIANP (Krij.) + DIANP (Klin.)</h2>
+<p>New DIA Plasma Proteomics + DIA Normal Proteomics (Krij.) + DIA
+Normal Proteomics (Klin.)</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proPlasmaTab_DIA_Kri, new_proNormalTab_DIA_Kri,
+#                              proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = &#39;./data/mofa/newDIAPP_newDIANP_DIANP&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIAPP_newDIANP_DIANP.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-82-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-83-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2       pVal   pValAdj      Stat   Test
+1 Factor4 Recurrence 0.04886168 0.3240187 -2.112663 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-84-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="factor-correlations-1" class="section level2">
+<h2>Factor correlations</h2>
+<p>Omics combination: New DIA Plasma Proteomics + Untargeted or Targeted
+Metabolomics + Untargeted Lipidomics + DIA Normal Proteomics or DIA
+Tumor Proteomics, where DIA Tissue Proteomics is from AG Klingmüller</p>
+<pre class="r"><code># Compare significant features explaining DIA Normal Proteomics
+DIATP_NP &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_DIATP_DIANP.rds&#39;) #Factor4, normal and metabolomics
+
+DIANP &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_DIANP_9Fac.rds&#39;) #Factor5, normal and lipidomics
+DIATP_NP_TPM &lt;- readRDS(&#39;./data/mofa/newDIAPP_TPM_UntPL_DIATP_DIANP.rds&#39;) #Factor2, normal and metabolomics
+# MOFA2::compare_factors(list(DIATP_NP = DIATP_NP, DIANP = DIANP, DIATP_NP_TPM = DIATP_NP_TPM))
+
+
+DIANP_TPM &lt;- readRDS(&#39;./data/mofa/newDIAPP_TPM_UntPL_DIANP.rds&#39;) #Factor7, normal
+# DIAnewNP_NP &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_newDIANP_DIANP_9Fac.rds&#39;) #Factor8, normal
+# MOFA2::compare_factors(list(DIANP_TPM = DIANP_TPM, DIAnewNP_NP = DIAnewNP_NP))
+
+# DIAnewNP_NP_newDIAPP &lt;- readRDS(&#39;./data/mofa/newDIAPP_newDIANP_DIANP.rds&#39;) #Factor4, normal and PP, no any
+
+DIATP &lt;- readRDS(&#39;./data/mofa/newDIAPP_UntPM_UntPL_DIATP_9Fac.rds&#39;) #Factor6, PP, metabolomics, and lipidomics
+MOFA2::compare_factors(list(DIATP = DIATP, DIANP = DIANP, DIANP_TPM = DIANP_TPM))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-85-1.png" width="960" style="display: block; margin: auto;" />
+=&gt; ‘DIATP_Factor6’ (New DIA PP + Unt. PM + Unt. PL + DIA TP),
+‘DIANP_Factor5’ (New DIA PP + Unt. PM + Unt. PL + DIA NP), and
+‘DIANP_TPM_Factor7’ (New DIA PP + T. PM + Unt. PL + DIA NP), some best
+trained models, are all not correlated.</p>
+</div>
+<div id="similarity-dianp-krij.-dianp-klin." class="section level2">
+<h2>Similarity: DIANP (Krij.) + DIANP (Klin.)</h2>
+<p>DIA Normal Proteomics (Krij.) + DIA Normal Proteomics (Klin.) to see
+how much variation explained across two datasets</p>
+<pre class="r"><code># Train MOFA model
+# mofaObject &lt;- trainMOFA(list(new_proNormalTab_DIA_Kri, proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = &#39;./data/mofa/newDIANP_DIANP&#39;)
+
+# Load trained model
+mofaObject &lt;- readRDS(&#39;./data/mofa/newDIANP_DIANP.rds&#39;)</code></pre>
+<p>Overview model</p>
+<pre class="r"><code># Overview model
+MOFA2::plot_data_overview(mofaObject)</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-87-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Quantify amount of variance explained by each factor in each data
+modality</p>
+<pre class="r"><code># Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-88-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>Display and visualize significant recurrence-related factors</p>
+<pre class="r"><code># Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor &lt;- mofa_vizSigFactor(mofaObject, smpGroup = &#39;Baseline Group&#39;)</code></pre>
+<pre><code>     Var1       Var2      pVal   pValAdj     Stat   Test
+1 Factor3 Recurrence 0.0453871 0.2765557 -2.15011 T-test</code></pre>
+<p><img src="figure/mofa_models.Rmd/unnamed-chunk-89-1.png" width="960" style="display: block; margin: auto;" /></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.0 (2023-04-21)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Ventura 13.4
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Berlin
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] lubridate_1.9.2             forcats_1.0.0              
+ [3] stringr_1.5.0               dplyr_1.1.2                
+ [5] purrr_1.0.1                 readr_2.1.4                
+ [7] tidyr_1.3.0                 tibble_3.2.1               
+ [9] tidyverse_2.0.0             SummarizedExperiment_1.30.2
+[11] Biobase_2.60.0              GenomicRanges_1.52.0       
+[13] GenomeInfoDb_1.36.1         IRanges_2.34.1             
+[15] S4Vectors_0.38.1            BiocGenerics_0.46.0        
+[17] MatrixGenerics_1.12.2       matrixStats_1.0.0          
+[19] ggrepel_0.9.3               ggplot2_3.4.2              
+[21] reticulate_1.30             MOFA2_1.10.0               
+[23] workflowr_1.7.0            
+
+loaded via a namespace (and not attached):
+ [1] bitops_1.0-7            rlang_1.1.1             magrittr_2.0.3         
+ [4] git2r_0.32.0            compiler_4.3.0          getPass_0.2-2          
+ [7] dir.expiry_1.8.0        png_0.1-8               callr_3.7.3            
+[10] vctrs_0.6.3             reshape2_1.4.4          pkgconfig_2.0.3        
+[13] crayon_1.5.2            fastmap_1.1.1           backports_1.4.1        
+[16] XVector_0.40.0          labeling_0.4.2          utf8_1.2.3             
+[19] promises_1.2.0.1        rmarkdown_2.23          tzdb_0.4.0             
+[22] ps_1.7.5                xfun_0.39               zlibbioc_1.46.0        
+[25] cachem_1.0.8            jsonlite_1.8.7          highr_0.10             
+[28] later_1.3.1             rhdf5filters_1.12.1     DelayedArray_0.26.6    
+[31] Rhdf5lib_1.22.0         broom_1.0.5             parallel_4.3.0         
+[34] R6_2.5.1                bslib_0.5.0             stringi_1.7.12         
+[37] RColorBrewer_1.1-3      car_3.1-2               jquerylib_0.1.4        
+[40] Rcpp_1.0.11             knitr_1.43              httpuv_1.6.11          
+[43] Matrix_1.6-0            timechange_0.2.0        tidyselect_1.2.0       
+[46] abind_1.4-5             rstudioapi_0.15.0       yaml_2.3.7             
+[49] processx_3.8.2          lattice_0.21-8          plyr_1.8.8             
+[52] basilisk.utils_1.12.1   withr_2.5.0             evaluate_0.21          
+[55] Rtsne_0.16              pillar_1.9.0            ggpubr_0.6.0           
+[58] filelock_1.0.2          carData_3.0-5           whisker_0.4.1          
+[61] corrplot_0.92           generics_0.1.3          rprojroot_2.0.3        
+[64] RCurl_1.98-1.12         hms_1.1.3               munsell_0.5.0          
+[67] scales_1.2.1            glue_1.6.2              pheatmap_1.0.12        
+[70] tools_4.3.0             ggsignif_0.6.4          fs_1.6.2               
+[73] cowplot_1.1.1           rhdf5_2.44.0            grid_4.3.0             
+[76] colorspace_2.1-0        GenomeInfoDbData_1.2.10 basilisk_1.11.2        
+[79] HDF5Array_1.28.1        cli_3.6.1               fansi_1.0.4            
+[82] S4Arrays_1.0.4          uwot_0.1.16             gtable_0.3.3           
+[85] rstatix_0.7.2           sass_0.4.7              digest_0.6.33          
+[88] farver_2.1.1            htmltools_0.5.5         lifecycle_1.0.3        
+[91] httr_1.4.6             </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
