@@ -835,7 +835,7 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
 }
 
 
-calcCI <- function(stats, level = 0.95, bootstrap = F, iter = 1000) {
+calcCI <- function(stats, level = 0.95, bootstrap = F) { #iter = 1000
   #' Compute upper and lower bounds of confidence interval. This function provides
   #' two ways of calculating CI: Bootstrapping or CI formula if data is normally
   #' distributed
@@ -865,15 +865,15 @@ calcCI <- function(stats, level = 0.95, bootstrap = F, iter = 1000) {
   
   # Bootstrap sample and compute mean of each replication
   if (bootstrap) {
-    meanList <- sapply(seq_len(iter), function(i) {
-      mean(sample(stats, size = length(stats), replace = T))
-    })
-    # Compute lower bound
+    # meanList <- sapply(seq_len(iter), function(i) {
+    #   mean(sample(stats, size = length(stats), replace = T))
+    # })
+    # Locate lower bound by percentile if data is not normally distributed
     p <- (1-level) / 2
-    lower <- as.numeric(quantile(meanList, p))
-    # Compute upper bound
+    lower <- as.numeric(quantile(stats, p))
+    # Locate upper bound
     p <- level + (1-level)/2
-    upper <- as.numeric(quantile(meanList, p))
+    upper <- as.numeric(quantile(stats, p))
   } else {
     # Follow CI formula if data is normally distributed
     lower <- mean(stats) - z * sd(stats)/sqrt(length(stats))
@@ -891,270 +891,6 @@ calcCI <- function(stats, level = 0.95, bootstrap = F, iter = 1000) {
 
 
 ####################################################################################
-
-effSize <- function(mofaObj, gp = NULL, fac, abs_es = T) {
-  #' Compute effect size of factor learned from MOFA model, which can potentially
-  #' predict or separate patients that (will) suffer cancer recurrences or not
-  #' 
-  #' Parameters
-  #' mofaObj: A trained MOFA model containing learned factors and metadata
-  #' gp: A character specifying the group name of interest to retrieve the factor
-  #' table from the trained MOFA model. If there is only one group defined, this
-  #' parameter can be ignored
-  #' fac: An index or a character (e.g., 1 or 'Factor1') specifying the factor of
-  #' interest to retrieve the factor vector from the factor table
-  #' abs_es: A logical value indicating
-  #' 
-  #' Return
-  #' es: A numerical value indicating the effect size
-  
-  if (length(MOFA2::get_factors(mofaObj)) > 1) {
-    if (is.null(gp)) {
-      print('The MOFA model has more than 1 group. 
-            Please specify a group of interest.')
-    }
-    # Retrieve factor vector
-    facTab <- tibble::as_tibble(MOFA2::get_factors(mofaObj)[[gp]][, fac],
-                                rownames = 'sample')
-    # Retrieve sample recurrence annotations
-    metaTab <- tibble::as_tibble(samples_metadata(mofaObj)) %>%
-      dplyr::filter(grepl(gp, group)) %>%
-      dplyr::select(sample, Recurrence)
-  } else if (length(MOFA2::get_factors(mofaObj)) == 1) {
-    # Retrieve factor vector
-    facTab <- tibble::as_tibble(MOFA2::get_factors(mofaObj)[[1]][, fac],
-                                rownames = 'sample')
-    # Retrieve sample recurrence annotations
-    metaTab <- tibble::as_tibble(samples_metadata(mofaObj)) %>%
-      dplyr::select(sample, Recurrence)
-  }
-  # Compute mean and standard deviation
-  statTab <- dplyr::left_join(facTab, metaTab, by = 'sample') %>%
-    dplyr::group_by(Recurrence) %>%
-    dplyr::summarise(Mean = mean(value), Std = sd(value), Median = median(value))
-  if (abs_es) {
-    # Compute absolute effect size
-    es <- abs(statTab$Median[1] - statTab$Median[2])
-  } else {
-    # Compute Cohen's D
-    es <- abs(statTab$Mean[1] - statTab$Mean[2]) /
-      sqrt((statTab$Std[1]^2 + statTab$Std[2]^2) / 2)
-  }
-  return(es)
-}
-
-
-modiFeatNames <- function(mofaObj, view, feat_anno = NULL, view2 = NULL) {
-  #' Modify feature names from MOFA model by removing suffixes for cleaner plots.
-  #' If feat_anno is not null, features are converted to corresponding annotations,
-  #' e.g., proteins to genes
-  #' 
-  #' Parameters
-  #' mofaObj: A trained MOFA model
-  #' view: A character or a vector of characters indicating the view in which
-  #' feature names are retrieved
-  #' feat_anno: A data frame with old features as the row names containing
-  #' corresponding gene annotations
-  #' view2: A character or a vector of characters indicating the view in which
-  #' feature names are converted to corresponding annotations. This parameter has
-  #' to be specified if feat_anno is specified
-  #' 
-  #' Return
-  #' mofaObj: A MOFA model with modified feature names
-  
-  if (length(view) > 1) {
-    for (v in view) {
-      # Retrieve weight matrix
-      W <- MOFA2::get_weights(mofaObj)[[v]]
-      # Remove suffixes from feature names
-      rownames(W) <- stringr::str_remove(rownames(W), '_.*')
-      # Convert feature names to corresponding annotations
-      if (!is.null(feat_anno)) {
-        if (v %in% view2) {
-          geneAnno <- feat_anno[[1]]
-          names(geneAnno) <- rownames(feat_anno)
-          rownames(W) <- geneAnno[rownames(W)]
-          }
-        }
-      # Replace old weight matrix with new one with modified feature names
-      mofaObj@expectations$W[[v]] <- W
-      }
-    } else {
-      W <- MOFA2::get_weights(mofaObj)[[view]]
-      rownames(W) <- stringr::str_remove(rownames(W), '_.*')
-      if (!is.null(feat_anno)) {
-        if (view == view2) {
-          geneAnno <- feat_anno[[1]]
-          names(geneAnno) <- rownames(feat_anno)
-          rownames(W) <- geneAnno[rownames(W)]
-        }
-      }
-      mofaObj@expectations$W[[view]] <- W
-    }
-  return(mofaObj)
-}
-
-
-data_heatmap <- function(mofa_obj, factor, view, group = 1, features,
-                         feat_anno = NULL, smp_anno = NULL, smp_cluster = NULL,
-                         rm_smp_suffix = NULL, ...) {
-  #' Plot a heatmap to display those features with high weights (molecular
-  #' signatures) in the input data
-  #' 
-  #' Parameters
-  #' mofa_obj: An trained MOFA object
-  #' factor: An integer specifying the factor of interest
-  #' view: A character specifying the view for retrieving the corresponding data
-  #' group: A character specifying the group for retrieving the corresponding data
-  #' features: An integer specifying the number of features with highest weights
-  #' (absolute values) to extract
-  #' feat_anno: A data frame with proteins as the row names containing corresponding
-  #' gene annotations
-  #' smp_anno: A data frame with samples as the row names containing sample
-  #' annotations, e.g, patient conditions
-  #' smp_cluster: A character specifying the sample annotations used to cluster
-  #' samples in heatmap for easier heatmap interpretation
-  #' rm_smp_suffix: A character specifying the sample suffix that will be removed
-  #' 
-  #' Return
-  #' P: A heatmap
-  
-  # Retrieve weight matrix from MOFA object
-  W <- MOFA2::get_weights(mofa_obj)[[view]]
-  # Remove suffixes from feature names for matching gene annotations
-  rownames(W) <- stringr::str_remove(rownames(W), paste0('_', view))
-  # Map feature names from proteins to corresponding genes
-  if (!is.null(feat_anno)) {
-    geneAnno <- feat_anno[[1]]
-    names(geneAnno) <- rownames(feat_anno)
-    rownames(W) <- geneAnno[rownames(W)]
-  }
-  # Extract features with highest weights
-  weightVec <- W[, paste0('Factor', factor)]
-  featOrder <- order(abs(weightVec), decreasing = T)[seq_len(features)]
-  topFeat <- names(weightVec[featOrder])
-  # Remove NA features, or all NA features will be extracted later
-  if (any(is.na(topFeat))) {
-    featOrder <- featOrder[-which(is.na(topFeat))]
-  }
-  
-  # Retrieve input data from MOFA object
-  D <- MOFA2::get_data(mofa_obj)[[view]][[group]]
-  # Remove suffixes from feature names for cleaner plots
-  rownames(D) <- stringr::str_remove(rownames(D), paste0('_', view))
-  # Map features names from proteins to corresponding genes
-  if (!is.null(feat_anno)) {
-    rownames(D) <- geneAnno[rownames(D)]
-  }
-  # Prepare data for plotting heatmap
-  if (!is.null(smp_anno)) {
-    # Tidy up sample annotations
-    if (!identical(sort(rownames(smp_anno)), sort(colnames(D)))) {
-      smp_anno <- tibble::rownames_to_column(smp_anno, 'sample') %>%
-        dplyr::filter(sample %in% colnames(D)) %>%
-        tibble::column_to_rownames('sample')
-    }
-    # Order samples by specific annotation for easier heatmap interpretation
-    if (!is.null(smp_cluster)) {
-      smpAnno <- smp_anno[[smp_cluster]]
-      smpOrder <- c()
-      for (clust in unique(smpAnno)) {
-        smpOrder <- append(smpOrder, rownames(smp_anno)[which(smpAnno == clust)])
-      }
-      # Subset input data
-      DSub <- D[featOrder, smpOrder] #rownames(D) %in% topFeat
-    } else {
-      # Subset input data
-      DSub <- D[featOrder,]
-    }
-  } else {
-    # Subset input data
-    DSub <- D[featOrder,]
-  }
-  # Remove suffix of samples
-  if(!is.null(rm_smp_suffix)) {
-    colnames(DSub) <- stringr::str_remove(colnames(DSub), rm_smp_suffix)
-  }
-  
-  # Make heatmap
-  P <- pheatmap::pheatmap(DSub, annotation_col = smp_anno, ...)
-  return(P)
-}
-
-
-unique_features <- function(weight_mat, factor, feat_anno, g_col) {
-  # ADD SANITY CHECK FOR FEATURES FROM WEIGHT MATRIX AND ANNOTATION TABLE
-  
-  #' Remove extra inferred proteins from same features and keep single feature
-  #' with highest weight if duplicated
-  #' 
-  #' Parameters
-  #' weight_mat: A weight matrix obtained from the trained MOFA model
-  #' factor: An integer specifying the factor of interest
-  #' feat_anno: A feature metadata containing gene annotations of proteins
-  #' g_col: A character specifying the column of gene annotations
-  #' 
-  #' Return
-  #' W: A SummarizedExperiment object containing the modified weight matrix and
-  #' feature metadata
-  
-  # Specify factor of interest
-  fac <- paste0('Factor', factor)
-  
-  # Remove extra inferred proteins from same features (Pick the first one)
-  modiFeat <- stringr::str_remove(rownames(feat_anno), ';.*')
-  names(modiFeat) <- rownames(feat_anno)
-  # Pinpoint duplicated protein features and keep the one with highest weight
-  dupFeatIdx <- which(duplicated(modiFeat))
-  
-  # CHECK THIS BLOCK
-  if (length(dupFeatIdx) != 0) {
-    dropFeatList <- c()
-    for (i in dupFeatIdx) {
-      feat <- modiFeat[i]
-      featIdx <- which(modiFeat == feat)
-      dropFeatList <- append(dropFeatList,
-                             featIdx[-which.max(weight_mat[featIdx, fac])])
-    }
-    # Filter out unwanted protein features and corresponding gene annotations
-    # Features
-    modiFeat <- modiFeat[-dropFeatList]
-    # Weight matrix
-    weightMatModi <- weight_mat[-dropFeatList,]
-    rownames(weightMatModi) <- modiFeat
-    # Feature annotations
-    if (ncol(feat_anno) == 1) {
-      modiGeneAnno <- stringr::str_remove(feat_anno[-dropFeatList,], ';.*')
-      rowAnnoModi <- data.frame(modiGeneAnno, row.names = modiFeat)
-      colnames(rowAnnoModi) <- g_col
-    } else {
-      rowAnnoModi <- feat_anno[-dropFeatList,]
-      modiGeneAnno <- rowAnnoModi[, g_col]
-      modiGeneAnno <- stringr::str_remove(modiGeneAnno, ';.*')
-      rowAnnoModi[, g_col] <- modiGeneAnno
-    }
-  } else {
-    # Weight matrix
-    weightMatModi <- weight_mat
-    rownames(weightMatModi) <- modiFeat[rownames(weightMatModi)]
-    # Feature annotations
-    if (ncol(feat_anno) == 1) {
-      modiGeneAnno <- stringr::str_remove(feat_anno[, g_col], ';.*')
-      rowAnnoModi <- data.frame(modiGeneAnno, row.names = modiFeat)
-      colnames(rowAnnoModi) <- g_col
-    } else {
-      rowAnnoModi <- feat_anno
-      modiGeneAnno <- rowAnnoModi[, g_col]
-      modiGeneAnno <- stringr::str_remove(modiGeneAnno, ';.*')
-      rowAnnoModi[, g_col] <- modiGeneAnno
-    }
-  }
-  
-  # Create SummarizedExperiment object to include gene annotations for proteins
-  W <- SummarizedExperiment(weightMatModi, rowData = rowAnnoModi)
-  return(W)
-}
-
 
 subData <- function(summ_exp, split_by, factors, suffixes, smp_anno) {
   #' IF SUFFIXES IS SPECIFIED AND THEN?

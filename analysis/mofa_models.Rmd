@@ -1,0 +1,1039 @@
+---
+title: 'MOFA: Training models using varied omics combinations'
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+<font size='4'> Description: Train MOFA models with varied combinations of omics
+data. We got 12 Method Development Lung Cancer datasets: Two DIA Plasma/Tissue
+Proteomics, one DDA Plasma/Tissue Proteomics, one Targeted Plasma/Tissue Metabolomics,
+and one Untargeted Plasma/Tissue Metabolomics and Lipidomics. Some patient samples
+in some datasets were excluded or missing due to high level of missing values or
+patient dropout. Based on our previous finding that Plasma samples provide higher
+proportions of significant cancer recurrence-related features than Tissue samples,
+plus Plasma samples are easier to obtain in real-life clinical scenario, our strategy
+to train models are first using only Plasma omics data and then add Tissue omics
+data to see changes in model performance and interpretability. </font>\
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+```
+
+Load libraries
+```{r library loading, message = F}
+library(MOFA2)
+library(reticulate)
+# use_python('/Users/qianwu/opt/anaconda3/bin/python')
+library(ggrepel)
+library(SummarizedExperiment)
+library(tidyverse)
+# Load user-defined functions
+source('./code/misc.R')
+source('./code/mofa_funcs.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
+```
+
+```{r data loading and preparation for mofa}
+# Load normalized datasets
+# DDA Plasma Proteomics (Krijgsveld)
+proPlasma_DDA_Kri <- readRDS('./data/AG_Krijgsveld/proPlasmaNorm.rds')
+# DIA Plasma Proteomics (Krijgsveld)
+proPlasma_DIA_Kri <- readRDS('./data/AG_Krijgsveld/proPlasmaNorm_DIA.rds')
+# New DIA Plasma Proteomics (Krijgsveld)
+new_proPlasma_DIA_Kri <- readRDS('./data/AG_Krijgsveld/new_proPlasmaNorm_DIA.rds')
+# Targeted Plasma Metabolomics (Hell)
+metaPlasma_tar_Hell <- readRDS('./data/AG_Hell/metaPlasmaNorm.rds')
+# Untargeted Plasma Metabolomics (Hopf)
+metaPlasma_untar_Hopf <- readRDS('./data/AG_Hopf/metaPlasmaVsn.rds')
+# Untargeted Plasma Lipidomics (Hopf)
+lipPlasma_untar_Hopf <- readRDS('./data/AG_Hopf/lipPlasmaVsn.rds')
+
+# DDA Tissue Proteomics (Krijgsveld)
+proTissue_DDA_Kri <- readRDS('./data/AG_Krijgsveld/proTissueNorm.rds')
+# New DIA Tissue Proteomics (Krijgsveld)
+new_proTissue_DIA_Kri <- readRDS('./data/AG_Krijgsveld/new_proTissueNorm_DIA.rds')
+# DIA Tissue Proteomics (Klingmüller)
+proTissue_DIA_Klin <- readRDS('./data/AG_Klingmuller/proTissueNorm_DIA.rds')
+# Use only Method Development samples
+proTissue_DIA_Klin <- proTissue_DIA_Klin[, colnames(proTissue_DIA_Klin) %in% colnames(proTissue_DDA_Kri)]
+# Targeted Tissue Metabolomics (Hell)
+metaTissue_tar_Hell <- readRDS('./data/AG_Hell/metaTissueNorm.rds')
+# Untargeted Tissue Metabolomics (Hopf)
+metaTissue_untar_Hopf <- readRDS('./data/AG_Hopf/metaTissueVsn.rds')
+# Untargeted Tissue Lipidomics (Hopf)
+lipTissue_untar_Hopf <- readRDS('./data/AG_Hopf/lipTissueVsn.rds')
+
+# ------------------------------------------------------------------------------ #
+
+# Convert SE objects to long data for creating MOFA object through 'create_mofa_from_df'
+# to include metadata
+# DDA Plasma Proteomics (Krijgsveld)
+proPlasmaTab_DDA_Kri <- mofa_summExp2df(proPlasma_DDA_Kri, smp_type = 'Plasma',
+                                        data_acqui = 'DDA', data_modal = 'Proteomics')
+# DIA Plasma Proteomics (Krijgsveld)
+proPlasmaTab_DIA_Kri <- mofa_summExp2df(proPlasma_DIA_Kri, smp_type = 'Plasma',
+                                        data_acqui = 'DIA', data_modal = 'Proteomics')
+# New DIA Plasma Proteomics (Krijgsveld)
+new_proPlasmaTab_DIA_Kri <- mofa_summExp2df(new_proPlasma_DIA_Kri, smp_type = 'Plasma',
+                                            data_acqui = 'New DIA', data_modal = 'Proteomics')
+# Targeted Plasma Metabolomics (Hell)
+metaPlasmaTab_tar_Hell <- mofa_summExp2df(metaPlasma_tar_Hell, smp_type = 'Plasma',
+                                          data_acqui = 'Targeted', data_modal = 'Metabolomics')
+# Untargeted Plasma Metabolomics (Hopf)
+metaPlasmaTab_untar_Hopf <- mofa_summExp2df(metaPlasma_untar_Hopf, smp_type = 'Plasma',
+                                            data_acqui = 'Untargeted', data_modal = 'Metabolomics')
+# Untargeted Plasma Lipidomics (Hopf)
+lipPlasmaTab_untar_Hopf <- mofa_summExp2df(lipPlasma_untar_Hopf, smp_type = 'Plasma',
+                                           data_acqui = 'Untargeted', data_modal = 'Lipidomics')
+
+# DDA Tissue Proteomics (Krijgsveld)
+proTissueTab_DDA_Kri <- mofa_summExp2df(proTissue_DDA_Kri, smp_type = 'Tissue',
+                                        data_acqui = 'DDA', data_modal = 'Proteomics')
+proTumorTab_DDA_Kri <- dplyr::filter(proTissueTab_DDA_Kri, view == 'DDA Tumor Proteomics')
+proNormalTab_DDA_Kri <- dplyr::filter(proTissueTab_DDA_Kri, view == 'DDA Normal Proteomics')
+# New DIA Tissue Proteomics (Krijgsveld)
+new_proTissueTab_DIA_Kri <- mofa_summExp2df(new_proTissue_DIA_Kri, smp_type = 'Tissue',
+                                            data_acqui = 'New DIA', data_modal = 'Proteomics')
+new_proTumorTab_DIA_Kri <- dplyr::filter(new_proTissueTab_DIA_Kri, view == 'New DIA Tumor Proteomics')
+new_proNormalTab_DIA_Kri <- dplyr::filter(new_proTissueTab_DIA_Kri, view == 'New DIA Normal Proteomics')
+# DIA Tissue Proteomics (Klingmüller)
+proTissueTab_DIA_Klin <- mofa_summExp2df(proTissue_DIA_Klin, smp_type = 'Tissue',
+                                        data_acqui = 'DIA', data_modal = 'Proteomics')
+proTumorTab_DIA_Klin <- dplyr::filter(proTissueTab_DIA_Klin, view == 'DIA Tumor Proteomics')
+proNormalTab_DIA_Klin <- dplyr::filter(proTissueTab_DIA_Klin, view == 'DIA Normal Proteomics')
+# Targeted Tissue Metabolomics (Hell)
+metaTissueTab_tar_Hell <- mofa_summExp2df(metaTissue_tar_Hell, smp_type = 'Tissue',
+                                          data_acqui = 'Targeted', data_modal = 'Metabolomics')
+metaTumorTab_tar_Hell <- dplyr::filter(metaTissueTab_tar_Hell, view == 'Targeted Tumor Metabolomics')
+metaNormalTab_tar_Hell <- dplyr::filter(metaTissueTab_tar_Hell, view == 'Targeted Normal Metabolomics')
+# Untargeted Tissue Metabolomics (Hopf)
+metaTissueTab_untar_Hopf <- mofa_summExp2df(metaTissue_untar_Hopf, smp_type = 'Tissue',
+                                            data_acqui = 'Untargeted', data_modal = 'Metabolomics')
+metaTumorTab_untar_Hopf <- dplyr::filter(metaTissueTab_untar_Hopf, view == 'Untargeted Tumor Metabolomics')
+metaNormalTab_untar_Hopf <- dplyr::filter(metaTissueTab_untar_Hopf, view == 'Untargeted Normal Metabolomics')
+# Untargeted Tissue Lipidomics (Hopf)
+lipTissueTab_untar_Hopf <- mofa_summExp2df(lipTissue_untar_Hopf, smp_type = 'Tissue',
+                                           data_acqui = 'Untargeted', data_modal = 'Lipidomics')
+lipTumorTab_untar_Hopf <- dplyr::filter(lipTissueTab_untar_Hopf, view == 'Untargeted Tumor Lipidomics')
+lipNormalTab_untar_Hopf <- dplyr::filter(lipTissueTab_untar_Hopf, view == 'Untargeted Normal Lipidomics')
+```
+
+```{r dimensions of datasets, include=F, eval=F}
+# Overview dimensionality of each dataset (Feature x Sample)
+methodDevLungCanDat <- list(DDA_Plasma_Proteomics_Kri = assay(proPlasma_DDA_Kri),
+                            DIA_Plasma_Proteomics_Kri = assay(proPlasma_DIA_Kri),
+                            New_DIA_Plasma_Proteomics_Kri = assay(new_proPlasma_DIA_Kri),
+                            Targeted_Plasma_Metabolomics_Hell = assay(metaPlasma_tar_Hell),
+                            Untargeted_Plasma_Metabolomics_Hopf = assay(metaPlasma_untar_Hopf),
+                            Untargeted_Plasma_Lipidomics_Hopf = assay(lipPlasma_untar_Hopf),
+                            DDA_Tissue_Proteomics_Kri = assay(proTissue_DDA_Kri),
+                            New_DIA_Tissue_Proteomics_Kri = assay(new_proTissue_DIA_Kri),
+                            DIA_Tissue_Proteomics_Klin = assay(proTissue_DIA_Klin),
+                            Targeted_Tissue_Metabolomics_Hell = assay(metaTissue_tar_Hell),
+                            Untargeted_Tissue_Metabolomics_Hopf = assay(metaTissue_untar_Hopf),
+                            Untargeted_Tissue_Lipidomics_Hopf = assay(lipTissue_untar_Hopf))
+lapply(methodDevLungCanDat, dim)
+# lapply(methodDevLungCanDat, colnames)
+```
+
+# Only Plasma samples
+
+## (X) DIA PP + Unt. PM + Unt. PL
+DIA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted Plasma Lipidomics
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, num_factors = 10, save_path = './data/mofa/DIAPP_UntPM_UntPL')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/DIAPP_UntPM_UntPL.rds')
+```
+
+Overview model\
+Samples from patients 'N02PM0LW', 'FH49U7TY', and 'F04ERF3M' are missing in DIA Plasma Proteomics.
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+=> Outlier in recurrence group for Factor 6 is Patient 'F04ERF3M'.
+
+```{r eval=F, include=F}
+ggplot(sigFactor$tab4Plot, aes(x=Recurrence, y=Factor6, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), show.legend = F) +
+  geom_text_repel(aes(label=sample), show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F) +
+  th
+```
+
+## (O) New DIA PP + Unt. PM + Unt. PL
+New DIA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted Plasma Lipidomics
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, num_factors = 9, save_path = './data/mofa/newDIAPP_UntPM_UntPL_9Fac')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_9Fac.rds')
+```
+
+Overview model\
+Baseline sample from Patient 'G045W7J8' was excluded from New DIA Plasma Proteomics
+due to extremely high missingness.
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## (X) DIA PP + T. PM + Unt. PL
+DIA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted Plasma Lipidomics
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(proPlasmaTab_DIA_Kri, metaPlasmaTab_tar_Hell, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, save_path = './data/mofa/DIAPP_TPM_UntPL')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/DIAPP_TPM_UntPL.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## (O) New DIA PP + T. PM + Unt. PL
+New DIA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted Plasma Lipidomics
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_tar_Hell, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, save_path = './data/mofa/newDIAPP_TPM_UntPL')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_TPM_UntPL.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+=> Patient 'G045W7J8' in non-recurrence group is misclassified if zero is a cutoff.
+
+```{r eval=F, include=F}
+ggplot(sigFactor$tab4Plot, aes(x=Recurrence, y=Factor8, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), show.legend = F) +
+  geom_text_repel(aes(label=sample)) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F) +
+  th
+```
+
+## (-) DDA PP + Unt. PM + Unt. PL
+DDA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted Plasma Lipidomics
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(proPlasmaTab_DDA_Kri, metaPlasmaTab_untar_Hopf, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, save_path = './data/mofa/DDAPP_UntPM_UntPL')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/DDAPP_UntPM_UntPL.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+```{r eval=F, include=F}
+# Compare New model with Old model
+mofaObject2 <- readRDS('./data/mofa/trials/old/Hopf_mofa_3V2G_10Fac.rds')
+MOFA2::compare_factors(list(New = mofaObject, Old = mofaObject2))
+# Feature filtering for Untargeted Metabolomics and Lipidomics in Old model was
+# only based on retention time. In New model, missingness was also considered.
+# DIA Proteomics is same.
+```
+
+## (X) DDA PP + T. PM + Unt. PL
+DDA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted Plasma Lipidomics
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(proPlasmaTab_DDA_Kri, metaPlasmaTab_tar_Hell, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, save_path = './data/mofa/DDAPP_TPM_UntPL')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/DDAPP_TPM_UntPL.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## (-) DIA PP + New DIA PP + Unt. PM + Unt. PL
+DIA Plasma Proteomics + New DIA Plasma Proteomics + Untargeted Plasma Metabolomics +
+Untargeted Plasma Lipidomics
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(proPlasmaTab_DIA_Kri, new_proPlasmaTab_DIA_Kri,
+#                              metaPlasmaTab_untar_Hopf, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, num_factors = 9,
+#                         save_path = './data/mofa/DIAPP_newDIAPP_UntPM_UntPL_9Fac')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/DIAPP_newDIAPP_UntPM_UntPL_9Fac.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+```{r eval=F, include=F}
+ggplot(sigFactor$tab4Plot, aes(x=Recurrence, y=Factor7, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), show.legend = F) +
+  geom_text_repel(aes(label=sample)) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F) +
+  th
+```
+
+## (X) DIA PP + New DIA PP + T. PM + Unt. PL
+DIA Plasma Proteomics + New DIA Plasma Proteomics + Targeted Plasma Metabolomics +
+Untargeted Plasma Lipidomics
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(proPlasmaTab_DIA_Kri, new_proPlasmaTab_DIA_Kri,
+#                              metaPlasmaTab_tar_Hell, lipPlasmaTab_untar_Hopf),
+#                         view_data = T, train_mofa = T, save_path = './data/mofa/DIAPP_newDIAPP_TPM_UntPL')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/DIAPP_newDIAPP_TPM_UntPL.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+=> Patients 'F04ERF3M' and 'N02PM0LW' are misclassified if zero is a cutoff.
+
+```{r eval=F, include=F}
+ggplot(sigFactor$tab4Plot, aes(x=Recurrence, y=Factor7, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), show.legend = F) +
+  geom_text_repel(aes(label=sample)) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F) +
+  th
+```
+
+## Factor correlations
+Omics combination: DIA Plasma Proteomics + Untargeted Metabolomics + Untargeted Lipidomics,
+where DIA Plasma Proteomics is either of 'old one', 'new one', or 'old one + new one'
+
+```{r}
+# Compute factor correlations between trained models
+# DIAPP + Unt. PM + Unt. PL
+mofaObj_PP <- readRDS('./data/mofa/DIAPP_UntPM_UntPL.rds')
+# New DIAPP + Unt. PM + Unt. PL
+mofaObj_newPP <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_9Fac.rds')
+# DIAPP + New DIAPP + Unt. PM + Unt. PL
+mofaObj_bothPP <- readRDS('./data/mofa/DIAPP_newDIAPP_UntPM_UntPL_9Fac.rds')
+# New DIAPP + T. PM + Unt. PL
+# Explain all PP, PM, and PL and not correlated with above threes
+# mofaObj_newPP_TPM <- readRDS('./data/mofa/newDIAPP_TPM_UntPL.rds')
+
+MOFA2::compare_factors(list(PP = mofaObj_PP, newPP = mofaObj_newPP, bothPP = mofaObj_bothPP))
+```
+=> 'newPP_Factor7', 'bothPP_Factor7', and 'PP_Factor7' (explain Untargeted Lipidomics)
+and 'newPP_Factor5', 'bothPP_Factor5', and 'PP_Factor6' (explain Untargeted Metabolomics)
+are highly correlated, which indicates these models capture similar source of variation
+in cancer recurrence.
+
+## Similarity: DIA PP + New DIA PP
+DIA Plasma Proteomics + New DIA Plasma Proteomics to see how much variation explained
+across two datasets
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(proPlasmaTab_DIA_Kri, new_proPlasmaTab_DIA_Kri),
+#                         view_data = T, train_mofa = T, save_path = './data/mofa/DIAPP_newDIAPP')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/DIAPP_newDIAPP.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+# Add Tissue Proteomics
+
+## (X) New DIA PP + Unt. PM + Unt. PL + DIATP + DIANP (Krij.)
+New DIA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted Plasma Lipidomics +
+DIA Tumor Proteomics (Krij.) + DIA Normal Proteomics (Krij.)
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, new_proTumorTab_DIA_Kri,
+#                              new_proNormalTab_DIA_Kri),
+#                         view_data = T, train_mofa = T, save_path = './data/mofa/newDIAPP_UntPM_UntPL_newDIATP_newDIANP')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_newDIATP_newDIANP.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## (O) New DIA PP + Unt. PM + Unt. PL + DIATP + DIANP (Klin.)
+New DIA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted Plasma Lipidomics +
+DIA Tumor Proteomics (Klin.) + DIA Normal Proteomics (Klin.)
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, proTumorTab_DIA_Klin,
+#                              proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = './data/mofa/newDIAPP_UntPM_UntPL_DIATP_DIANP')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_DIATP_DIANP.rds')
+```
+
+Overview model\
+Baseline sample from Patient ‘G045W7J8’ was excluded from New DIA Plasma Proteomics
+due to extremely high missingness, and samples from patients 'D04XHF7F' and 'E04NMF53'
+are missing in DIA Tissue Proteomics.
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+```{r eval=F, include=F}
+ggplot(sigFactor$tab4Plot, aes(x=Recurrence, y=Factor7, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F) +
+  th
+```
+
+
+## (X) New DIA PP + Unt. PM + Unt. PL + DIATP (Krij.)
+New DIA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted Plasma Lipidomics +
+DIA Tumor Proteomics (Krij.)
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, new_proTumorTab_DIA_Kri),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = './data/mofa/newDIAPP_UntPM_UntPL_newDIATP')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_newDIATP.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## (O) New DIA PP + Unt. PM + Unt. PL + DIATP (Klin.)
+New DIA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted Plasma Lipidomics +
+DIA Tumor Proteomics (Klin.)
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, proTumorTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 9,
+#                         save_path = './data/mofa/newDIAPP_UntPM_UntPL_DIATP_9Fac')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_DIATP_9Fac.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## (X) New DIA PP + Unt. PM + Unt. PL + DIANP (Krij.)
+New DIA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted Plasma Lipidomics +
+DIA Normal Proteomics (Krij.)
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, new_proNormalTab_DIA_Kri),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = './data/mofa/newDIAPP_UntPM_UntPL_newDIANP')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_newDIANP.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## (O) New DIA PP + Unt. PM + Unt. PL + DIANP (Klin.)
+New DIA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted Plasma Lipidomics +
+DIA Normal Proteomics (Klin.)
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 9,
+#                         save_path = './data/mofa/newDIAPP_UntPM_UntPL_DIANP_9Fac')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_DIANP_9Fac.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+```{r eval=F, include=F}
+ggplot(sigFactor$tab4Plot, aes(x=Recurrence, y=Factor7, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F) +
+  th
+```
+
+## (O) New DIA PP + T. PM + Unt. PL + DIATP + DIANP (Klin.)
+New DIA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted Plasma Lipidomics +
+DIA Tumor Proteomics (Klin.) + DIA Normal Proteomics (Klin.)
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_tar_Hell,
+#                              lipPlasmaTab_untar_Hopf, proTumorTab_DIA_Klin,
+#                              proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = './data/mofa/newDIAPP_TPM_UntPL_DIATP_DIANP')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_TPM_UntPL_DIATP_DIANP.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## (O) New DIA PP + T. PM + Unt. PL + DIANP (Klin.)
+New DIA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted Plasma Lipidomics +
+DIA Normal Proteomics (Klin.)
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_tar_Hell,
+#                              lipPlasmaTab_untar_Hopf, proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = './data/mofa/newDIAPP_TPM_UntPL_DIANP')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_TPM_UntPL_DIANP.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## (X) New DIA PP + Unt. PM + Unt. PL + DIANP (Krij.) + DIANP (Klin.)
+New DIA Plasma Proteomics + Untargeted Plasma Metabolomics + Untargeted Plasma Lipidomics +
+DIA Normal Proteomics (Krij.) + DIA Normal Proteomics (Klin.)
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, metaPlasmaTab_untar_Hopf,
+#                              lipPlasmaTab_untar_Hopf, new_proNormalTab_DIA_Kri,
+#                              proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 9,
+#                         save_path = './data/mofa/newDIAPP_UntPM_UntPL_newDIANP_DIANP_9Fac')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_newDIANP_DIANP_9Fac.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## (X) New DIA PP + DIANP (Krij.) + DIANP (Klin.)
+New DIA Plasma Proteomics + DIA Normal Proteomics (Krij.) + DIA Normal Proteomics (Klin.)
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proPlasmaTab_DIA_Kri, new_proNormalTab_DIA_Kri,
+#                              proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = './data/mofa/newDIAPP_newDIANP_DIANP')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIAPP_newDIANP_DIANP.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+## Factor correlations
+Omics combination: New DIA Plasma Proteomics + Untargeted or Targeted Metabolomics +
+Untargeted Lipidomics + DIA Normal Proteomics or DIA Tumor Proteomics, where DIA Tissue
+Proteomics is from AG Klingmüller
+
+```{r}
+# Compare significant features explaining DIA Normal Proteomics
+DIATP_NP <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_DIATP_DIANP.rds') #Factor4, normal and metabolomics
+
+DIANP <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_DIANP_9Fac.rds') #Factor5, normal and lipidomics
+DIATP_NP_TPM <- readRDS('./data/mofa/newDIAPP_TPM_UntPL_DIATP_DIANP.rds') #Factor2, normal and metabolomics
+# MOFA2::compare_factors(list(DIATP_NP = DIATP_NP, DIANP = DIANP, DIATP_NP_TPM = DIATP_NP_TPM))
+
+
+DIANP_TPM <- readRDS('./data/mofa/newDIAPP_TPM_UntPL_DIANP.rds') #Factor7, normal
+# DIAnewNP_NP <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_newDIANP_DIANP_9Fac.rds') #Factor8, normal
+# MOFA2::compare_factors(list(DIANP_TPM = DIANP_TPM, DIAnewNP_NP = DIAnewNP_NP))
+
+# DIAnewNP_NP_newDIAPP <- readRDS('./data/mofa/newDIAPP_newDIANP_DIANP.rds') #Factor4, normal and PP, no any
+
+DIATP <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_DIATP_9Fac.rds') #Factor6, PP, metabolomics, and lipidomics
+MOFA2::compare_factors(list(DIATP = DIATP, DIANP = DIANP, DIANP_TPM = DIANP_TPM))
+```
+=> 'DIATP_Factor6' (New DIA PP + Unt. PM + Unt. PL + DIA TP), 'DIANP_Factor5' (New
+DIA PP + Unt. PM + Unt. PL + DIA NP), and 'DIANP_TPM_Factor7' (New DIA PP + T. PM +
+Unt. PL + DIA NP), some best trained models, are all not correlated.
+
+## Similarity: DIANP (Krij.) + DIANP (Klin.)
+DIA Normal Proteomics (Krij.) + DIA Normal Proteomics (Klin.) to see how much variation
+explained across two datasets
+
+```{r}
+# Train MOFA model
+# mofaObject <- trainMOFA(list(new_proNormalTab_DIA_Kri, proNormalTab_DIA_Klin),
+#                         view_data = T, train_mofa = T, num_factors = 10,
+#                         save_path = './data/mofa/newDIANP_DIANP')
+
+# Load trained model
+mofaObject <- readRDS('./data/mofa/newDIANP_DIANP.rds')
+```
+
+Overview model
+```{r}
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+```
+
+Quantify amount of variance explained by each factor in each data modality
+```{r}
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
+```
+
+Display and visualize significant recurrence-related factors
+```{r}
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+
