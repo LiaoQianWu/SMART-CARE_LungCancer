@@ -1,0 +1,376 @@
+---
+title: 'MOFA: Downstream analysis'
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+<font size='4'> Description: Do enrichment analysis of MOFA model trained on DIA
+Plasma Proteomics (DIAPP), Untargeted Plasma Metabolomics (Unt. PM), Untargeted
+Plasma Lipidomics (Unt. PL), and DIA Normal Tissue Proteomics (DIANP) for biological
+interpretations. Note that DIAPP in this script indicates latest data from AG Krijgsveld
+and DIANP indicates AG Klingmüller one. </font>\
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+```
+
+Load libraries
+```{r message = F}
+library('MOFA2')
+library('reticulate')
+# use_python('/Users/qianwu/opt/anaconda3/bin/python')
+library('AnnotationDbi')
+library('org.Hs.eg.db')
+# This annotation object is accessed using AnnotationDbi:select()
+hs <- org.Hs.eg.db
+library('msigdbr')
+library('clusterProfiler')
+library('ggrepel')
+library('SummarizedExperiment')
+library('tidyverse')
+# Load user-defined functions
+source('./code/misc.R')
+source('./code/mofa_funcs.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
+```
+
+# DIA PP + Unt. PM + Unt. PL + DIANP
+
+Overview model setup
+```{r}
+# Load trained MOFA model
+mofaObj <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_DIANP_9Fac.rds')
+# Overview model
+MOFA2::plot_data_overview(mofaObj)
+```
+
+Show data variance explained by factors
+```{r}
+# Show data variance explained by learned factors
+MOFA2::plot_variance_explained(mofaObj, max_r2 = 10) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1, size = 13),
+        axis.text.y = element_text(size = 15, face = 'bold'),
+        strip.text = element_text(size = 15),
+        legend.title = element_text(size = 15), legend.text = element_text(size = 11))
+# ggsave('./output/Latest/mofa_PP+UntPM_PL+NP_varExplained.png', device = 'png', dpi = 400, height = 8, width = 10)
+```
+
+Show significant factor
+```{r}
+# Show significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObj, smpGroup = 'Baseline Group')
+```
+
+Show features with highest weights, which is most associated with recurrence patients
+```{r}
+# Show top features of significant factor with highest absolute weights
+# Prepare feature annotation table
+# DIA Tissue Proteomics (Klingmüller)
+pro_gene_DIA_Klin <- rowData(readRDS('./data/AG_Klingmuller/proTissueNorm_DIA.rds')) %>%
+  tibble::as_tibble(rownames = 'Proteins') %>%
+  tibble::column_to_rownames('Proteins')
+# Modify feature names
+tmp_mofaObj <- mofa_rmFeatSuffix(mofaObj, view = 'DIA Normal Proteomics',
+                                 feat_anno = list(`DIA Normal Proteomics` = pro_gene_DIA_Klin))
+
+MOFA2::plot_top_weights(tmp_mofaObj, view = 'DIA Normal Proteomics', factor = 5,
+                        nfeatures = 10, scale = T, sign = 'negative') +
+  labs(title = 'DIA Normal Tissue Proteomics') +
+  theme(axis.title = element_text(size = 20, face = 'bold'),
+        axis.text.x = element_text(size = 16), axis.text.y = element_text(size = 20, face = 'bold'),
+        strip.text = element_text(size = 20, face = 'bold'))
+# ggsave('./output/Latest/mofa_PP+UntPM_PL+NP_topWeightedFeats_NP.png', device = 'png', dpi = 400, height = 8, width = 5)
+
+
+# Untargeted Plasma Lipidomics
+mzrt <- rowData(readRDS('./data/AG_Hopf/lipPlasmaVsn.rds')) %>%
+  tibble::as_tibble(rownames = 'Feature') %>%
+  tibble::column_to_rownames('Feature')
+# Modify feature names
+tmp_mofaObj <- mofa_rmFeatSuffix(mofaObj, view = 'Untargeted Plasma Lipidomics',
+                                 feat_anno = list(`Untargeted Plasma Lipidomics` = mzrt))
+
+MOFA2::plot_top_weights(tmp_mofaObj, view = 'Untargeted Plasma Lipidomics', factor = 5,
+                        nfeatures = 10, scale = T, sign = 'negative') +
+  labs(title = 'Untargeted Plasma Lipidomics') +
+  theme(axis.title = element_text(size = 20, face = 'bold'),
+        axis.text.x = element_text(size = 16), axis.text.y = element_text(size = 20, face = 'bold'),
+        strip.text = element_text(size = 20, face = 'bold'))
+# ggsave('./output/Latest/mofa_PP+UntPM_PL+NP_topWeightedFeats_PL.png', device = 'png', dpi = 400, height = 8, width = 5)
+```
+
+```{r eval=F, include=F}
+# Show molecular signature of significant factor in data
+# Prepare feature and sample annotation tables
+# DIA Tissue Proteomics (Klingmüller)
+pro_gene_DIA_Klin <- rowData(readRDS('./data/AG_Klingmuller/proTissueNorm_DIA.rds')) %>%
+  tibble::as_tibble(rownames = 'Proteins') %>%
+  tibble::column_to_rownames('Proteins')
+smpAnno <- dplyr::select(samples_metadata(mofaObj), sample, Recurrence) %>%
+  tibble::column_to_rownames('sample')
+
+mofa_plotDataHeatmap(mofaObj, factor = 5, view = 'DIA Normal Proteomics',
+                     group = 'Baseline Group', num_feats = 20, feat_anno = pro_gene_DIA_Klin,
+                     smp_anno = smpAnno, smp_cluster = 'Recurrence', rm_smpSuffix = '_P_B',
+                     cluster_rows = F, cluster_cols = F, show_rownames = T, show_colnames = T,
+                     color = colorRampPalette(c('navy', 'white', 'red'))(100),
+                     scale = 'row', main = 'Baseline DIA Normal Tissue Proteomics - Fac5')
+```
+
+## Enrichment analysis
+
+```{r}
+# Tidy up weight matrix and feature metadata to reduce information loss
+# Prepare feature annotation table to extract proteins' gene annotations
+# DIA Tissue Proteomics (Klingmüller)
+pro_gene_DIA_Klin <- rowData(readRDS('./data/AG_Klingmuller/proTissueNorm_DIA.rds')) %>%
+  tibble::as_tibble(rownames = 'Proteins') %>%
+  tibble::column_to_rownames('Proteins')
+proNormalWeight <- mofa_keepUniFeats(mofaObj, factor = 5, view = 'DIA Normal Proteomics',
+                                     feat_anno = pro_gene_DIA_Klin, to_genes = T)
+
+# Rank feature weights
+rankedGeneList <- mofa_rankFeatList(proNormalWeight, factor = 5)
+# Make Recurrence group positive weights
+rankedGeneList <- sort(-rankedGeneList, decreasing = T)
+```
+
+### Curated gene sets
+MSigDB - C2
+
+```{r message=F}
+# Curated gene sets - DIA Normal Proteomics
+# View supported species and collections in MSigDB
+# msigdbr_species()
+# msigdbr_collections()
+# Retrieve annotated gene sets
+msigTabC2 <- msigdbr(species = 'Homo sapiens', category = 'C2', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResC2 <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabC2,
+                                   minGSSize = 10, maxGSSize = 500,
+                                   pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                   by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResC2@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                # Description = stringr::str_remove(Description, '^REACTOME_'),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12))
+  # theme(axis.title = element_text(size = 20, face = 'bold'),
+  #       axis.text.x = element_text(size = 18),
+  #       axis.text.y = element_text(size = 18, face = 'bold'),
+  #       legend.title = element_text(size = 20),
+  #       legend.text = element_text(size = 16),
+  #       panel.grid.minor = element_blank())
+# ggsave('./output/Latest/mofa_PP+UntPM_PL+NP_EA_C2.png', device = 'png', dpi = 400, height = 8, width = 13)
+
+# ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust)) +
+#   geom_point(aes(size = gene_ratio), shape = 21) +
+#   scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900',
+#                        midpoint = midGrad, name = 'Adjusted p-value') +
+#   scale_size_continuous(name = 'Core gene ratio') +
+#   geom_vline(xintercept = 0) +
+#   labs(x = 'Normalized Enrichment Score (NES)', y = 'Pathway') +
+#   theme_minimal()
+
+# enrichplot::dotplot(gseaResC2, x = 'GeneRatio', color = 'p.adjust', showCategory = 10,
+#                     font.size = 12, title = 'DIA Normal Proteomics (Curated)')
+```
+=> Increased uptake, synthesis, and storage of lipids has been demonstrated to contribute
+to growth of many cancer types, including lung cancer.
+
+### Oncogenic signature gene sets
+MSigDB - C6
+
+```{r message=F}
+# Oncogenic signatures gene sets - DIA Normal Proteomics
+# Retrieve annotated gene sets
+msigTabC6 <- msigdbr(species = 'Homo sapiens', category = 'C6', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+# Retrieve descriptions of gene sets for interpretation
+descripC6 <- msigdbr(species = 'Homo sapiens', category = 'C6', subcategory = NULL) %>%
+  dplyr::select(gs_name, gs_description) %>%
+  dplyr::filter(!duplicated(gs_name))
+
+# Run GSEA
+gseaResC6 <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabC6,
+                                   minGSSize = 10, maxGSSize = 500,
+                                   pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                   by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResC6@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.6, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12))
+  # theme(axis.title = element_text(size = 20, face = 'bold'),
+  #       axis.text.x = element_text(size = 18),
+  #       axis.text.y = element_text(size = 18, face = 'bold'),
+  #       legend.title = element_text(size = 20),
+  #       legend.text = element_text(size = 16),
+  #       panel.grid.minor = element_blank())
+# ggsave('./output/Latest/mofa_PP+UntPM_PL+NP_EA_C6.png', device = 'png', dpi = 400, height = 8, width = 10)
+```
+=> Aberrant activation of KRAS and mTOR and suppression of p53 has been reported
+to be associated with lung cancer. mTOR signaling pathway regulates many fundamental
+cellular activities, including lipid metabolism.
+
+### Hallmark gene sets
+MSigDB - H
+
+```{r message=F}
+# Hallmark gene sets - DIA Normal Proteomics
+# Retrieve annotated gene sets
+msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResH <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabH,
+                                  minGSSize = 10, maxGSSize = 500,
+                                  pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                  by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResH@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.6, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12))
+```
+
+
+
+
+```{r eval=F, include=F}
+# MSigDB - DIA Normal Proteomics
+# Tidy up weight matrix and feature metadata to reduce information loss
+# Prepare feature annotation table to extract proteins' gene annotations
+# DIA Tissue Proteomics (Klingmüller)
+pro_gene_DIA_Klin <- rowData(readRDS('./data/AG_Klingmuller/proTissueNorm_DIA.rds')) %>%
+  tibble::as_tibble(rownames = 'Proteins') %>%
+  tibble::column_to_rownames('Proteins')
+proNormalWeight <- mofa_keepUniFeats(mofaObj, factor = 5, view = 'DIA Normal Proteomics',
+                                     feat_anno = pro_gene_DIA_Klin, to_genes = T)
+# Rank feature weights
+rankedGeneList <- mofa_rankFeatList(proNormalWeight, factor = 5)
+
+# Ontology gene sets
+# Retrieve annotated gene sets
+msigTabC5BP <- msigdbr(species = 'Homo sapiens', category = 'C5', subcategory = 'GO:BP') %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResC5BP <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabC5BP,
+                                     minGSSize = 10, maxGSSize = 500,
+                                     pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                     by = 'fgsea', eps = 0)
+# Plot enrichment analysis result
+enrichplot::dotplot(gseaResC5BP, x = 'GeneRatio', color = 'p.adjust', showCategory = 10,
+                    font.size = 12, title = 'DIA Normal Proteomics (GO:BP)')
+
+
+
+
+# GO:BP - DIA Normal Proteomics (Another way)
+# Map gene symbols to Entrez IDs
+proNormalWeight2 <- SYMBOL2ENTREZID(proNormalWeight)
+# Rank feature weights
+rankedGeneList2 <- mofa_rankFeatList(proNormalWeight2, factor = 5)
+
+# Run GSEA
+# @result$setSize: Set size of intersection between (ranked) gene list and gene set
+# Leading edge analysis: 'tags' indicates percentage of leading edge subset (core
+# of genes, @result$core_enrichment) in intersected set between ranked gene list
+# (@geneList) and GO gene set (@geneSets) contributing to ES.
+# 'Count' in plot indicates length of leading edge subset and 'GeneRatio' indicates 'tags'.
+# Parameter 'scoreType' is set to 'pos' or 'neg' for one-tailed test. Use case:
+# For ranked list based on absolute values of log(FC), only positive side is of
+# interest -> 'pos'
+gseaResBP <- clusterProfiler::gseGO(geneList = rankedGeneList2, ont = 'BP', OrgDb = hs,
+                                    keyType = 'ENTREZID', minGSSize = 10, maxGSSize = 500,
+                                    pvalueCutoff = 0.05, pAdjustMethod = 'BH', by = 'fgsea',
+                                    eps = 0, scoreType = 'std')
+enrichplot::dotplot(gseaResBP, x = 'GeneRatio', color = 'p.adjust', showCategory = 15,
+                    font.size = 12, title = 'DIA Normal Proteomics (GO:BP)')
+
+# Show leading edge analysis of an example
+# gseaResBP@result$leading_edge[1]
+# # Retrieve size of ranked gene list
+# geneListSize <- length(names(gseaResBP@geneList))
+# # Retrieve size of example GO gene set
+# goGeneSetSize <- length(gseaResBP@geneSets[[gseaResBP@result$ID[1]]])
+# # Compute number of intersected genes between gene list and GO gene set
+# setSize <- length(intersect(names(gseaResBP@geneList), gseaResBP@geneSets[[gseaResBP@result$ID[1]]]))
+# # Retrieve size of leading edge subset
+# leadEdgeSubset <- length(unlist(stringr::str_split(gseaResBP@result$core_enrichment[1], '/')))
+# # Sanity check
+# print(paste('setSize = intersection of ranked gene list and gene set:',
+#             identical(setSize, gseaResBP@result$setSize[1])))
+# print(paste('tags = leading edge subset size / setSize:', leadEdgeSubset / setSize))
+# # Make ES plot
+# enrichplot::gseaplot2(gseaResBP, geneSetID = gseaResBP@result$ID[1],title = gseaResBP@result$Description[1])
+```

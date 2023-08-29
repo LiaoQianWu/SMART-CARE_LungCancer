@@ -236,6 +236,42 @@ Display and visualize significant recurrence-related factors
 sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
 ```
 
+```{r eval=F}
+# Compare significant factor with significant PC learned from Untargeted Baseline
+# Plasma Lipidomics since significant factor explains only variation in Unt. PL
+# Load Untargeted Lipidomics
+lipPlasmaVsn <- readRDS('./data/AG_Hopf/lipPlasmaVsn.rds')
+# Subset baseline samples
+smpBaseIdx <- which(colData(lipPlasmaVsn)$Condition == 'Baseline')
+lipBase <- lipPlasmaVsn[, smpBaseIdx]
+# Perform analysis
+lipBaseRes <- doSOA(lipBase, meta_var = 'Recurrence', pca_method = 'ppca', num_PCs = 17)
+
+lipBasePCTab <- lipBaseRes$pcTab %>%
+  dplyr::select(Sample, PC5) %>%
+  dplyr::rename(sample = Sample)
+mofaObjFacTab <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group', show = F)$tab4Plot %>%
+  dplyr::select(sample, Factor7, Factor5, Recurrence)
+combinedTab <- dplyr::left_join(lipBasePCTab, mofaObjFacTab, by = 'sample')
+
+# Trained MOFA model vs PCs learned from Untargeted Baseline Plasma Lipidomics
+ggplot(combinedTab, aes(x=Factor7, y=PC5)) +
+  geom_point(aes(col=Recurrence), size = 4) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
+  th
+
+ggplot(combinedTab, aes(x=Factor5, y=PC5)) +
+  geom_point(aes(col=Recurrence), size = 4) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
+  th
+
+# Significant MOFA factors and PC are not correlated.
+```
+
 ## (X) DIA PP + T. PM + Unt. PL
 DIA Plasma Proteomics + Targeted Plasma Metabolomics + Untargeted Plasma Lipidomics
 
@@ -796,7 +832,7 @@ Quantify amount of variance explained by each factor in each data modality
 # MOFA2::plot_factor_cor(mofaObject)
 
 # Perform variance dedecomposition analysis (coefficient of determination)
-MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 10) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
 ```
 
@@ -808,15 +844,54 @@ sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
 ```
 
 ```{r eval=F, include=F}
-ggplot(sigFactor$tab4Plot, aes(x=Recurrence, y=Factor7, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), show.legend = F) +
+ggplot(sigFactor$tab4Plot, aes(x=Recurrence, y=Factor5, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.5, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 4, show.legend = F) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
   scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F) +
-  th
+                             show.legend = F, size = 10,
+                             hjust = -0.5, vjust = 0.6) +
+  th +
+  theme(axis.title = element_text(size = 28), axis.text = element_text(size = 20),
+        legend.title = element_text(size = 26), legend.text = element_text(size = 26))
+# ggsave('./output/Latest/mofa_PP+UntPM_PL+NP_fac5.png', device = 'png', dpi = 400, height = 8, width = 10)
+```
+
+Compare significant factor with significant PC learned from DIA Normal Tissue Proteomics
+(Klin.) since significant factor mostly explains variation in DIANP
+```{r}
+# Load DIA Tissue Proteomics from AG Klingmüller
+proTissue <- readRDS('./data/AG_Klingmuller/proTissueNorm_DIA.rds')
+# Load another Method Development datasets for retrieving MD samples
+metaTissue <- readRDS('./data/AG_Hell/metaTissueNorm.rds')
+methodDevSmps <- colnames(metaTissue)
+proTissue <- proTissue[, colnames(proTissue) %in% methodDevSmps]
+# Subset normal samples
+smpNormalIdx <- which(colData(proTissue)$Condition == 'Normal')
+proNormal <- proTissue[, smpNormalIdx]
+# Perform analysis
+proNormalRes <- doSOA(proNormal, meta_var = 'Recurrence', pca_method = 'ppca', num_PCs = 16)
+
+# Trained MOFA model vs PCs learned from DIA Normal Tissue Proteomics
+proNormalPCTab <- proNormalRes$pcTab %>%
+  dplyr::select(Sample, PC1, PC7) %>%
+  dplyr::rename(sample = Sample)
+mofaObjFacTab <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group', show = F)$tab4Plot %>%
+  dplyr::select(sample, Factor5, Recurrence) %>%
+  dplyr::mutate(sample = stringr::str_replace(sample, '_P_B', '_NG'))
+combinedTab <- dplyr::left_join(proNormalPCTab, mofaObjFacTab, by = 'sample')
+
+ggplot(combinedTab, aes(x=Factor5, y=PC1)) +
+  geom_point(aes(col=Recurrence), size = 4) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 10) +
+  th #+
+  # theme(axis.title = element_text(size = 28), axis.text = element_text(size = 20),
+  #       legend.title = element_text(size = 26), legend.text = element_text(size = 26))
+# ggsave('./output/Latest/mofa_PP+UntPM_PL+NP_corrFac5PC1.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 ## (O) New DIA PP + T. PM + Unt. PL + DIATP + DIANP (Klin.)
@@ -885,7 +960,7 @@ Quantify amount of variance explained by each factor in each data modality
 # MOFA2::plot_factor_cor(mofaObject)
 
 # Perform variance dedecomposition analysis (coefficient of determination)
-MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) +
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 10) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))
 ```
 
@@ -894,6 +969,51 @@ Display and visualize significant recurrence-related factors
 # Display significant associations between learned factors (Var1) and cancer recurrence
 # (Var2) and visualize significant recurrence-related factors
 sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+```
+
+```{r eval=F, include=F}
+ggplot(sigFactor$tab4Plot, aes(x=Recurrence, y=Factor7, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), show.legend = F) +
+  geom_text_repel(aes(label=sample)) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             show.legend = F) +
+  th
+```
+
+Compare significant factor with significant PC learned from DIA Normal Tissue Proteomics
+(Klin.) since significant factor explains only variation in DIANP
+```{r}
+# Load DIA Tissue Proteomics from AG Klingmüller
+proTissue <- readRDS('./data/AG_Klingmuller/proTissueNorm_DIA.rds')
+# Load another Method Development datasets for retrieving MD samples
+metaTissue <- readRDS('./data/AG_Hell/metaTissueNorm.rds')
+methodDevSmps <- colnames(metaTissue)
+proTissue <- proTissue[, colnames(proTissue) %in% methodDevSmps]
+# Subset normal samples
+smpNormalIdx <- which(colData(proTissue)$Condition == 'Normal')
+proNormal <- proTissue[, smpNormalIdx]
+# Perform analysis
+proNormalRes <- doSOA(proNormal, meta_var = 'Recurrence', pca_method = 'ppca', num_PCs = 16)
+
+# Trained MOFA model vs PCs learned from DIA Normal Tissue Proteomics
+proNormalPCTab <- proNormalRes$pcTab %>%
+  dplyr::select(Sample, PC1, PC7) %>%
+  dplyr::rename(sample = Sample)
+mofaObjFacTab <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group', show = F)$tab4Plot %>%
+  dplyr::select(sample, Factor7, Recurrence) %>%
+  dplyr::mutate(sample = stringr::str_replace(sample, '_P_B', '_NG'))
+combinedTab <- dplyr::left_join(proNormalPCTab, mofaObjFacTab, by = 'sample')
+
+ggplot(combinedTab, aes(x=Factor7, y=PC1)) +
+  geom_point(aes(col=Recurrence), size = 4) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
+  th
 ```
 
 ## (X) New DIA PP + Unt. PM + Unt. PL + DIANP (Krij.) + DIANP (Klin.)
@@ -1037,3 +1157,22 @@ sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
 ```
 
 
+
+
+```{r eval=F}
+# DIA PP always indicates new one from AG Krijgsveld and DIA TP from AG Klingmüller
+# DIA PP + Unt. PM + Unt. PL - Factor 7 (lipidomics)
+allPlasma_untMet <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_9Fac.rds')
+# DIA PP + T. PM + Unt. PL - Factor 8 (lipidomics, metabolomics)
+allPlasma_tMet <- readRDS('./data/mofa/newDIAPP_TPM_UntPL.rds')
+# DIA PP + Unt. PM + Unt. PL + DIA TP + DIA NP - Factor 4 (normal, metabolomics)
+allPlasmaTPNP_untMet <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_DIATP_DIANP.rds')
+# DIA PP + Unt. PM + Unt. PL + DIA TP - Factor 6 (baseline, lipidomics, metabolomics)
+allPlasmaTP_untMet <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_DIATP_9Fac.rds')
+# DIA PP + Unt. PM + Unt. PL + DIA NP - Factor 5 (normal, lipidomics)
+allPlasmaNP_untMet <- readRDS('./data/mofa/newDIAPP_UntPM_UntPL_DIANP_9Fac.rds')
+# DIA PP + T. PM + Unt. PL + DIA TP + DIA NP - Factor 2 (normal, metabolomics)
+allPlasmaTPNP_tMet <- readRDS('./data/mofa/newDIAPP_TPM_UntPL_DIATP_DIANP.rds')
+# DIA PP + T. PM + Unt. PL + DIA NP - Factor 7 (normal)
+allPlasmaNP_tMet <- readRDS('./data/mofa/newDIAPP_TPM_UntPL_DIANP.rds')
+```

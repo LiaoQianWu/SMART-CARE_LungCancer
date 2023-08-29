@@ -78,8 +78,9 @@ models using only Plasma omics (Plasma Metabolomics, Lipidomics, and Proteomics)
 and based on these models, we then added or removed omics to see changes in the
 model performance.
 
-### 4.1 [Latest: Trained MOFA models](mofa_models.html)
+### 4.1 [Latest: Trained MOFA Models](mofa_models.html)
+### 4.2 [Enrichment Analysis](mofa_downstream_analysis.html)
 
-### 4.2 [Old: Trained MOFA models](mofa_varied_omics_combinations.html)
+### 4.3 [Old: Trained MOFA Models](mofa_varied_omics_combinations.html)
 The results show that, in general, the model trained on the combination composed
 of Untargeted Plasma Metabolomics, Plasma Lipidomics, and Plasma Proteomics performs best.

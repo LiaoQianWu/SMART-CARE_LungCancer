@@ -84,7 +84,7 @@ trainMOFA <- function(data_comb, view_data = T, train_mofa = T, num_factors = 10
 }
 
 
-mofa_vizSigFactor <- function(mofaObj, smpGroup = 'Baseline Group', alpha = 0.05) {
+mofa_vizSigFactor <- function(mofaObj, smpGroup = 'Baseline Group', alpha = 0.05, show = T) {
   #' Pinpoint significant cancer recurrence-related factors in trained MOFA model
   #' and visualize data through boxplots
   
@@ -95,27 +95,31 @@ mofa_vizSigFactor <- function(mofaObj, smpGroup = 'Baseline Group', alpha = 0.05
     dplyr::select(sample, Recurrence)
   sigAssoRes <- testAsso(facTab, metaTab, cmn_col = 'sample') %>%
     dplyr::filter(pVal <= alpha)
-  print(sigAssoRes)
+  if (show) {
+    print(sigAssoRes)
+  }
   
   # Make boxplots of significant recurrence-related factors
   # Prepare information table and container for making and storing plots
   tab4Plot <- dplyr::left_join(facTab, metaTab, by = 'sample')
   plotList <- list()
-  for (i in seq_len(nrow(sigAssoRes))) {
-    fac <- sigAssoRes$Var1[i]
-    p <- ggplot(tab4Plot, aes(x=Recurrence, y=.data[[fac]], col=Recurrence, fill=Recurrence)) +
-      geom_boxplot(alpha = 0.3, outlier.shape = NA) +
-      geom_jitter(position = position_jitter(0.2), show.legend = F) +
-      scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-      scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-      ggpubr::stat_compare_means(method = 't.test', paired = F,
-                                 method.args = list(var.equal = T),
-                                 show.legend = F) +
-      th
-    print(p)
-    # Store plot in list
-    plotList[[i]] <- p
-    names(plotList)[i] <- fac
+  if (show) {
+    for (i in seq_len(nrow(sigAssoRes))) {
+      fac <- sigAssoRes$Var1[i]
+      p <- ggplot(tab4Plot, aes(x=Recurrence, y=.data[[fac]], col=Recurrence, fill=Recurrence)) +
+        geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+        geom_jitter(position = position_jitter(0.2), show.legend = F) +
+        scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+        scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+        ggpubr::stat_compare_means(method = 't.test', paired = F,
+                                   method.args = list(var.equal = T),
+                                   show.legend = F) +
+        th
+      print(p)
+      # Store plot in list
+      plotList[[i]] <- p
+      names(plotList)[i] <- fac
+    }
   }
   
   return(list(sigAssoRes = sigAssoRes, plotList = plotList, tab4Plot = tab4Plot))
