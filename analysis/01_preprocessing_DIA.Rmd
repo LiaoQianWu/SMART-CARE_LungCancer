@@ -17,38 +17,18 @@ knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_Dis
 
 Load libraries
 ```{r load libraries, message=F}
-library('readr')
-library('readxl')
-library('vsn')
-library('visdat')
-library('SummarizedExperiment')
-library('tidyverse')
+library(readr)
+library(readxl)
+library(vsn)
+library(limma)
+library(visdat)
+library(SummarizedExperiment)
+library(tidyverse)
 # Load user-defined functions
-source('./code/misc.R')
-
-# Set plot theme
-th <- theme_bw(base_size = 15) +
-  theme(axis.title = element_text(face = 'bold'),
-        axis.text = element_text(face = 'bold'),
-        axis.ticks = element_line(linewidth = 0.8),
-        legend.text = element_text(size = 15))
-
-# List sample annotations to keep in SE objects
-anno <- c('Condition', 'Patient', 'Recurrence', 'Gender', 'Age', 'Smoking', 'Stage',
-          'Adjuvant')
+source('./code/analysis_pipeline.R')
 ```
 
-# Tissue Proteomics
-
-```{r}
-# Load unprocessed data
-proTissue <- readr::read_tsv('./data/AG_Krijgsveld/20230815_MarcS_Discovery_Tissue.pg_matrix.tsv') %>%
-  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %>%
-  tidyr::pivot_longer(cols = -c('Protein.Group', 'Protein.Names', 'Genes'),
-                      names_to = 'Sample', values_to = 'Abundance') %>%
-  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, '_HUMAN'),
-                Sample = stringr::str_remove_all(Sample, '^.+SC_A_|^.+SC_DIS_A_|4\\.raw$'))
-
+```{r prepare global info, message=F}
 # Load patient metadata
 patientMetadat <- readxl::read_excel('./data/patient_metadata.xlsx')
 colnames(patientMetadat) <- patientMetadat[3,]
@@ -63,6 +43,8 @@ patientMetadat <- dplyr::slice(patientMetadat, -c(1:3)) %>%
                                            Smoking == 'NON-SMOKER' ~ 'Non-smoker'),
                 Adjuvant = dplyr::case_when(Adjuvant == 'true' ~ 'True',
                                             Adjuvant == 'false' ~ 'False'),
+                Metastasis = dplyr::case_when(Stage == 'IIB' ~ 'Yes',
+                                              Stage != 'IIB' ~ 'No'),
                 Age = as.numeric(Age))
 
 # Load sample metadata
@@ -82,6 +64,42 @@ smpMetadat <- dplyr::slice(smpMetadat, -c(1:3)) %>%
                 Date = stringr::str_extract(Date, '\\d+-\\d+'),
                 Patient = stringr::str_remove(Patient, '/THRX_SPACE/THRX_DB/')) %>%
   dplyr::arrange(Patient)
+
+# List sample annotations to keep in SE objects
+smpAnno <- c('Condition', 'Patient', 'Recurrence', 'Gender', 'Age', 'Smoking',
+             'Stage', 'Adjuvant', 'Metastasis')
+```
+
+# Tissue Proteomics
+
+```{r message=F}
+# Load unprocessed data
+proTissueTab <- readr::read_tsv('./data/AG_Krijgsveld/20230815_MarcS_Discovery_Tissue.pg_matrix.tsv') %>%
+  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %>%
+  tidyr::pivot_longer(cols = -c('Protein.Group', 'Protein.Names', 'Genes'),
+                      names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, '_HUMAN'),
+                Sample = stringr::str_remove_all(Sample, '^.+SC_A_|^.+SC_DIS_A_|4\\.raw$'),
+                Condition = dplyr::case_when(grepl('_NG', Sample) ~ 'Normal',
+                                             grepl('TU', Sample) ~ 'Tumor'),
+                Patient = stringr::str_remove(Sample, '_.+$'))
+
+# Prepare patient metadata
+# Extract included patients
+tissuePats <- unique(proTissueTab$Patient)
+# Extract patient recurrence information
+recurPats <- dplyr::filter(smpMetadat, Patient %in% tissuePats, Status == 'Recurrence') %>%
+  dplyr::pull(Patient)
+patientAnno <- dplyr::filter(patientMetadat, Patient %in% tissuePats) %>%
+  dplyr::mutate(Recurrence = dplyr::case_when(Patient %in% recurPats ~ 'Yes',
+                                              !Patient %in% recurPats ~ 'No'))
+# Combine all information
+proTissueTab <- dplyr::left_join(proTissueTab, patientAnno, by = 'Patient')
+
+proTissue <- doPreprocessing(proTissueTab, feat = 'Protein.Group', smp = 'Sample',
+                             val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
+                             smpAnno = smpAnno, do_featFilt = T, cutoff = 0.67,
+                             viz_miss = T, save_path = NULL)
 ```
 
 
@@ -91,7 +109,7 @@ smpMetadat <- dplyr::slice(smpMetadat, -c(1:3)) %>%
 
 ```{r}
 # Load unprocessed data
-proPlasma <- readr::read_tsv('./data/AG_Krijgsveld/20230811_MarcS_Discovery_Plasma.pg_matrix.tsv') %>%
+proPlasmaTab <- readr::read_tsv('./data/AG_Krijgsveld/20230811_MarcS_Discovery_Plasma.pg_matrix.tsv') %>%
   dplyr::select(-c(Protein.Ids, First.Protein.Description)) %>%
   tidyr::pivot_longer(cols = -c('Protein.Group', 'Protein.Names', 'Genes'),
                       names_to = 'Sample', values_to = 'Abundance') %>%
@@ -100,11 +118,12 @@ proPlasma <- readr::read_tsv('./data/AG_Krijgsveld/20230811_MarcS_Discovery_Plas
                 Sample = stringr::str_replace(Sample, 'P_', '_'),
                 Sample = stringr::str_remove(Sample, '^SC_A_'),
                 Sample = dplyr::case_when(Sample == 'FD01075852' ~ 'R1WTOP_V1',
-                                              Sample == 'FD05926483' ~ 'R1WTOP_V2',
-                                              Sample == 'FD01282286' ~ 'R1WTOP_V3',
-                                              Sample == 'FD07174643' ~ 'R1WTOP_V4',
-                                              !Sample %in% c('FD01075852', 'FD05926483',
-                                                             'FD01282286', 'FD07174643') ~ Sample),
-                Sample = stringr::str_remove_all(Sample, '_FD\\d+|_LV\\d+'))
+                                          Sample == 'FD05926483' ~ 'R1WTOP_V2',
+                                          Sample == 'FD01282286' ~ 'R1WTOP_V3',
+                                          Sample == 'FD07174643' ~ 'R1WTOP_V4',
+                                          !Sample %in% c('FD01075852', 'FD05926483',
+                                                         'FD01282286', 'FD07174643') ~ Sample),
+                Sample = stringr::str_remove_all(Sample, '_FD\\d+|_LV\\d+'),
+                Patient = stringr::str_remove(Sample, '_.+$'))
 ```
 
