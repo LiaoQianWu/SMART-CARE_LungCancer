@@ -11,7 +11,7 @@ output:
 <font size='4'> Description: </font>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10)
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
 knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_Discovery')
 ```
 
@@ -22,10 +22,12 @@ library(readxl)
 library(vsn)
 library(limma)
 library(visdat)
+library(ggrepel)
 library(SummarizedExperiment)
 library(tidyverse)
 # Load user-defined functions
 source('./code/analysis_pipeline.R')
+source('./code/misc.R')
 ```
 
 ```{r prepare global info, message=F}
@@ -82,7 +84,9 @@ proTissueTab <- readr::read_tsv('./data/AG_Krijgsveld/20230815_MarcS_Discovery_T
                 Sample = stringr::str_remove_all(Sample, '^.+SC_A_|^.+SC_DIS_A_|4\\.raw$'),
                 Condition = dplyr::case_when(grepl('_NG', Sample) ~ 'Normal',
                                              grepl('TU', Sample) ~ 'Tumor'),
-                Patient = stringr::str_remove(Sample, '_.+$'))
+                Patient = stringr::str_remove(Sample, '_.+$')) %>%
+  # Remove these samples due to bad quality
+  dplyr::filter(!Sample %in% c('I0HVOL_TU', '7EAOX7_TU', 'MJMTYR_TU', 'XFKHGP_TU'))
 
 # Prepare patient metadata
 # Extract included patients
@@ -96,18 +100,95 @@ patientAnno <- dplyr::filter(patientMetadat, Patient %in% tissuePats) %>%
 # Combine all information
 proTissueTab <- dplyr::left_join(proTissueTab, patientAnno, by = 'Patient')
 
+# Preprocess data
 proTissue <- doPreprocessing(proTissueTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                              smpAnno = smpAnno, do_featFilt = T, cutoff = 0.67,
-                             viz_miss = T, save_path = NULL)
+                             viz_miss = T) #save_path = './data/AG_Krijgsveld/proTissue'
 ```
+=> Samples 'I0HVOL_TU', '7EAOX7_TU', 'MJMTYR_TU', and 'XFKHGP_TU' were removed due
+to bad quality. Boxplot displaying separation between Normal and Tumor tissues is
+shown at end of this section.
+<br/>
+<br/>
+
+Show dimensions of original data (82 samples and 7986 features)
+```{r}
+dim(proTissue$ori.data)
+```
+
+Show missingness of original data
+```{r}
+proTissue$ori.data.miss +
+  theme(axis.text.x = element_text(size = 10))
+```
+
+Show distribution of original data
+```{r}
+proTissue$ori.data.dist +
+  theme(axis.text.x = element_text(size = 10))
+```
+
+**Remove features quantified in less than 2/3 of samples**\
+Show dimensions of filtered data (82 samples and 5381 features)
+```{r}
+dim(proTissue$filt.data)
+```
+
+Show missingness of filter data
+```{r}
+proTissue$filt.data.miss +
+  theme(axis.text.x = element_text(size = 10))
+```
+
+Show distribution of filtered data
+```{r}
+proTissue$filt.data.dist +
+  theme(axis.text.x = element_text(size = 10))
+```
+
+**Normalize filtered data by VSN**\
+Show distribution of vsn normalized data
+```{r}
+proTissue$vsn.data.dist +
+  theme(axis.text.x = element_text(size = 10))
+```
+
+Show data quality
+```{r}
+# Load old vsn normalized data
+tmp_proTissueVsn <- readRDS('./data/AG_Krijgsveld/proTissueVsn4ShowQuality.rds')
+# Do single-omics analysis
+proTissueSOA <- doSOA(tmp_proTissueVsn, meta_var = 'Condition', pca_method = 'ppca',
+                      do_onlyPCA = T)
+# Prepare labels for samples of interest
+pcTab <- proTissueSOA$pcTab %>%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% c('I0HVOL_TU', '7EAOX7_TU',
+                                                       'MJMTYR_TU', 'XFKHGP_TU',
+                                                       'XFKHGP_NG', 'MJMTYR_NG',
+                                                       'I0HVOL_NG', '7EAOX7_NG') ~ Sample))
+ggplot(pcTab, aes(x=Condition, y=PC1, col=Condition, fill=Condition, label=Label)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  geom_text_repel(show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  labs(x = 'Sample condition') +
+  theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
+```
+=> I0HVOL_TU: 87%, 14mg / 7EAOX7_TU: 70%, 19mg / MJMTYR_TU: 40%, 31mg / XFKHGP_TU: 100%, 4mg\
+(Tumor cell contents ranging from 40 - 100%, and Tissue weight from 4 - 54mg)
 
 
 
 
 # Plasma Proteomics
 
-```{r}
+```{r eval=F}
 # Load unprocessed data
 proPlasmaTab <- readr::read_tsv('./data/AG_Krijgsveld/20230811_MarcS_Discovery_Plasma.pg_matrix.tsv') %>%
   dplyr::select(-c(Protein.Ids, First.Protein.Description)) %>%
