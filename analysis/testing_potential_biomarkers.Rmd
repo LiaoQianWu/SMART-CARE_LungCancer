@@ -1,0 +1,133 @@
+---
+title: 'Testing: Potential biomarkers'
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+---
+
+<font size='4'> Description: Test predictive ability of potential biomarkers identified
+from Method Development cohort in lung Adenocarcinoma recurrence using Discovery cohort. </font>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_Discovery')
+```
+
+Load libraries
+```{r load libraries, message=F}
+library(SummarizedExperiment)
+library(tidyverse)
+# Load user-defined functions
+source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
+```
+
+# Normal Tissue Proteomics
+58 Normal Tissue Proteins were identified in Method Development Normal Tissue DIA
+Proteomics from both AG Klingmüller and AG Krijgsveld and also captured in Discovery dataset.
+
+Show predictive ability of these 58 proteins using Discovery Normal Tissue DIA Proteomics
+```{r}
+# Load normalized data
+proTissue <- readRDS('./data/AG_Krijgsveld/proTissueVsn.rds')
+# Subset data
+smpNormalIdx <- which(colData(proTissue)$Condition == 'Normal')
+proNormal <- proTissue[, smpNormalIdx, drop = F]
+# Keep first protein as representative if there are more than one
+rownames(proNormal) <- stringr::str_remove_all(rownames(proNormal), ';.+')
+# Retrieve needed information
+smpMetadat <- tibble::as_tibble(colData(proNormal), rownames = 'Sample') %>%
+  dplyr::select(Sample, Recurrence)
+featMetadat <- tibble::as_tibble(rowData(proNormal), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::mutate(Genes = stringr::str_remove_all(Genes, ';.+'))
+
+# Prepare significant features identified from Method Development cohort
+methodDev_sigFeats <- readRDS('./data/potential_biomarkers/sigFeats_DIANP_Overlap.rds') %>%
+  dplyr::pull(Protein)
+methodDev_sigFeats <- intersect(methodDev_sigFeats, rownames(proNormal))
+# Do association tests
+dat <- t(SummarizedExperiment::assay(proNormal)) %>%
+  tibble::as_tibble(rownames = 'Sample') %>%
+  dplyr::select(Sample, all_of(methodDev_sigFeats))
+proNormalAssoRes <- testAssociation(dat, smpMetadat, cmn_col = 'Sample', use_proDA = T) %>%
+  dplyr::select(-c(Var2, Test)) %>%
+  dplyr::rename(Protein = Var1, tStat = Stat) %>%
+  dplyr::mutate(Gene = plyr::mapvalues(Protein, from = featMetadat$Protein,
+                                       to = featMetadat$Genes, warn_missing = F),
+                pVal = round(pVal, 4),
+                pValAdj = round(pValAdj, 4),
+                tStat = round(tStat, 4))
+# Show association test results
+proNormalAssoRes %>%
+  DT::datatable()
+```
+
+Visualize predictive ability (TNC, SPRYD4, SPARCL1, ANGPTL2, HK2 are top significant
+proteins identified in Method Development cohort, check Method Development analysis
+report 3.2)
+```{r}
+# Prepare data table for plotting
+assoRes <- dplyr::select(proNormalAssoRes, Protein, Gene, pVal) %>%
+  dplyr::filter(Protein %in% c('P37235', 'Q14515', 'Q9UKU9',
+                               'P52789', 'Q8WW59', 'P24821')) %>%
+  dplyr::mutate(Gene = paste0(Gene, '\n(p = ', round(pVal, 4), ')'))
+proNormalTab4Plot <- SummarizedExperiment::assay(proNormal) %>%
+  tibble::as_tibble(rownames = 'Protein') %>%
+  tidyr::pivot_longer(cols = -'Protein', names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::left_join(smpMetadat, by = 'Sample') %>%
+  dplyr::left_join(assoRes, by = 'Protein') %>%
+  dplyr::filter(Protein %in% assoRes$Protein) %>%
+  dplyr::mutate(Gene = factor(Gene, levels = assoRes$Gene))
+
+ggplot(proNormalTab4Plot, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Gene), scales = 'free') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
+```
+
+```{r}
+# Do association tests
+dat <- t(SummarizedExperiment::assay(proNormal)) %>%
+  tibble::as_tibble(rownames = 'Sample')
+proNormalAssoRes <- testAssociation(dat, smpMetadat, cmn_col = 'Sample', use_proDA = T) %>%
+  dplyr::select(-c(Var2, Test)) %>%
+  dplyr::rename(Protein = Var1) %>%
+  dplyr::mutate(Gene = plyr::mapvalues(Protein, from = featMetadat$Protein,
+                                       to = featMetadat$Genes, warn_missing = F))
+
+# Show association test results
+cat(paste('There are', nrow(dplyr::filter(proNormalAssoRes, pVal <= 0.05)), 'significant proteins.'))
+hist(proNormalAssoRes$pVal, xlab = 'P-value', main = 'Normal Tissue Proteomics')
+
+# Prepare data table for plotting
+assoRes <- dplyr::select(proNormalAssoRes, Protein, Gene, pVal) %>%
+  dplyr::mutate(Gene = paste0(Gene, '\n(p = ', round(pVal, 4), ')'))
+proNormalTab4Plot <- SummarizedExperiment::assay(proNormal) %>%
+  tibble::as_tibble(rownames = 'Protein') %>%
+  tidyr::pivot_longer(cols = -'Protein', names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::left_join(smpMetadat, by = 'Sample') %>%
+  dplyr::left_join(assoRes, by = 'Protein') %>%
+  dplyr::filter(Protein %in% assoRes$Protein[1:6]) %>%
+  dplyr::mutate(Gene = factor(Gene, levels = assoRes$Gene[1:6]))
+
+ggplot(proNormalTab4Plot, aes(x=Recurrence, y=Abundance, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Gene), scales = 'free') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'))
+```
