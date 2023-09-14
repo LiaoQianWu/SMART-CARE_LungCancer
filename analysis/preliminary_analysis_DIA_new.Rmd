@@ -1742,38 +1742,48 @@ new_proTumorSigFeats_Kri_DIA <- nrow(new_proDAproTumorRes_Kri_DIA) / nrow(new_pr
 new_proNormalSigFeats_Kri_DIA <- nrow(new_proDAproNormalRes_Kri_DIA) / nrow(new_proNormalRes_Kri_DIA$data) * 100
 
 # Prepare needed information for barplot
-dat <- c('Untargeted Metabolomics', 'Untargeted Metabolomics',
-         'Targeted Metabolomics', 'Targeted Metabolomics',
-         'Untargeted Lipidomics', 'Untargeted Lipidomics',
-         'DIA Proteomics', 'DIA Proteomics',
-         'New DIA Proteomics', 'New DIA Proteomics',
-         'DDA Proteomics', 'DDA Proteomics',
-         'Untargeted Metabolomics', 'Untargeted Metabolomics',
-         'Targeted Metabolomics', 'Targeted Metabolomics',
-         'Untargeted Lipidomics', 'Untargeted Lipidomics',
-         'DIA Proteomics', 'DIA Proteomics',
-         'New DIA Proteomics', 'New DIA Proteomics',
-         'DDA Proteomics', 'DDA Proteomics')
-datModal <- c(rep(c('Baseline', 'Follow-up'), 6), rep(c('Tumor', 'Normal'), 6))
-datOf <- c(rep('Plasma', 12), rep('Tissue', 12))
+# dat <- c('Untargeted Metabolomics', 'Untargeted Metabolomics',
+#          'Targeted Metabolomics', 'Targeted Metabolomics',
+#          'Untargeted Lipidomics', 'Untargeted Lipidomics',
+#          'DIA Proteomics', 'DIA Proteomics',
+#          'New DIA Proteomics', 'New DIA Proteomics',
+#          'DDA Proteomics', 'DDA Proteomics',
+#          'Untargeted Metabolomics', 'Untargeted Metabolomics',
+#          'Targeted Metabolomics', 'Targeted Metabolomics',
+#          'Untargeted Lipidomics', 'Untargeted Lipidomics',
+#          'DIA Proteomics', 'DIA Proteomics',
+#          'New DIA Proteomics', 'New DIA Proteomics',
+#          'DDA Proteomics', 'DDA Proteomics')
+dat <- c('Untargeted Metab.', 'Untargeted Metab.',
+         'Targeted Metab.', 'Targeted Metab.',
+         'Untargeted Lipid.', 'Untargeted Lipid.',
+         'DIA Pro.', 'DIA Pro.',
+         'New DIA Pro.', 'New DIA Pro.',
+         'Untargeted Metab.', 'Untargeted Metab.',
+         'Targeted Metab.', 'Targeted Metab.',
+         'Untargeted Lipid.', 'Untargeted Lipid.',
+         'DIA Pro.', 'DIA Pro.',
+         'New DIA Pro.', 'New DIA Pro.')
+datModal <- c(rep(c('Baseline', 'Follow-up'), 5), rep(c('Tumor', 'Normal'), 5))
+datOf <- c(rep('Plasma', 10), rep('Tissue', 10))
 proportion <- c(metaBaseSigFeats_Hopf, metaFoloSigFeats_Hopf,
                 metaBaseSigFeats_Hell, metaFoloSigFeats_Hell,
                 lipBaseSigFeats_Hopf, lipFoloSigFeats_Hopf,
                 proBaseSigFeats_Kri_DIA, proFoloSigFeats_Kri_DIA,
                 new_proBaseSigFeats_Kri_DIA, new_proFoloSigFeats_Kri_DIA,
-                proBaseSigFeats_Kri_DDA, proFoloSigFeats_Kri_DDA,
+                # proBaseSigFeats_Kri_DDA, proFoloSigFeats_Kri_DDA,
                 metaTumorSigFeats_Hopf, metaNormalSigFeats_Hopf,
                 metaTumorSigFeats_Hell, metaNormalSigFeats_Hell,
                 lipTumorSigFeats_Hopf, lipNormalSigFeats_Hopf,
                 proTumorSigFeats_Klin_DIA, proNormalSigFeats_Klin_DIA,
-                new_proTumorSigFeats_Kri_DIA, new_proNormalSigFeats_Kri_DIA,
-                proTumorSigFeats_Kri_DDA, proNormalSigFeats_Kri_DDA)
+                new_proTumorSigFeats_Kri_DIA, new_proNormalSigFeats_Kri_DIA)
+                # proTumorSigFeats_Kri_DDA, proNormalSigFeats_Kri_DDA)
 numFeat <- c(c(nrow(metaBaseRes_Hopf$data), NA), c(nrow(metaBaseRes_Hell$data), NA),
              c(NA, nrow(lipFoloRes_Hopf$data)), c(nrow(proBaseRes_Kri_DIA$data), NA),
-             c(NA, nrow(new_proFoloRes_Kri_DIA$data)), c(nrow(proBaseRes_Kri_DDA$data), NA),
+             c(NA, nrow(new_proFoloRes_Kri_DIA$data)), #c(nrow(proBaseRes_Kri_DDA$data), NA),
              c(NA, nrow(metaNormalRes_Hopf$data)), c(nrow(metaTumorRes_Hell$data), NA),
              c(NA, nrow(lipNormalRes_Hopf$data)), c(NA, nrow(proNormalRes_Klin_DIA$data)),
-             c(NA, nrow(new_proNormalRes_Kri_DIA$data)), c(nrow(proTumorRes_Kri_DDA$data), NA))
+             c(NA, nrow(new_proNormalRes_Kri_DIA$data))) #, c(nrow(proTumorRes_Kri_DDA$data), NA))
 
 # numSigFeat <- c(c(nrow(proDAmetaBaseRes_Hopf), nrow(proDAmetaFoloRes_Hopf)),
 #                 c(nrow(metaBaseRes_Hell$tFeatSigRes), nrow(metaFoloRes_Hell$tFeatSigRes)),
@@ -1796,18 +1806,21 @@ sigFeatPropTab <- data.frame(Data = factor(dat, levels = unique(dat)),
 
 ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill = Data_modality, label=Feature_number)) +
   geom_bar(stat = 'identity', position=position_dodge()) +
-  geom_text(size = 5, vjust = -0.3) +
+  geom_text(size = 6, vjust = -0.17) +
   facet_wrap(~Data_of) +
-  labs(x = 'Data', y = 'Percentage (%)',
-       title = 'Proportion of Cancer Recurrence-Related Features') +
-  scale_fill_discrete(name = 'Sample Condition') +
-  th + theme(axis.text.x = element_text(angle = 65, vjust = 1, hjust = 1),
+  labs(x = 'Data', y = 'Percentage (%)') +
+       # title = 'Proportion of Cancer Recurrence-Related Features') +
+  scale_fill_manual(name = 'Sample Condition',
+                    values = c('navy', 'grey60', 'firebrick', 'forestgreen'),
+                    breaks = c('Baseline', 'Follow-up', 'Normal', 'Tumor')) +
+  th +
+  theme(axis.text.x = element_text(angle = 65, vjust = 1, hjust = 1),
              strip.text = element_text(size = 16, face = 'bold'))
-  # theme(strip.text = element_text(size = 26), axis.title = element_text(size = 26),
-  #       axis.text.x = element_text(size = 11.5, angle = 60, vjust = 1, hjust = 1), axis.text.y = element_text(size = 22),
+  # theme(strip.text = element_text(size = 26, face = 'bold'), axis.title = element_text(size = 26),
+  #       axis.text.x = element_text(size = 20, angle = 70, vjust = 1, hjust = 1), axis.text.y = element_text(size = 18),
   #       legend.title = element_text(size = 24), legend.text = element_text(size = 24),
-  #       panel.background = element_blank(), axis.line = element_line(color = 'black'))
-# ggsave('./output/percentage_sigFeats.png', device = 'png', dpi = 400, height = 8, width = 18)
+  #       panel.grid.minor = element_blank(), panel.grid.major.x = element_blank())
+# ggsave('./output/latest/percentage_sigFeats.png', device = 'png', dpi = 400, height = 8, width = 18)
 ```
 => Plasma samples in general perform better than Tissue samples and Baseline samples
 perform as good as Follow-up samples in terms of separating recurrence and non-recurrence

@@ -543,6 +543,49 @@ ggplot(combinedAssoTestRes, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Si
   th
 ```
 
+Compare PCs learned from two DIA Normal Tissue Proteomics
+```{r}
+# AG Klin.
+# Subset normal samples
+smpNormalIdx <- which(colData(proTissue_DIA_Klin)$Condition == 'Normal')
+proNormal_Klin <- proTissue_DIA_Klin[, smpNormalIdx]
+# Perform analysis (PC1 and PC7)
+proNormalRes_Klin <- doSOA(proNormal_Klin, meta_var = 'Recurrence', pca_method = 'ppca', num_PCs = 16)
+
+# AG Krij.
+# Subset normal samples
+smpNormalIdx <- which(colData(new_proTissue_DIA)$Condition == 'Normal')
+proNormal_Krij <- new_proTissue_DIA[, smpNormalIdx]
+# Perform analysis
+proNormalRes_Krij <- doSOA(proNormal_Krij, meta_var = 'Recurrence', pca_method = 'ppca', num_PCs = 18)
+
+# Two DIA Normal Tissue Proteomics
+proNormalPCTab_Klin <- proNormalRes_Klin$pcTab %>%
+  dplyr::select(Sample, PC1, PC7, Recurrence)
+proNormalPCTab_Krij <- proNormalRes_Krij$pcTab %>%
+  dplyr::select(Sample, PC15)
+combinedTab <- dplyr::left_join(proNormalPCTab_Klin, proNormalPCTab_Krij, by = 'Sample')
+
+ggplot(combinedTab, aes(x=PC15, y=PC1)) +
+  geom_point(aes(col=Recurrence), size = 4) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
+  labs(x = 'PC15 (AG Krijgsveld)', y = 'PC1 (AG Klingmüller)', title = 'DIA Normal Tissue Proteomics') +
+  th
+
+ggplot(combinedTab, aes(x=PC15, y=PC7)) +
+  geom_point(aes(col=Recurrence), size = 4) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
+  labs(x = 'PC15 (AG Krijgsveld)', y = 'PC7 (AG Klingmüller)', title = 'DIA Normal Tissue Proteomics') +
+  th
+```
+=> These two DIA Normal Tissue Proteomics datasets are relatively powerful in terms
+of predicting patient cancer recurrences, especially AG Klingmüller one. However,
+significant recurrence-related PCs learned from them are not correlated. Data reproducibility?
+
 ## DIA from AG Klin. vs DDA from Krij.
 
 Compute Pearson correlations of all common features. Note that both Tumor and Normal
