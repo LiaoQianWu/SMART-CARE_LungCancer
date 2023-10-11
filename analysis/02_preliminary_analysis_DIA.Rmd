@@ -1,0 +1,213 @@
+---
+title: "Single-omics analysis: Discovery lung cancer patient cohort"
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+---
+
+<font size='4'> Description: </font>
+
+**Metadata variables**\
+Patient:\
+Recurrence -> Cancer recurrences, Yes:No = 20:23\
+Gender -> Female:Male = 26:17\
+Age -> Diagnosis ages ranging from 51 to 76\
+Smoking -> Smoker:Ex-smoker:Non-Smoker = 12:25:6\
+Stage -> Pathological stages, IB:IIA:IIB = 24:6:13\
+Adjuvant -> Adjuvant chemotherapy, True:False = 13:30\
+Metastasis -> Derived from stages, determined by whether cancer cells spread to
+lymph nodes, Yes:No = 13:30\
+Sample:\
+Condition -> Tumor:Normal = 1:1
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_Discovery')
+```
+
+Load libraries
+```{r library loading, message = F}
+library('pcaMethods')
+library('limma')
+library('proDA')
+library('pheatmap')
+library('ggplotify')
+library('ggrepel')
+library('SummarizedExperiment')
+library('tidyverse')
+# Load user-defined functions
+source('./code/analysis_pipeline.R')
+source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+    theme(axis.title = element_text(face = 'bold'),
+          axis.text = element_text(face = 'bold'),
+          axis.ticks = element_line(linewidth = 0.8),
+          legend.text = element_text(size = 15))
+```
+
+# Tissue Proteomics
+
+```{r}
+# Load preprocessed data
+proTissue <- readRDS('./data/AG_Krijgsveld/proTissueVsn.rds')
+# Prepare feature annotation table
+featAnnoTab <- tibble::as_tibble(rowData(proTissue), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  tibble::column_to_rownames('Protein')
+
+# Perform single-omics analysis
+proTissueRes <- doSOA(proTissue, meta_var = c('Condition', 'Recurrence', 'Gender',
+                                              'Age', 'Smoking', 'Stage'),
+                      do_onlyPCA = T, pca_method = 'ppca')
+```
+
+Display significant associations between PCs (Var1) and sample metadata variables
+(Var2). Note that each patient has two samples that have same patient annotations,
+so association results may have additive effects.
+```{r}
+proTissueRes$pcSigAssoRes
+```
+
+PC1 significantly separate Tumor and Normal samples, which indicates good data quality
+```{r}
+pcTab <- proTissueRes$pcTab
+ggplot(pcTab, aes(x=Condition, y=`PC1 (36.3%)`, color=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  labs(x = 'Sample condition') +
+  th
+```
+=> Tumor and Normal tissue samples will be analyzed separately for two reasons:
+(1) They are characteristically different and might be offsets to each other, and
+(2) Normal tissues is always obtainable in case that Tumor tissues were not preserved
+after surgery.
+
+## Tumor samples
+
+```{r}
+# Subset tumor samples
+proTumor <- proTissue[, which(colData(proTissue)$Condition == 'Tumor')]
+# Perform single-omics analysis
+proTumorRes <- doSingleOmicsAnalysis(proTumor, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+                                     pca_method = 'ppca', num_PCs = 40, num_PCfeats = 30,
+                                     use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
+                                     feat_conv = F, plot_title = NULL, show_rownames = F,
+                                     pca_metaVar = c('Recurrence', 'Gender', 'Age',
+                                                     'Smoking', 'Stage', 'Adjuvant', 'Metastasis'))
+```
+
+Display significant associations between PCs (Var1) and sample metadata variables
+(Var2) to overview sources of variance in data
+```{r}
+proTumorRes$data.var.source
+```
+
+Display significant associations between features (Var1) and cancer recurrence (Var2).
+Owing to missing values, there may be situation that only few observations in sample
+groups, resulting in unreliable t-statistics. To this end, we used probabilistic
+dropout model (proDA) to account for data missingness.
+```{r}
+proTumorRes$sig.feat.tab
+```
+
+Visualize molecular signatures of significant features in data. Note that features
+in rows are ordered by t-statistics.
+```{r}
+proTumorRes$sig.feat.heat
+```
+
+Visualize top significant features
+```{r}
+proTumorRes$top.sig.feat.dist
+```
+
+Assess data power by p-value histogram
+```{r}
+proTumorRes$pval.hist
+```
+
+Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+```{r}
+proTumorRes$sig.pc.tab
+```
+
+Visualize significant PCs
+```{r}
+proTumorRes$sig.pc.dist$PC21
+```
+
+Display top features with greatest absolute loadings of significant PCs
+```{r}
+proTumorRes$pc.top.feat.tab$PC21
+```
+
+## Normal samples
+
+```{r}
+# Subset normal samples
+proNormal <- proTissue[, which(colData(proTissue)$Condition == 'Normal')]
+# Perform single-omics analysis
+proNormalRes <- doSingleOmicsAnalysis(proNormal, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+                                      pca_method = 'ppca', num_PCs = 40, num_PCfeats = 30,
+                                      use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
+                                      feat_conv = F, plot_title = NULL, show_rownames = F,
+                                      pca_metaVar = c('Recurrence', 'Gender', 'Age',
+                                                      'Smoking', 'Stage', 'Adjuvant', 'Metastasis'))
+```
+
+Display significant associations between PCs (Var1) and sample metadata variables
+(Var2) to overview sources of variance in data
+```{r}
+proNormalRes$data.var.source
+```
+
+Display significant associations between features (Var1) and cancer recurrence (Var2)
+```{r}
+proNormalRes$sig.feat.tab
+```
+
+Visualize molecular signatures of significant features in data. Note that features
+in rows are ordered by t-statistics.
+```{r}
+proNormalRes$sig.feat.heat
+```
+
+Visualize top significant features
+```{r}
+proNormalRes$top.sig.feat.dist
+```
+
+Assess data power by p-value histogram
+```{r}
+proNormalRes$pval.hist
+```
+
+Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+```{r}
+proNormalRes$sig.pc.tab
+```
+
+Visualize significant PCs
+```{r}
+proNormalRes$sig.pc.dist$PC7
+proNormalRes$sig.pc.dist$PC39
+proNormalRes$sig.pc.dist$PC18
+```
+
+Display top features with greatest absolute loadings of significant PCs
+```{r}
+proNormalRes$pc.top.feat.tab$PC7
+proNormalRes$pc.top.feat.tab$PC39
+proNormalRes$pc.top.feat.tab$PC18
+```
+
+
+

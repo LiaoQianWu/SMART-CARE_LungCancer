@@ -392,7 +392,6 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, num_sigFeats = 6, pca_m
   pValHist <- ggplot(featAssoTab, aes(x=pVal)) +
     geom_histogram(breaks = seq(0, 1, 0.1), color = 'black', fill = 'grey80') +
     scale_x_continuous(breaks = c(seq(0, 1, 0.2))) +
-    scale_y_continuous(breaks = c(seq(0, 100, 20))) +
     labs(x = 'P-value', y = 'Frequency', title = plot_title) +
     th
   
@@ -408,7 +407,7 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, num_sigFeats = 6, pca_m
       scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
       ggpubr::stat_compare_means(method = 't.test', paired = F,
                                  method.args = list(var.equal = T),
-                                 size = 5, show.legend = F) +
+                                 size = 6, show.legend = F) +
       th
   })
   names(pcSigDist) <- stringr::str_remove(pcSigAssoTab$Var1, ' \\(.+\\)')
