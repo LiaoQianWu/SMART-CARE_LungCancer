@@ -5,7 +5,8 @@ library(ggplotify)
 library(pheatmap)
 
 doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NULL,
-                            do_featFilt = F, cutoff = 0.67, viz_miss = F, save_path = NULL) {
+                            do_featFilt = F, cutoff = 0.67, viz_miss = F, bins = 50,
+                            save_path = NULL) {
   #' Preprocess tidy long data containing information about features and samples,
   #' i.e., identifiers, abundances, and metadata. Preprocessing in this function
   #' mainly consists of two parts: Feature filtering and data normalization. Preprocessed
@@ -25,6 +26,8 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
   #' which indicates features quantified in less than 67% of samples are removed.
   #' viz_miss: A logical indicating whether data missingness is visualized. Default
   #' is FALSE.
+  #' bins: A numeric specifying the number of bins in both vertical and horizontal
+  #' directions for the hexagonal heatmap. Default is 50. 
   #' save_path: A character specifying the path to save preprocessed SE objects.
   #' '.rds' in a file name should be omitted. Default is NULL.
   #' 
@@ -33,6 +36,10 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
   #' ori.data: An SE object containing the original data matrix and the feature
   #' and sample metadata,
   #' ori.data.dist: A ggplot object for visualizing the distribution of the original data,
+  #' ori.smp.mean.var: A ggplot object for visualizing the sample mean-variance
+  #' relationship of the original data,
+  #' ori.feat.mean.var: A ggplot object for visualizing the feature mean-variance
+  #' relationship of the original data,
   #' ori.data.miss: A ggplot object for visualizing the missingness of the original data,
   #' and so forth. 'filt', 'vsn', and 'medi' represent filtered and vsn and median
   #' normalized data.
@@ -45,6 +52,18 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
     stop("Argument for 'smp' should be class 'character'.")
   }
   
+  # Set plot theme
+  th <- theme_bw(base_size = 15) +
+    theme(axis.title = element_text(face = 'bold'),
+          axis.text = element_text(face = 'bold'),
+          axis.ticks = element_line(linewidth = 0.8),
+          legend.text = element_text(size = 15))
+  th4MissViz <- theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0,
+                                                 size = 11, face = 'bold'),
+                      axis.text.y = element_blank(),
+                      axis.title.y = element_text(size = 13, face = 'bold'),
+                      legend.text = element_text(size = 12, face = 'bold'))
+  
   # Convert original long data to SE object
   seOri <- df2SummExp(data, row_id = feat, col_id = smp, values = val,
                       row_anno = featAnno, col_anno = smpAnno)
@@ -55,10 +74,7 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
     exprMat <- SummarizedExperiment::assay(seOri)
     oriMiss <- visdat::vis_miss(exprMat, cluster = T, sort_miss = T) +
       labs(y = 'Features') +
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0, size = 11, face = 'bold'),
-            axis.text.y = element_blank(),
-            axis.title.y = element_text(size = 13, face = 'bold'),
-            legend.text = element_text(size = 12, face = 'bold'))
+      th4MissViz
   } else {
     oriMiss <- NULL
   }
@@ -67,12 +83,21 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
     geom_boxplot() +
     scale_y_log10() +
     labs(x = 'Sample', y = 'Abundance') +
-    theme_bw(base_size = 15) +
-    theme(axis.title = element_text(face = 'bold'),
-          axis.text = element_text(face = 'bold'),
-          axis.ticks = element_line(linewidth = 0.8),
-          legend.text = element_text(size = 15),
-          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+    th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+  # Visualize sample mean-variance relationship of original data
+  # Compute sample means and standard deviations
+  smpStats <- dplyr::group_by(data, .data[[smp]]) %>%
+    dplyr::summarise(Mean = mean(.data[[val]], na.rm = T), SD = sd(.data[[val]], na.rm = T))
+  oriSmpMeanVar <- ggplot(smpStats, aes(x=Mean, y=SD)) +
+    geom_point(size = 4) +
+    ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+    th
+  # Visualize feature mean-variance relationship of original data
+  exprMat <- SummarizedExperiment::assay(seOri) %>%
+    as.matrix()
+  oriFeatMeanVar <- vsn::meanSdPlot(exprMat, ranks = T, bins = bins, plot = F)$gg +
+    labs(x = 'Rank of mean', y = 'SD') +
+    th
   
   # Do feature filtering
   if (do_featFilt) {
@@ -98,10 +123,7 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
       exprMat <- SummarizedExperiment::assay(seFilt)
       filtMiss <- visdat::vis_miss(exprMat, cluster = T, sort_miss = T) +
         labs(y = 'Features') +
-        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0, size = 11, face = 'bold'),
-              axis.text.y = element_blank(),
-              axis.title.y = element_text(size = 13, face = 'bold'),
-              legend.text = element_text(size = 12, face = 'bold'))
+        th4MissViz
     } else {
       filtMiss <- NULL
     }
@@ -110,12 +132,7 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
       geom_boxplot() +
       scale_y_log10() +
       labs(x = 'Sample', y = 'Abundance') +
-      theme_bw(base_size = 15) +
-      theme(axis.title = element_text(face = 'bold'),
-            axis.text = element_text(face = 'bold'),
-            axis.ticks = element_line(linewidth = 0.8),
-            legend.text = element_text(size = 15),
-            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+      th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
   } else {
     seFilt <- NULL
     filtDist <- NULL
@@ -135,12 +152,20 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
   vsnDist <- ggplot(dataVsn, aes(x=.data[[smp]], y=Value)) +
     geom_boxplot() +
     labs(x = 'Sample', y = 'Vsn normalized abundance') +
-    theme_bw(base_size = 15) +
-    theme(axis.title = element_text(face = 'bold'),
-          axis.text = element_text(face = 'bold'),
-          axis.ticks = element_line(linewidth = 0.8),
-          legend.text = element_text(size = 15),
-          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+    th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+  # Visualize sample mean-variance relationship of vsn normalized data
+  # Compute sample means and standard deviations
+  smpStats <- dplyr::group_by(dataVsn, .data[[smp]]) %>%
+    dplyr::summarise(Mean = mean(Value, na.rm = T), SD = sd(Value, na.rm = T))
+  vsnSmpMeanVar <- ggplot(smpStats, aes(x=Mean, y=SD)) +
+    geom_point(size = 4) +
+    ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+    th
+  # Visualize feature mean-variance relationship of vsn normalized data
+  exprMat <- SummarizedExperiment::assay(seVsn)
+  vsnFeatMeanVar <- vsn::meanSdPlot(exprMat, ranks = T, bins = bins, plot = F)$gg +
+    labs(x = 'Rank of mean', y = 'SD') +
+    th
   # Save vsn normalized data
   if (!is.null(save_path)) {
     saveRDS(seVsn, paste0(save_path, 'Vsn.rds'))
@@ -159,20 +184,17 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
   mediDist <- ggplot(dataMedi, aes(x=.data[[smp]], y=Value)) +
     geom_boxplot() +
     labs(x = 'Sample', y = 'Median normalized abundance') +
-    theme_bw(base_size = 15) +
-    theme(axis.title = element_text(face = 'bold'),
-          axis.text = element_text(face = 'bold'),
-          axis.ticks = element_line(linewidth = 0.8),
-          legend.text = element_text(size = 15),
-          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+    th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
   # Save median normalized data
   if (!is.null(save_path)) {
     saveRDS(seMedi, paste0(save_path, 'Medi.rds'))
   }
   
-  return(list(ori.data = seOri, ori.data.dist = oriDist, ori.data.miss = oriMiss,
+  return(list(ori.data = seOri, ori.data.dist = oriDist, ori.smp.mean.var = oriSmpMeanVar,
+              ori.feat.mean.var = oriFeatMeanVar, ori.data.miss = oriMiss,
               filt.data = seFilt, filt.data.dist = filtDist, filt.data.miss = filtMiss,
-              vsn.data = seVsn, vsn.data.dist = vsnDist, medi.data = seMedi, medi.data.dist = mediDist))
+              vsn.data = seVsn, vsn.data.dist = vsnDist, vsn.smp.mean.var = vsnSmpMeanVar,
+              vsn.feat.mean.var = vsnFeatMeanVar, medi.data = seMedi, medi.data.dist = mediDist))
 }
 
 
