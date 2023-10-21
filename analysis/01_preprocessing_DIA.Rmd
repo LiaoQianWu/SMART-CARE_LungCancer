@@ -8,7 +8,10 @@ output:
     code_folding: hide
 ---
 
-<font size='4'> Description: </font>
+<font size='4'> Description: Preprocess Tumor and Plasma DIA Proteomics generated
+by Karim Aljakouch from AG Krijgsveld, including data cleansing, filtering, and
+normalization (VSN). All needed information was then stored in SummarizedExperiment
+objects for further analyses. </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
@@ -28,6 +31,13 @@ library(tidyverse)
 # Load user-defined functions
 source('./code/analysis_pipeline.R')
 source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
 ```
 
 ```{r prepare global info, message=F}
@@ -119,6 +129,12 @@ proTissue$ori.data.dist +
   theme(axis.text.x = element_text(size = 10))
 ```
 
+Show feature mean-variance relationship of original data
+```{r}
+proTissue$ori.feat.mean.var +
+  scale_y_log10()
+```
+
 **Remove features quantified in less than 2/3 of samples**\
 Show dimensions of filtered data (86 samples and 5316 features)
 ```{r}
@@ -144,6 +160,11 @@ proTissue$vsn.data.dist +
   theme(axis.text.x = element_text(size = 10))
 ```
 
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+proTissue$vsn.feat.mean.var
+```
+
 Show data quality
 ```{r}
 # Do single-omics analysis
@@ -155,18 +176,14 @@ pcTab <- proTissueSOA$pcTab %>%
                                                        'MJMTYR_TU', 'XFKHGP_TU',
                                                        'XFKHGP_NG', 'MJMTYR_NG',
                                                        'I0HVOL_NG', '7EAOX7_NG') ~ Sample))
-ggplot(pcTab, aes(x=Condition, y=PC1, col=Condition, fill=Condition, label=Label)) +
+ggplot(pcTab, aes(x=Condition, y=`PC1 (36.3%)`, col=Condition, fill=Condition, label=Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
   geom_text_repel(show.legend = F) +
   scale_color_brewer(palette = 'Dark2') +
   scale_fill_brewer(palette = 'Dark2') +
   labs(x = 'Sample condition') +
-  theme_bw(base_size = 15) +
-  theme(axis.title = element_text(face = 'bold'),
-        axis.text = element_text(face = 'bold'),
-        axis.ticks = element_line(linewidth = 0.8),
-        legend.text = element_text(size = 15))
+  th
 ```
 => I0HVOL_TU: 87%, 14mg / 7EAOX7_TU: 70%, 19mg / MJMTYR_TU: 40%, 31mg / XFKHGP_TU: 100%, 4mg\
 (Tumor cell contents ranging from 40 - 100%, and Tissue weight from 4 - 54mg)
@@ -238,13 +255,26 @@ proPlasmaTab <- readr::read_tsv('./data/AG_Krijgsveld/20230811_MarcS_Discovery_P
                 Sample = stringr::str_remove_all(Sample, '_FD\\d+|_LV\\d+'),
                 Patient = stringr::str_remove(Sample, '_.+$'),
                 TimePoint = stringr::str_remove(Sample, '^.+_'),
-                TimePoint = factor(TimePoint, levels = paste0('V', seq_len(length(unique(TimePoint))))))
+                TimePoint = factor(TimePoint, levels = paste0('V', seq_along(unique(TimePoint)))))
+# Include sample and patient metadata
+smpPlasmaMetadat <- dplyr::filter(smpMetadat, SmpType == 'Plasma') %>%
+  dplyr::select(Sample, Status, Date) %>%
+  dplyr::rename(Condition = Status)
+proPlasmaTab <- dplyr::left_join(proPlasmaTab, smpPlasmaMetadat, by = 'Sample')
+proPlasmaTab <- dplyr::left_join(proPlasmaTab, patientMetadat, by = 'Patient')
+
+# Preprocess data
+proPlasma <- doPreprocessing(proPlasmaTab, feat = 'Protein.Group', smp = 'Sample',
+                             val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
+                             smpAnno = c(smpAnno, 'TimePoint', 'Date'), do_featFilt = T,
+                             cutoff = 0.67, viz_miss = T, bins = 20) #save_path = './data/AG_Krijgsveld/proPlasma'
 ```
 
+Explore statuses and time points of plasma samples
 ```{r fig.height=10}
 # Explore time points of plasma samples
-tp <- dplyr::filter(smpMetadat, SmpType == 'Plasma') %>%
-  dplyr::select(Sample, Status, Date)
+smpPlasmaMetadat %>%
+  DT::datatable()
 # Visualize time points of plasma samples
 ggplot(proPlasmaTab, aes(x=TimePoint, y=Patient)) +
   geom_point(shape = 4, size = 2) +
@@ -252,4 +282,53 @@ ggplot(proPlasmaTab, aes(x=TimePoint, y=Patient)) +
   theme_minimal() +
   theme(axis.title = element_text(size = 12, face = 'bold'),
         axis.text.x = element_text(size = 10))
+```
+
+Show dimensions of original data (289 samples and 969 features)
+```{r}
+dim(proPlasma$ori.data)
+```
+
+Show missingness of original data
+```{r}
+proPlasma$ori.data.miss +
+  labs(x = 'Samples') +
+  theme(axis.text.x = element_blank(), axis.title = element_text(size = 13, face = 'bold'),
+        panel.grid.major.y = element_blank())
+```
+
+Show sample mean-variance relationship of original data
+```{r}
+proPlasma$ori.smp.mean.var
+```
+
+Show feature mean-variance relationship of original data
+```{r}
+proPlasma$ori.feat.mean.var +
+  scale_y_log10()
+```
+
+**Remove features quantified in less than 2/3 of samples**\
+Show dimensions of filtered data (289 samples and 542 features)
+```{r}
+dim(proPlasma$filt.data)
+```
+
+Show missingness of filter data
+```{r}
+proPlasma$filt.data.miss +
+  labs(x = 'Samples') +
+  theme(axis.text.x = element_blank(), axis.title = element_text(size = 13, face = 'bold'))
+```
+
+**Normalize filtered data by VSN**\
+Show sample mean-variance relationship of vsn normalized data
+```{r}
+proPlasma$vsn.smp.mean.var +
+  ylim(2.4, 3.6)
+```
+
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+proPlasma$vsn.feat.mean.var
 ```

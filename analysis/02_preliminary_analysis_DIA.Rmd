@@ -11,16 +11,16 @@ output:
 <font size='4'> Description: </font>
 
 **Metadata variables**\
-Patient:\
-Recurrence -> Cancer recurrences, Yes:No = 20:23\
-Gender -> Female:Male = 26:17\
+Patients whose Tissue and Baseline Plasma samples were collected:\
+Note that Baseline Plasma sample of Patient '1JV272' (Female, 64 y/o, Ex-smoker,
+Stage IIB, Adjuvant chemotherapy used, and Cancer recurrence) is missing.\
+Recurrence -> Cancer recurrences, Yes:No = 19:24\
+Gender -> Female:Male = 18:25\
 Age -> Diagnosis ages ranging from 51 to 76\
-Smoking -> Smoker:Ex-smoker:Non-Smoker = 12:25:6\
-Stage -> Pathological stages, IB:IIA:IIB = 24:6:13\
-Adjuvant -> Adjuvant chemotherapy, True:False = 13:30\
-Metastasis -> Derived from stages, determined by whether cancer cells spread to
-lymph nodes, Yes:No = 13:30\
-Sample:\
+Smoking -> Smoker:Ex-smoker:Non-Smoker = 11:26:6\
+Stage -> Pathological stages, IB:IIA:IIB = 25:6:12\
+Adjuvant -> Adjuvant chemotherapy, True:False = 14:29\
+Samples:\
 Condition -> Tumor:Normal = 1:1
 
 ```{r setup, include=FALSE}
@@ -50,6 +50,21 @@ th <- theme_bw(base_size = 15) +
           legend.text = element_text(size = 15))
 ```
 
+Display associations between cancer recurrence and the other patient metadata variables
+to identify potential predictors or confounders
+```{r}
+# Test associations between cancer recurrence and the other patient metadata variables
+# Prepare patient metadata
+proTissue <- readRDS('./data/AG_Krijgsveld/proTissueVsn.rds')
+smpMetadat <- tibble::as_tibble(colData(proTissue)) %>%
+  dplyr::filter(!duplicated(Patient)) %>%
+  dplyr::select(-Condition)
+smpRecur <- dplyr::select(smpMetadat, Patient, Recurrence)
+smpMetadat <- dplyr::select(smpMetadat, -Recurrence)
+testAsso(smpMetadat, smpRecur, cmn_col = 'Patient') %>%
+  dplyr::select(-Stat)
+```
+
 # Tissue Proteomics
 
 ```{r}
@@ -63,7 +78,7 @@ featAnnoTab <- tibble::as_tibble(rowData(proTissue), rownames = 'Protein') %>%
 
 # Perform single-omics analysis
 proTissueRes <- doSOA(proTissue, meta_var = c('Condition', 'Recurrence', 'Gender',
-                                              'Age', 'Smoking', 'Stage'),
+                                              'Age', 'Smoking', 'Stage', 'Adjuvant'),
                       do_onlyPCA = T, pca_method = 'ppca')
 ```
 
@@ -99,9 +114,9 @@ proTumor <- proTissue[, which(colData(proTissue)$Condition == 'Tumor')]
 proTumorRes <- doSingleOmicsAnalysis(proTumor, soa_metaVar = 'Recurrence', num_sigFeats = 6,
                                      pca_method = 'ppca', num_PCs = 40, num_PCfeats = 30,
                                      use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
-                                     feat_conv = F, plot_title = NULL, show_rownames = F,
+                                     feat_conv = T, plot_title = NULL, show_rownames = F,
                                      pca_metaVar = c('Recurrence', 'Gender', 'Age',
-                                                     'Smoking', 'Stage', 'Adjuvant', 'Metastasis'))
+                                                     'Smoking', 'Stage', 'Adjuvant'))
 ```
 
 Display significant associations between PCs (Var1) and sample metadata variables
@@ -158,9 +173,9 @@ proNormal <- proTissue[, which(colData(proTissue)$Condition == 'Normal')]
 proNormalRes <- doSingleOmicsAnalysis(proNormal, soa_metaVar = 'Recurrence', num_sigFeats = 6,
                                       pca_method = 'ppca', num_PCs = 40, num_PCfeats = 30,
                                       use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
-                                      feat_conv = F, plot_title = NULL, show_rownames = F,
+                                      feat_conv = T, plot_title = NULL, show_rownames = F,
                                       pca_metaVar = c('Recurrence', 'Gender', 'Age',
-                                                      'Smoking', 'Stage', 'Adjuvant', 'Metastasis'))
+                                                      'Smoking', 'Stage', 'Adjuvant'))
 ```
 
 Display significant associations between PCs (Var1) and sample metadata variables
@@ -211,3 +226,145 @@ proNormalRes$pc.top.feat.tab$PC18
 
 
 
+
+# Plasma Proteomics
+
+```{r}
+# Load preprocessed data
+proPlasma <- readRDS('./data/AG_Krijgsveld/proPlasmaVsn.rds')
+# Prepare feature annotation table
+featAnnoTab <- tibble::as_tibble(rowData(proPlasma), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  tibble::column_to_rownames('Protein')
+
+# Perform single-omics analysis
+proPlasmaRes <- doSOA(proPlasma, meta_var = c('Condition', 'Recurrence', 'Gender', 'Adjuvant'),
+                      do_onlyPCA = T, pca_method = 'ppca', alpha = 0.01)
+```
+
+Display significant associations between PCs (Var1) and sample metadata variables
+(Var2). Note that all patients got multiple samples that have same patient annotations,
+so association results may have additive effects. Furthermore, patient annotations,
+Age, Smoking, and Stage, were excluded because they are Baseline time point-related.
+```{r}
+proPlasmaRes$pcSigAssoRes
+```
+
+Visualize PC1 that is significantly associated with sample conditions
+```{r}
+pcTab <- proPlasmaRes$pcTab
+ggplot(pcTab, aes(x=Condition, y=`PC1 (34.6%)`, color=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  labs(x = 'Sample condition') +
+  th
+```
+=> We will first focus on analysis of Baseline samples because (1) what we are most
+interested in is predicting recurrence, and (2) Baseline samples are less complex
+compared to Follow-up samples.
+
+## Baseline samples
+
+```{r}
+# Subset baseline samples
+proBase <- proPlasma[, which(colData(proPlasma)$Condition == 'Baseline')]
+# Perform single-omics analysis
+proBaseRes <- doSingleOmicsAnalysis(proBase, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+                                    pca_method = 'ppca', num_PCs = 40, num_PCfeats = 30,
+                                    use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
+                                    feat_conv = T, plot_title = NULL,
+                                    pca_metaVar = c('Recurrence', 'Gender', 'Age',
+                                                    'Smoking', 'Stage', 'Adjuvant'))
+```
+
+Display significant associations between PCs (Var1) and sample metadata variables
+(Var2) to overview sources of variance in data
+```{r}
+proBaseRes$data.var.source
+```
+
+Display significant associations between features (Var1) and cancer recurrence (Var2).
+Owing to missing values, there may be situation that only few observations in sample
+groups, resulting in unreliable t-statistics. To this end, we used probabilistic
+dropout model (proDA) to account for data missingness.
+```{r}
+proBaseRes$sig.feat.tab
+
+# Protein encoded by PZP is highly expressed in late-pregnancy serum, which can
+# inhibit proteinases by its unique trapping mechanism. Appears to be elevated in
+# sera of presymptomatic Alzheimer's disease patients. HCG is present during pregnancy,
+# yet it relates to testicular carcinoma (tumor marker) when present in sera of males.
+
+# Protein encoded by BRME1 (Break Repair MEiotic recombinase recruit factor 1) is
+# predicted to be involved in meiosis 1 (meiotic double-strand break repair) and
+# spermatogenesis (male fertility).
+
+# ALB encodes most abundant protein albumin in human blood, which functions in regulation
+# of blood plasma colloid osmotic pressure and acts as carrier protein for endogenous
+# molecules hormones, fatty acids, and metabolites, and as well as exogenous drugs.
+
+# IGKV2D-30 (A0A075B6S6), IGHV3-64 (A0A075B6Q5), IGLV5-37 (A0A075B6J1)
+```
+=> No identified significant features share between Discovery and Method Development
+cohorts (5 overlaps between two Method Development datasets). Protein 'P20742',
+'Q0VDD7', and 'P02768' are also significantly associated with patient genders.
+
+```{r eval=F}
+# Check Gender (PC1) and Smoking (PC6) to avoid potential confounders
+# Identify significant associations between features and patient genders
+proBaseSex <- doSingleOmicsAnalysis(proBase, soa_metaVar = 'Gender', pca_method = 'ppca',
+                                    num_PCs = 40, use_limma = F, use_proDA = T,
+                                    pca_metaVar = c('Recurrence', 'Gender', 'Age',
+                                                    'Smoking', 'Stage', 'Adjuvant'))
+sigFeatsSex <- proBaseSex$sig.feat.tab$Var1
+sigFeatsRecur <- proBaseRes$sig.feat.tab$Var1
+sigFeatsRecur[sigFeatsRecur %in% sigFeatsSex]
+
+# Visualize PC6 that is significantly associated with patient smoking histories
+pcTab <- proBaseRes$SOA.res$pcTab
+ggplot(pcTab, aes(x=Smoking, y=`PC6 (3%)`, color=Smoking, fill=Smoking)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  labs(x = 'Smoking history') +
+  th
+```
+
+Visualize molecular signatures of significant features in data. Note that features
+in rows are ordered by t-statistics.
+```{r}
+proBaseRes$sig.feat.heat
+```
+
+Visualize top significant features
+```{r}
+proBaseRes$top.sig.feat.dist
+```
+
+Assess data power by p-value histogram
+```{r}
+proBaseRes$pval.hist
+```
+
+Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+```{r}
+proBaseRes$sig.pc.tab
+```
+
+Visualize significant PCs
+```{r}
+proBaseRes$sig.pc.dist$PC30
+proBaseRes$sig.pc.dist$PC5
+proBaseRes$sig.pc.dist$PC4
+```
+
+Display top features with greatest absolute loadings of significant PCs
+```{r}
+proBaseRes$pc.top.feat.tab$PC30
+proBaseRes$pc.top.feat.tab$PC5
+proBaseRes$pc.top.feat.tab$PC4
+```
