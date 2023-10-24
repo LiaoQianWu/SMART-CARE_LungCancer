@@ -8,7 +8,7 @@ output:
     code_folding: hide
 ---
 
-<font size='4'> Description: Preprocess Tumor and Plasma DIA Proteomics generated
+<font size='4'> Description: Preprocess Tissue and Plasma DIA Proteomics generated
 by Karim Aljakouch from AG Krijgsveld, including data cleansing, filtering, and
 normalization (VSN). All needed information was then stored in SummarizedExperiment
 objects for further analyses. </font>
@@ -73,8 +73,6 @@ patientMetadat <- dplyr::slice(patientMetadat, -c(1:3)) %>%
                                            Smoking == 'NON-SMOKER' ~ 'Non-smoker'),
                 Adjuvant = dplyr::case_when(Adjuvant == 'true' ~ 'True',
                                             Adjuvant == 'false' ~ 'False'),
-                Metastasis = dplyr::case_when(Stage == 'IIB' ~ 'Yes',
-                                              Stage != 'IIB' ~ 'No'),
                 Age = as.numeric(Age))
 # Include patient recurrence information
 recurPats <- dplyr::filter(smpMetadat, Status == 'Recurrence') %>%
@@ -86,10 +84,13 @@ patientMetadat <- dplyr::mutate(patientMetadat,
 
 # List sample annotations to keep in SE objects
 smpAnno <- c('Condition', 'Patient', 'Recurrence', 'Gender', 'Age', 'Smoking',
-             'Stage', 'Adjuvant', 'Metastasis')
+             'Stage', 'Adjuvant')
 ```
 
 # Tissue Proteomics
+Tumor and Normal samples were first preprocessed together to assure they are on
+same scale, so that they can be compared to check data quality. Then, Tumor and
+Normal samples were preprocessed separately to preserve maximal amounts of reliable features.
 
 ```{r message=F}
 # Load unprocessed data
@@ -104,16 +105,15 @@ proTissueTab <- readr::read_tsv('./data/AG_Krijgsveld/20230815_MarcS_Discovery_T
                 Patient = stringr::str_remove(Sample, '_.+$'))
 # Include patient metadata
 proTissueTab <- dplyr::left_join(proTissueTab, patientMetadat, by = 'Patient')
+```
 
+Show dimensions of original data (86 samples and 7986 features)
+```{r}
 # Preprocess data
 proTissue <- doPreprocessing(proTissueTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                              smpAnno = smpAnno, do_featFilt = T, cutoff = 0.67,
                              viz_miss = T) #save_path = './data/AG_Krijgsveld/proTissue'
-```
-
-Show dimensions of original data (86 samples and 7986 features)
-```{r}
 dim(proTissue$ori.data)
 ```
 
@@ -129,27 +129,15 @@ proTissue$ori.data.dist +
   theme(axis.text.x = element_text(size = 10))
 ```
 
-Show feature mean-variance relationship of original data
-```{r}
-proTissue$ori.feat.mean.var +
-  scale_y_log10()
-```
-
 **Remove features quantified in less than 2/3 of samples**\
 Show dimensions of filtered data (86 samples and 5316 features)
 ```{r}
 dim(proTissue$filt.data)
 ```
 
-Show missingness of filter data
+Show missingness of filtered data
 ```{r}
 proTissue$filt.data.miss +
-  theme(axis.text.x = element_text(size = 10))
-```
-
-Show distribution of filtered data
-```{r}
-proTissue$filt.data.dist +
   theme(axis.text.x = element_text(size = 10))
 ```
 
@@ -165,7 +153,7 @@ Show feature mean-variance relationship of vsn normalized data
 proTissue$vsn.feat.mean.var
 ```
 
-Show data quality
+**Check data quality**
 ```{r}
 # Do single-omics analysis
 proTissueSOA <- doSOA(proTissue$vsn.data, meta_var = 'Condition', pca_method = 'ppca',
@@ -187,6 +175,68 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (36.3%)`, col=Condition, fill=Condition, l
 ```
 => I0HVOL_TU: 87%, 14mg / 7EAOX7_TU: 70%, 19mg / MJMTYR_TU: 40%, 31mg / XFKHGP_TU: 100%, 4mg\
 (Tumor cell contents ranging from 40 - 100%, and Tissue weight from 4 - 54mg)
+
+## Tumor samples
+
+**Remove features quantified in less than 1/2 of samples**\
+Show dimensions of filtered data (43 samples and 6350 features)
+```{r}
+# Subset certain samples
+proTumorTab <- dplyr::filter(proTissueTab, Condition == 'Tumor')
+# Preprocess data
+proTumor <- doPreprocessing(proTumorTab, feat = 'Protein.Group', smp = 'Sample',
+                            val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
+                            smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
+                            viz_miss = T) #save_path = './data/AG_Krijgsveld/proTumor'
+dim(proTumor$filt.data)
+```
+
+Show missingness of filtered data
+```{r}
+proTumor$filt.data.miss
+```
+
+**Normalize filtered data by VSN**\
+Show distribution of vsn normalized data
+```{r}
+proTumor$vsn.data.dist
+```
+
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+proTumor$vsn.feat.mean.var
+```
+
+## Normal samples
+
+**Remove features quantified in less than 1/2 of samples**\
+Show dimensions of filtered data (43 samples and 5778 features)
+```{r}
+# Subset certain samples
+proNormalTab <- dplyr::filter(proTissueTab, Condition == 'Normal')
+# Preprocess data
+proNormal <- doPreprocessing(proNormalTab, feat = 'Protein.Group', smp = 'Sample',
+                             val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
+                             smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
+                             viz_miss = T) #save_path = './data/AG_Krijgsveld/proNormal'
+dim(proNormal$filt.data)
+```
+
+Show missingness of filtered data
+```{r}
+proNormal$filt.data.miss
+```
+
+**Normalize filtered data by VSN**\
+Show distribution of vsn normalized data
+```{r}
+proNormal$vsn.data.dist
+```
+
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+proNormal$vsn.feat.mean.var
+```
 
 ```{r message=F, eval=F}
 # Fix patient recurrence information in Tissue Proteomics from AG Klingmüller that
@@ -217,11 +267,8 @@ recurInfo <- dplyr::bind_rows(methodDev_recurInfo, discovery_recurInfo)
 smpAnno <- tibble::as_tibble(colData(proTissue_Klin), rownames = 'Sample') %>%
   dplyr::select(-Recurrence) %>%
   dplyr::left_join(recurInfo, by = 'Patient') %>%
-  dplyr::mutate(Metastasis = dplyr::case_when(Stage == 'IIB' ~ 'Yes',
-                                              Stage != 'IIB' ~ 'No')) %>%
   tibble::column_to_rownames('Sample') %>%
   dplyr::relocate(Recurrence, .after = Patient) %>%
-  dplyr::relocate(Metastasis, .after = Adjuvant) %>%
   dplyr::relocate(Identifier, .after = Batch)
 # Create SE object with updated sample annotations
 featAnno <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Feature') %>%
@@ -235,6 +282,7 @@ proTissue_Klin <- SummarizedExperiment(assays = list(Abundance = assay(proTissue
 
 
 # Plasma Proteomics
+Baseline samples were extracted and preprocessed to preserve maximal amounts of reliable features.
 
 ```{r message=F}
 # Load unprocessed data
@@ -262,73 +310,116 @@ smpPlasmaMetadat <- dplyr::filter(smpMetadat, SmpType == 'Plasma') %>%
   dplyr::rename(Condition = Status)
 proPlasmaTab <- dplyr::left_join(proPlasmaTab, smpPlasmaMetadat, by = 'Sample')
 proPlasmaTab <- dplyr::left_join(proPlasmaTab, patientMetadat, by = 'Patient')
+```
 
+Explore time points and exact dates of plasma samples
+```{r fig.height=10}
+# Explore time points of plasma samples
+dplyr::select(proPlasmaTab, Sample, Condition, Date) %>%
+  dplyr::filter(!duplicated(Sample)) %>%
+  DT::datatable()
+
+# Visualize time points of plasma samples
+ggplot(proPlasmaTab, aes(x=TimePoint, y=Patient)) +
+  geom_point(shape = 4, size = 2) +
+  labs(x = 'Time point', title = 'Time Points') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 12, face = 'bold'), axis.text.x = element_text(size = 10),
+        plot.title = element_text(size = 14, face = 'bold', hjust = 0.5),)
+
+# Visualize exact dates of plasma samples
+tmp_proPlasmaTab <- dplyr::mutate(proPlasmaTab,
+                                  Date = paste0(Date, '-01'),
+                                  Date = as.Date(Date),
+                                  Label = dplyr::case_when(Condition == 'Baseline' ~ 'Baseline',
+                                                           Condition != 'Baseline' ~ 'Follow-up'))
+ggplot(tmp_proPlasmaTab, aes(x=Date, y=Patient, color=Label)) +
+  geom_point(size = 2) +
+  labs(title = 'Exact Dates') +
+  scale_x_date(date_breaks = 'year', date_labels = '%Y') +
+  scale_color_manual(name = 'Time point', values = c('red2', 'grey40')) +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 12, face = 'bold'),
+        axis.text.x = element_text(size = 10, angle = 60, vjust = 1, hjust = 1),
+        plot.title = element_text(size = 14, face = 'bold', hjust = 0.5),
+        legend.title = element_text(size = 12), legend.text = element_text(size = 10))
+```
+
+```{r include=F, eval=F}
 # Preprocess data
 proPlasma <- doPreprocessing(proPlasmaTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                              smpAnno = c(smpAnno, 'TimePoint', 'Date'), do_featFilt = T,
                              cutoff = 0.67, viz_miss = T, bins = 20) #save_path = './data/AG_Krijgsveld/proPlasma'
-```
-
-Explore statuses and time points of plasma samples
-```{r fig.height=10}
-# Explore time points of plasma samples
-smpPlasmaMetadat %>%
-  DT::datatable()
-# Visualize time points of plasma samples
-ggplot(proPlasmaTab, aes(x=TimePoint, y=Patient)) +
-  geom_point(shape = 4, size = 2) +
-  labs(x = 'Time point') +
-  theme_minimal() +
-  theme(axis.title = element_text(size = 12, face = 'bold'),
-        axis.text.x = element_text(size = 10))
-```
-
-Show dimensions of original data (289 samples and 969 features)
-```{r}
+# Show dimensions of original data (289 samples and 969 features)
 dim(proPlasma$ori.data)
-```
-
-Show missingness of original data
-```{r}
+# Show missingness of original data
 proPlasma$ori.data.miss +
   labs(x = 'Samples') +
   theme(axis.text.x = element_blank(), axis.title = element_text(size = 13, face = 'bold'),
         panel.grid.major.y = element_blank())
-```
-
-Show sample mean-variance relationship of original data
-```{r}
+# Show sample mean-variance relationship of original data
 proPlasma$ori.smp.mean.var
-```
 
-Show feature mean-variance relationship of original data
-```{r}
-proPlasma$ori.feat.mean.var +
-  scale_y_log10()
-```
-
-**Remove features quantified in less than 2/3 of samples**\
-Show dimensions of filtered data (289 samples and 542 features)
-```{r}
+# Remove features quantified in less than 2/3 of samples
+# Show dimensions of filtered data (289 samples and 542 features)
 dim(proPlasma$filt.data)
-```
-
-Show missingness of filter data
-```{r}
+# Show missingness of filtered data
 proPlasma$filt.data.miss +
   labs(x = 'Samples') +
   theme(axis.text.x = element_blank(), axis.title = element_text(size = 13, face = 'bold'))
+
+# Normalize filtered data by VSN
+# Show sample mean-variance relationship of vsn normalized data
+proPlasma$vsn.smp.mean.var +
+  ylim(2.4, 3.6)
+# Show feature mean-variance relationship of vsn normalized data
+proPlasma$vsn.feat.mean.var
+```
+
+## Baseline samples
+
+Show dimensions of original data (42 samples and 969 features)
+```{r}
+# Subset certain samples
+proBaseTab <- dplyr::filter(proPlasmaTab, Condition == 'Baseline')
+# Preprocess data
+proBase <- doPreprocessing(proBaseTab, feat = 'Protein.Group', smp = 'Sample',
+                           val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
+                           smpAnno = c(smpAnno, 'TimePoint', 'Date'), do_featFilt = T,
+                           cutoff = 0.5, viz_miss = T, bins = 20) #save_path = './data/AG_Krijgsveld/proBase'
+dim(proBase$ori.data)
+```
+
+Show missingness of original data
+```{r}
+proBase$ori.data.miss +
+  theme(panel.grid.minor.y = element_blank())
+```
+
+Show distribution of original data
+```{r}
+proBase$ori.data.dist
+```
+
+**Remove features quantified in less than 1/2 of samples**\
+Show dimensions of filtered data (42 samples and 665 features)
+```{r}
+dim(proBase$filt.data)
+```
+
+Show missingness of filtered data
+```{r}
+proBase$filt.data.miss
 ```
 
 **Normalize filtered data by VSN**\
-Show sample mean-variance relationship of vsn normalized data
+Show distribution of vsn normalized data
 ```{r}
-proPlasma$vsn.smp.mean.var +
-  ylim(2.4, 3.6)
+proBase$vsn.data.dist
 ```
 
 Show feature mean-variance relationship of vsn normalized data
 ```{r}
-proPlasma$vsn.feat.mean.var
+proBase$vsn.feat.mean.var
 ```
