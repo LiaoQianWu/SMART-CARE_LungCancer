@@ -51,7 +51,7 @@ th <- theme_bw(base_size = 15) +
 ```
 
 Display associations between cancer recurrence and the other patient metadata variables
-to identify potential predictors or confounders
+to identify potential predictors (or confounders)
 ```{r}
 # Test associations between cancer recurrence and the other patient metadata variables
 # Prepare patient metadata
@@ -89,12 +89,20 @@ so association results may have additive effects.
 proTissueRes$pcSigAssoRes
 ```
 
-PC1 significantly separate Tumor and Normal samples, which indicates good data quality
+PC1 significantly separate Tumor and Normal samples, which indicates decent data
+quality. Yet, there are 4 Tumor samples misclassified, reported as follows:\
+I0HVOL_TU: 87%, 14mg / 7EAOX7_TU: 70%, 19mg / MJMTYR_TU: 40%, 31mg / XFKHGP_TU: 100%, 4mg\
+(Tumor cell contents ranging from 40 - 100%, and Tissue weight from 4 - 54mg)
 ```{r}
-pcTab <- proTissueRes$pcTab
-ggplot(pcTab, aes(x=Condition, y=`PC1 (36.3%)`, color=Condition, fill=Condition)) +
+pcTab <- proTissueRes$pcTab %>%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% c('I0HVOL_TU', '7EAOX7_TU',
+                                                       'MJMTYR_TU', 'XFKHGP_TU',
+                                                       'XFKHGP_NG', 'MJMTYR_NG',
+                                                       'I0HVOL_NG', '7EAOX7_NG') ~ Sample))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (31.5%)`, color=Condition, fill=Condition, label=Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  geom_text_repel(show.legend = F) +
   scale_color_brewer(palette = 'Dark2') +
   scale_fill_brewer(palette = 'Dark2') +
   labs(x = 'Sample condition') +
@@ -108,7 +116,7 @@ after surgery.
 ## Tumor samples
 
 ```{r}
-# Subset tumor samples
+# Subset certain samples
 proTumor <- proTissue[, which(colData(proTissue)$Condition == 'Tumor')]
 # Perform single-omics analysis
 proTumorRes <- doSingleOmicsAnalysis(proTumor, soa_metaVar = 'Recurrence', num_sigFeats = 6,
@@ -139,9 +147,38 @@ in rows are ordered by t-statistics.
 proTumorRes$sig.feat.heat
 ```
 
-Visualize top significant features
+Visualize top significant features identified in Tumor samples. Note that abundances
+in Normal samples are also provided to have more comprehensive analysis.
 ```{r}
-proTumorRes$top.sig.feat.dist
+# Prepare data matrix and metadata including both Tumor and Normal samples
+datMat <- proTissueRes$data
+smpAnnoTab <- proTissueRes$smpMetadata
+# Prepare significant feature table
+featSigAssoTab <- proTumorRes$sig.feat.tab
+num_sigFeats <- 6
+gpLevel = c('No_Tumor', 'Yes_Tumor', 'No_Normal', 'Yes_Normal')
+condiCol = c('grey50', 'firebrick') #c(Normal, Tumor)
+# Extract top significant features and prepare needed information
+topSigFeats <- featSigAssoTab[1:num_sigFeats,] %>%
+  dplyr::select(Var1, pVal, Gene) %>%
+  dplyr::mutate(newVar1 = paste0(Gene, '\n(p = ', round(pVal, 4), ')'),
+                newVar1 = factor(newVar1, levels = unique(newVar1)))
+topSigFeatDat <- tibble::as_tibble(datMat[topSigFeats$Var1,], rownames = 'Var1') %>%
+  tidyr::pivot_longer(cols = -'Var1', names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::left_join(topSigFeats, by = 'Var1') %>%
+  dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
+  dplyr::mutate(Recur_Condi = dplyr::case_when(Condition == 'Tumor' ~ paste0(Recurrence, '_Tumor'),
+                                               Condition == 'Normal' ~ paste0(Recurrence, '_Normal')),
+                Recur_Condi = factor(Recur_Condi, levels = gpLevel))
+ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 1, show.legend = F) +
+  labs(x = 'Recurrence') +
+  scale_color_manual(values = condiCol) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(newVar1), scales = 'free') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'),
+             axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 ```
 
 Assess data power by p-value histogram
@@ -154,20 +191,16 @@ Display significant associations between PCs (Var1) and cancer recurrence (Var2)
 proTumorRes$sig.pc.tab
 ```
 
-Visualize significant PCs
+Visualize significant PCs and display their top features with greatest absolute loadings
 ```{r}
-proTumorRes$sig.pc.dist$PC21
-```
-
-Display top features with greatest absolute loadings of significant PCs
-```{r}
-proTumorRes$pc.top.feat.tab$PC21
+proTumorRes$sig.pc.dist$PC20
+proTumorRes$pc.top.feat.tab$PC20
 ```
 
 ## Normal samples
 
 ```{r}
-# Subset normal samples
+# Subset certain samples
 proNormal <- proTissue[, which(colData(proTissue)$Condition == 'Normal')]
 # Perform single-omics analysis
 proNormalRes <- doSingleOmicsAnalysis(proNormal, soa_metaVar = 'Recurrence', num_sigFeats = 6,
@@ -195,9 +228,38 @@ in rows are ordered by t-statistics.
 proNormalRes$sig.feat.heat
 ```
 
-Visualize top significant features
+Visualize top significant features identified in Normal samples. Note that abundances
+in Tumor samples are also provided to have more comprehensive analysis.
 ```{r}
-proNormalRes$top.sig.feat.dist
+# Prepare data matrix and metadata including both Tumor and Normal samples
+datMat <- proTissueRes$data
+smpAnnoTab <- proTissueRes$smpMetadata
+# Prepare significant feature table
+featSigAssoTab <- proNormalRes$sig.feat.tab
+num_sigFeats <- 6
+gpLevel = c('No_Normal', 'Yes_Normal', 'No_Tumor', 'Yes_Tumor')
+condiCol = c('firebrick', 'grey50') #c(Normal, Tumor)
+# Extract top significant features and prepare needed information
+topSigFeats <- featSigAssoTab[1:num_sigFeats,] %>%
+  dplyr::select(Var1, pVal, Gene) %>%
+  dplyr::mutate(newVar1 = paste0(Gene, '\n(p = ', round(pVal, 4), ')'),
+                newVar1 = factor(newVar1, levels = unique(newVar1)))
+topSigFeatDat <- tibble::as_tibble(datMat[topSigFeats$Var1,], rownames = 'Var1') %>%
+  tidyr::pivot_longer(cols = -'Var1', names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::left_join(topSigFeats, by = 'Var1') %>%
+  dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
+  dplyr::mutate(Recur_Condi = dplyr::case_when(Condition == 'Tumor' ~ paste0(Recurrence, '_Tumor'),
+                                               Condition == 'Normal' ~ paste0(Recurrence, '_Normal')),
+                Recur_Condi = factor(Recur_Condi, levels = gpLevel))
+ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 1, show.legend = F) +
+  labs(x = 'Recurrence') +
+  scale_color_manual(values = condiCol) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(newVar1), scales = 'free') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'),
+             axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 ```
 
 Assess data power by p-value histogram
@@ -210,51 +272,38 @@ Display significant associations between PCs (Var1) and cancer recurrence (Var2)
 proNormalRes$sig.pc.tab
 ```
 
-Visualize significant PCs
+Visualize significant PCs and display their top features with greatest absolute loadings
 ```{r}
 proNormalRes$sig.pc.dist$PC7
-proNormalRes$sig.pc.dist$PC39
-proNormalRes$sig.pc.dist$PC18
-```
-
-Display top features with greatest absolute loadings of significant PCs
-```{r}
 proNormalRes$pc.top.feat.tab$PC7
-proNormalRes$pc.top.feat.tab$PC39
-proNormalRes$pc.top.feat.tab$PC18
+
+proNormalRes$sig.pc.dist$PC38
+proNormalRes$pc.top.feat.tab$PC38
 ```
 
 
 
 
 # Plasma Proteomics
+We first focus on analysis of Baseline samples because (1) what we are most interested
+in is predicting recurrence, and (2) Baseline samples are less complex compared to Follow-up samples.
 
-```{r}
+```{r include=F, eval=F}
 # Load preprocessed data
 proPlasma <- readRDS('./data/AG_Krijgsveld/proPlasmaVsn.rds')
-# Prepare feature annotation table
-featAnnoTab <- tibble::as_tibble(rowData(proPlasma), rownames = 'Protein') %>%
-  dplyr::select(Protein, Genes) %>%
-  dplyr::rename(Gene = Genes) %>%
-  tibble::column_to_rownames('Protein')
-
 # Perform single-omics analysis
 proPlasmaRes <- doSOA(proPlasma, meta_var = c('Condition', 'Recurrence', 'Gender', 'Adjuvant'),
                       do_onlyPCA = T, pca_method = 'ppca', alpha = 0.01)
-```
 
-Display significant associations between PCs (Var1) and sample metadata variables
-(Var2). Note that all patients got multiple samples that have same patient annotations,
-so association results may have additive effects. Furthermore, patient annotations,
-Age, Smoking, and Stage, were excluded because they are Baseline time point-related.
-```{r}
+# Display significant associations between PCs (Var1) and sample metadata variables
+# (Var2). Note that all patients got multiple samples that have same patient annotations,
+# so association results may have additive effects. Furthermore, patient annotations,
+# Age, Smoking, and Stage, were excluded because they are Baseline time point-related.
 proPlasmaRes$pcSigAssoRes
-```
 
-Visualize PC1 that is significantly associated with sample conditions
-```{r}
+# Visualize PC1 that is significantly associated with sample conditions
 pcTab <- proPlasmaRes$pcTab
-ggplot(pcTab, aes(x=Condition, y=`PC1 (34.6%)`, color=Condition, fill=Condition)) +
+ggplot(pcTab, aes(x=Condition, y=`PC1 (35.3%)`, color=Condition, fill=Condition)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
   scale_color_brewer(palette = 'Dark2') +
@@ -262,15 +311,18 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (34.6%)`, color=Condition, fill=Condition)
   labs(x = 'Sample condition') +
   th
 ```
-=> We will first focus on analysis of Baseline samples because (1) what we are most
-interested in is predicting recurrence, and (2) Baseline samples are less complex
-compared to Follow-up samples.
 
 ## Baseline samples
 
 ```{r}
-# Subset baseline samples
-proBase <- proPlasma[, which(colData(proPlasma)$Condition == 'Baseline')]
+# Load preprocessed data
+proBase <- readRDS('./data/AG_Krijgsveld/proBaseVsn.rds')
+# Prepare feature annotation table
+featAnnoTab <- tibble::as_tibble(rowData(proBase), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  tibble::column_to_rownames('Protein')
+
 # Perform single-omics analysis
 proBaseRes <- doSingleOmicsAnalysis(proBase, soa_metaVar = 'Recurrence', num_sigFeats = 6,
                                     pca_method = 'ppca', num_PCs = 40, num_PCfeats = 30,
@@ -293,6 +345,26 @@ dropout model (proDA) to account for data missingness.
 ```{r}
 proBaseRes$sig.feat.tab
 
+# Immunoglobulins (antibodies) are membrane-bound or secreted glycoproteins produced
+# by B lymphocytes. In recognition phase of humoral immunity, membrane-bound immunoglobulins
+# serve as receptors which, upon binding of a specific antigen, trigger clonal expansion
+# and differentiation of B lymphocytes into immunoglobulins-secreting plasma cells.
+# Secreted immunoglobulins mediate effector phase of humoral immunity, which results
+# in elimination of bound antigens.
+```
+
+```{r eval=F}
+# Check Gender (PC1) and Smoking (PC6) to avoid potential confounders
+# Identify significant associations between features and patient genders
+proBaseSex <- doSingleOmicsAnalysis(proBase, soa_metaVar = 'Gender', pca_method = 'ppca',
+                                    num_PCs = 40, use_limma = F, use_proDA = T,
+                                    pca_metaVar = c('Recurrence', 'Gender', 'Age',
+                                                    'Smoking', 'Stage', 'Adjuvant'))
+sigFeatsSex <- proBaseSex$sig.feat.tab$Var1
+sigFeatsRecur <- proBaseRes$sig.feat.tab$Var1
+sigFeatsRecur[sigFeatsRecur %in% sigFeatsSex]
+# Protein 'P20742', 'Q0VDD7', and 'P02768' are also significantly associated with patient genders.
+
 # Protein encoded by PZP is highly expressed in late-pregnancy serum, which can
 # inhibit proteinases by its unique trapping mechanism. Appears to be elevated in
 # sera of presymptomatic Alzheimer's disease patients. HCG is present during pregnancy,
@@ -305,33 +377,6 @@ proBaseRes$sig.feat.tab
 # ALB encodes most abundant protein albumin in human blood, which functions in regulation
 # of blood plasma colloid osmotic pressure and acts as carrier protein for endogenous
 # molecules hormones, fatty acids, and metabolites, and as well as exogenous drugs.
-
-# IGKV2D-30 (A0A075B6S6), IGHV3-64 (A0A075B6Q5), IGLV5-37 (A0A075B6J1)
-```
-=> No identified significant features share between Discovery and Method Development
-cohorts (5 overlaps between two Method Development datasets). Protein 'P20742',
-'Q0VDD7', and 'P02768' are also significantly associated with patient genders.
-
-```{r eval=F}
-# Check Gender (PC1) and Smoking (PC6) to avoid potential confounders
-# Identify significant associations between features and patient genders
-proBaseSex <- doSingleOmicsAnalysis(proBase, soa_metaVar = 'Gender', pca_method = 'ppca',
-                                    num_PCs = 40, use_limma = F, use_proDA = T,
-                                    pca_metaVar = c('Recurrence', 'Gender', 'Age',
-                                                    'Smoking', 'Stage', 'Adjuvant'))
-sigFeatsSex <- proBaseSex$sig.feat.tab$Var1
-sigFeatsRecur <- proBaseRes$sig.feat.tab$Var1
-sigFeatsRecur[sigFeatsRecur %in% sigFeatsSex]
-
-# Visualize PC6 that is significantly associated with patient smoking histories
-pcTab <- proBaseRes$SOA.res$pcTab
-ggplot(pcTab, aes(x=Smoking, y=`PC6 (3%)`, color=Smoking, fill=Smoking)) +
-  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-  scale_color_brewer(palette = 'Dark2') +
-  scale_fill_brewer(palette = 'Dark2') +
-  labs(x = 'Smoking history') +
-  th
 ```
 
 Visualize molecular signatures of significant features in data. Note that features
@@ -355,16 +400,14 @@ Display significant associations between PCs (Var1) and cancer recurrence (Var2)
 proBaseRes$sig.pc.tab
 ```
 
-Visualize significant PCs
+Visualize significant PCs and display their top features with greatest absolute loadings
 ```{r}
-proBaseRes$sig.pc.dist$PC30
-proBaseRes$sig.pc.dist$PC5
-proBaseRes$sig.pc.dist$PC4
-```
+proBaseRes$sig.pc.dist$PC7
+proBaseRes$pc.top.feat.tab$PC7
 
-Display top features with greatest absolute loadings of significant PCs
-```{r}
-proBaseRes$pc.top.feat.tab$PC30
+proBaseRes$sig.pc.dist$PC5
 proBaseRes$pc.top.feat.tab$PC5
-proBaseRes$pc.top.feat.tab$PC4
+
+proBaseRes$sig.pc.dist$PC20
+proBaseRes$pc.top.feat.tab$PC20
 ```
