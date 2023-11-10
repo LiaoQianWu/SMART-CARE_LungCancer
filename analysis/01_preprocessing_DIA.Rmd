@@ -11,7 +11,9 @@ output:
 <font size='4'> Description: Preprocess Tissue and Plasma DIA Proteomics generated
 by Karim Aljakouch from AG Krijgsveld, including data cleansing, filtering, and
 normalization (VSN). All needed information was then stored in SummarizedExperiment
-objects for further analyses. </font>
+objects for further analyses.</font>
+
+Q: There is no '1HTNWJ_TU' and got extra Tumor sample '6EY5JO_II_TU'?
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
@@ -45,25 +47,31 @@ th <- theme_bw(base_size = 15) +
 smpMetadat <- readxl::read_excel('./data/sample_metadata.xlsx')
 colnames(smpMetadat) <- smpMetadat[3,, drop = F]
 smpMetadat <- dplyr::slice(smpMetadat, -c(1:3)) %>%
-  dplyr::filter(`SMART-CARE cohort identifier` == 'DISCOVERY_COHORT') %>%
-  dplyr::select(c(Code, Visit, `Material submitted`, `Date and time of collection or surgery`, Parents)) %>%
-  dplyr::rename(Sample = Code, Status = Visit, SmpType = `Material submitted`,
-                Date = `Date and time of collection or surgery`, Patient = Parents) %>%
-  dplyr::mutate(Sample = stringr::str_remove_all(Sample, '^SC_DIS_S_|^SC_S_|_P'),
-                Status = dplyr::case_when(Status == 'PRETHERAPEUTIC' ~ 'Baseline',
-                                          Status == 'FOLLOW-UP' ~ 'Follow-up',
-                                          Status == 'RECURRENCE' ~ 'Recurrence'),
+  dplyr::select(c(Code, Parents, Visit, `Material submitted`, `Date and time of collection or surgery`,
+                  `SMART-CARE cohort identifier`)) %>%
+  dplyr::rename(Sample = Code, Patient = Parents, TimePoint = Visit, SmpType = `Material submitted`,
+                Date = `Date and time of collection or surgery`, Cohort = `SMART-CARE cohort identifier`) %>%
+  dplyr::mutate(Sample = stringr::str_remove_all(Sample, '^SC_T_S_|^SC_DIS_S_|^SC_S_|_P'),
+                Patient = stringr::str_remove(Patient, '^/THRX_SPACE/THRX_DB/'),
+                TimePoint = dplyr::case_when(TimePoint == 'PRETHERAPEUTIC' ~ 'Baseline',
+                                             TimePoint == 'FOLLOW-UP' ~ 'Follow-up',
+                                             TimePoint == 'RECURRENCE' ~ 'Recurrence'),
                 SmpType = dplyr::case_when(SmpType == 'EDTA_PLASMA' ~ 'Plasma',
                                            SmpType == 'FRESH_FROZEN_TISSUE' ~ 'Tissue'),
-                Date = stringr::str_extract(Date, '\\d+-\\d+'),
-                Patient = stringr::str_remove(Patient, '/THRX_SPACE/THRX_DB/')) %>%
-  dplyr::arrange(Patient)
+                Condition = dplyr::case_when(grepl('_TU', Sample) ~ 'Tumor',
+                                             grepl('_NG', Sample) ~ 'Normal',
+                                             !grepl('_TU|_NG', Sample) ~ TimePoint),
+                Date = stringr::str_extract(Date, '^\\d+-\\d+-\\d+'),
+                Cohort = dplyr::case_when(Cohort == 'DISCOVERY_COHORT' ~ 'Discovery',
+                                          Cohort == 'METHOD_DEVELOPMENT_COHORT' ~ 'MethodDev'),
+                Date = as.Date(Date, format = '%Y-%m-%d'))
 
 # Load patient metadata
 patientMetadat <- readxl::read_excel('./data/patient_metadata.xlsx')
 colnames(patientMetadat) <- patientMetadat[3,, drop = F]
 patientMetadat <- dplyr::slice(patientMetadat, -c(1:3)) %>%
-  dplyr::select(-c(Identifier, Diagnosis, Nutrition)) %>%
+  dplyr::select(c(Code, Gender, `Age at diagnosis`, `Pathological stage`, `Smoking status`,
+                  `Adjuvant chemotherapy`,)) %>%
   dplyr::rename(Patient = Code, Age = `Age at diagnosis`, Stage = `Pathological stage`,
                 Smoking = `Smoking status`, Adjuvant = `Adjuvant chemotherapy`) %>%
   dplyr::mutate(Gender = dplyr::case_when(Gender == 'MALE' ~ 'Male',
@@ -74,17 +82,43 @@ patientMetadat <- dplyr::slice(patientMetadat, -c(1:3)) %>%
                 Adjuvant = dplyr::case_when(Adjuvant == 'true' ~ 'True',
                                             Adjuvant == 'false' ~ 'False'),
                 Age = as.numeric(Age))
-# Include patient recurrence information
-recurPats <- dplyr::filter(smpMetadat, Status == 'Recurrence') %>%
+# Include patient recurrence information in patient metadata
+recurPats <- dplyr::filter(smpMetadat, TimePoint == 'Recurrence') %>%
   dplyr::pull(Patient)
-patientMetadat <- dplyr::mutate(patientMetadat,
-                                Recurrence = dplyr::case_when(Patient %in% recurPats ~ 'Yes',
-                                                              !Patient %in% recurPats ~ 'No')) %>%
-  dplyr::relocate(Recurrence, .after = Patient)
+patientMetadat <- dplyr::mutate(patientMetadat, Recurrence = dplyr::case_when(Patient %in% recurPats ~ 'Yes',
+                                                                              !Patient %in% recurPats ~ 'No'))
+
+# Load aliquot metadata
+aliquotMetadat <- readxl::read_excel('./data/aliquot_metadata.xlsx')
+colnames(aliquotMetadat) <- aliquotMetadat[3,, drop = F]
+aliquotMetadat <- dplyr::slice(aliquotMetadat, -c(1:3)) %>%
+  dplyr::select(Code, Parents, `Tumor Cell Content (%)`, `Cohort Identifier`, `Submission to`,
+                `Delivered?`) %>%
+  dplyr::rename(Aliquot = Code, Sample = Parents, TumorPurity = `Tumor Cell Content (%)`,
+                Cohort = `Cohort Identifier`, To = `Submission to`, Delivered = `Delivered?`) %>%
+  dplyr::mutate(Sample = stringr::str_remove_all(Sample, '^/THRX_SPACE/THRX_DB/SC_T_S_|_P'),
+                Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_DIS_S_'),
+                Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_S_'),
+                Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_DIS_'),
+                Sample = dplyr::case_when(Sample == 'SDIR55_TU' ~ 'PDIR55_TU',
+                                          Sample == 'SDIR55_NG' ~ 'PDIR55_NG',
+                                          !Sample %in% c('SDIR55_TU', 'SDIR55_NG') ~ Sample),
+                Cohort = dplyr::case_when(Cohort == 'method establishment' ~ 'MethodDev',
+                                          Cohort == 'DISCOVERY_COHORT' ~ 'Discovery'),
+                TumorPurity = as.numeric(TumorPurity),
+                Sample = dplyr::case_when(grepl('^SC_DIS_A_Y4W4L7_P_V2', Aliquot) ~ 'Y4W4L7_V2',
+                                          !grepl('^SC_DIS_A_Y4W4L7_P_V2', Aliquot) ~ Sample)) %>%
+  dplyr::filter(To == 'KRIJGSVELD')
+# Prepare tumor purity information
+tumorPurityInfo <- dplyr::select(aliquotMetadat, Sample, TumorPurity)
+
+# Combine all needed metadata
+summMetadat <- dplyr::left_join(smpMetadat, patientMetadat, by = 'Patient') %>%
+  dplyr::left_join(tumorPurityInfo)
 
 # List sample annotations to keep in SE objects
-smpAnno <- c('Condition', 'Patient', 'Recurrence', 'Gender', 'Age', 'Smoking',
-             'Stage', 'Adjuvant')
+smpAnno <- c('Patient', 'SmpType', 'TimePoint', 'Date', 'Cohort', 'Condition',
+             'Recurrence', 'Gender', 'Age', 'Smoking', 'Stage', 'Adjuvant')
 ```
 
 # Tissue Proteomics
@@ -99,12 +133,14 @@ proTissueTab <- readr::read_tsv('./data/AG_Krijgsveld/20230815_MarcS_Discovery_T
   tidyr::pivot_longer(cols = -c('Protein.Group', 'Protein.Names', 'Genes'),
                       names_to = 'Sample', values_to = 'Abundance') %>%
   dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, '_HUMAN'),
-                Sample = stringr::str_remove_all(Sample, '^.+SC_A_|^.+SC_DIS_A_|4\\.raw$'),
-                Condition = dplyr::case_when(grepl('_NG', Sample) ~ 'Normal',
-                                             grepl('TU', Sample) ~ 'Tumor'),
-                Patient = stringr::str_remove(Sample, '_.+$'))
-# Include patient metadata
-proTissueTab <- dplyr::left_join(proTissueTab, patientMetadat, by = 'Patient')
+                Sample = stringr::str_remove_all(Sample, '^.+SC_A_|^.+SC_DIS_A_|4\\.raw$'))
+# Include summarized metadata
+# Add an extra sample to summarized metadata
+tmp_summMetadat <- summMetadat
+smp <- summMetadat[summMetadat$Sample == '6EY5JO_TU',]
+smp[1, 1] <- '6EY5JO_II_TU'
+tmp_summMetadat <- rbind(tmp_summMetadat, smp)
+proTissueTab <- dplyr::left_join(proTissueTab, tmp_summMetadat, by = 'Sample')
 ```
 
 Show dimensions of original data (86 samples and 7986 features)
@@ -112,8 +148,8 @@ Show dimensions of original data (86 samples and 7986 features)
 # Preprocess data
 proTissue <- doPreprocessing(proTissueTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
-                             smpAnno = smpAnno, do_featFilt = T, cutoff = 0.67,
-                             viz_miss = T) #save_path = './data/AG_Krijgsveld/proTissue'
+                             smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = T,
+                             cutoff = 0.5, viz_miss = T, save_path = './data/AG_Krijgsveld/proTissue')
 dim(proTissue$ori.data)
 ```
 
@@ -129,8 +165,8 @@ proTissue$ori.data.dist +
   theme(axis.text.x = element_text(size = 10))
 ```
 
-**Remove features quantified in less than 2/3 of samples**\
-Show dimensions of filtered data (86 samples and 5316 features)
+**Remove features quantified in less than 1/2 of samples**\
+Show dimensions of filtered data (86 samples and 6077 features)
 ```{r}
 dim(proTissue$filt.data)
 ```
@@ -153,7 +189,7 @@ Show feature mean-variance relationship of vsn normalized data
 proTissue$vsn.feat.mean.var
 ```
 
-**Check data quality**
+**Metadata-assisted quality control**
 ```{r}
 # Do single-omics analysis
 proTissueSOA <- doSOA(proTissue$vsn.data, meta_var = 'Condition', pca_method = 'ppca',
@@ -164,17 +200,20 @@ pcTab <- proTissueSOA$pcTab %>%
                                                        'MJMTYR_TU', 'XFKHGP_TU',
                                                        'XFKHGP_NG', 'MJMTYR_NG',
                                                        'I0HVOL_NG', '7EAOX7_NG') ~ Sample))
-ggplot(pcTab, aes(x=Condition, y=`PC1 (36.3%)`, col=Condition, fill=Condition, label=Label)) +
+ggplot(pcTab, aes(x=Condition, y=`PC1 (31.5%)`, col=Condition, fill=Condition, label=Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
-  geom_text_repel(show.legend = F) +
+  geom_text_repel(show.legend = F, size = 5) +
   scale_color_brewer(palette = 'Dark2') +
   scale_fill_brewer(palette = 'Dark2') +
   labs(x = 'Sample condition') +
-  th
+  th #+ theme(axis.title = element_text(size = 28),
+             # axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
+             # legend.title = element_text(size = 26), legend.text = element_text(size = 24))
+# ggsave('./output/group_meeting/quality_control_proTissue_Krij.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
-=> I0HVOL_TU: 87%, 14mg / 7EAOX7_TU: 70%, 19mg / MJMTYR_TU: 40%, 31mg / XFKHGP_TU: 100%, 4mg\
-(Tumor cell contents ranging from 40 - 100%, and Tissue weight from 4 - 54mg)
+=> Tumor purity: I0HVOL_TU - 87% / 7EAOX7_TU - 70% / MJMTYR_TU - 40% / XFKHGP_TU - 100%\
+(Mean of sample tumor cell contents is 74%, ranging from 40% to 100%.)
 
 ## Tumor samples
 
@@ -186,8 +225,8 @@ proTumorTab <- dplyr::filter(proTissueTab, Condition == 'Tumor')
 # Preprocess data
 proTumor <- doPreprocessing(proTumorTab, feat = 'Protein.Group', smp = 'Sample',
                             val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
-                            smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
-                            viz_miss = T) #save_path = './data/AG_Krijgsveld/proTumor'
+                            smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = T,
+                            cutoff = 0.5, viz_miss = T, save_path = './data/AG_Krijgsveld/proTumor')
 dim(proTumor$filt.data)
 ```
 
@@ -217,8 +256,8 @@ proNormalTab <- dplyr::filter(proTissueTab, Condition == 'Normal')
 # Preprocess data
 proNormal <- doPreprocessing(proNormalTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
-                             smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
-                             viz_miss = T) #save_path = './data/AG_Krijgsveld/proNormal'
+                             smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = T,
+                             cutoff = 0.5, viz_miss = T, save_path = './data/AG_Krijgsveld/proNormal')
 dim(proNormal$filt.data)
 ```
 
@@ -282,7 +321,9 @@ proTissue_Klin <- SummarizedExperiment(assays = list(Abundance = assay(proTissue
 
 
 # Plasma Proteomics
-Baseline samples were extracted and preprocessed to preserve maximal amounts of reliable features.
+Due to complexity of plasma samples, we will be focusing on analysis of Baseline
+samples. 63 out of 81 patients got Baseline samples and they were extracted and
+preprocessed to preserve maximal amounts of reliable features.
 
 ```{r message=F}
 # Load unprocessed data
@@ -300,57 +341,44 @@ proPlasmaTab <- readr::read_tsv('./data/AG_Krijgsveld/20230811_MarcS_Discovery_P
                                           Sample == 'FD07174643' ~ 'R1WTOP_V4',
                                           !Sample %in% c('FD01075852', 'FD05926483',
                                                          'FD01282286', 'FD07174643') ~ Sample),
-                Sample = stringr::str_remove_all(Sample, '_FD\\d+|_LV\\d+'),
-                Patient = stringr::str_remove(Sample, '_.+$'),
-                TimePoint = stringr::str_remove(Sample, '^.+_'),
-                TimePoint = factor(TimePoint, levels = paste0('V', seq_along(unique(TimePoint)))))
-# Include sample and patient metadata
-smpPlasmaMetadat <- dplyr::filter(smpMetadat, SmpType == 'Plasma') %>%
-  dplyr::select(Sample, Status, Date) %>%
-  dplyr::rename(Condition = Status)
-proPlasmaTab <- dplyr::left_join(proPlasmaTab, smpPlasmaMetadat, by = 'Sample')
-proPlasmaTab <- dplyr::left_join(proPlasmaTab, patientMetadat, by = 'Patient')
+                Sample = stringr::str_remove_all(Sample, '_FD\\d+|_LV\\d+'))
+# Include summarized metadata
+proPlasmaTab <- dplyr::left_join(proPlasmaTab, summMetadat, by = 'Sample')
 ```
 
 Explore time points and exact dates of plasma samples
 ```{r fig.height=10}
 # Explore time points of plasma samples
-dplyr::select(proPlasmaTab, Sample, Condition, Date) %>%
+dplyr::select(proPlasmaTab, Sample, TimePoint, Date) %>%
   dplyr::filter(!duplicated(Sample)) %>%
   DT::datatable()
 
-# Visualize time points of plasma samples
-ggplot(proPlasmaTab, aes(x=TimePoint, y=Patient)) +
-  geom_point(shape = 4, size = 2) +
-  labs(x = 'Time point', title = 'Time Points') +
-  theme_minimal() +
-  theme(axis.title = element_text(size = 12, face = 'bold'), axis.text.x = element_text(size = 10),
-        plot.title = element_text(size = 14, face = 'bold', hjust = 0.5),)
-
 # Visualize exact dates of plasma samples
 tmp_proPlasmaTab <- dplyr::mutate(proPlasmaTab,
-                                  Date = paste0(Date, '-01'),
-                                  Date = as.Date(Date),
-                                  Label = dplyr::case_when(Condition == 'Baseline' ~ 'Baseline',
-                                                           Condition != 'Baseline' ~ 'Follow-up'))
+                                  Label = dplyr::case_when(TimePoint == 'Baseline' ~ 'Baseline',
+                                                           TimePoint != 'Baseline' ~ 'Follow-up'))
 ggplot(tmp_proPlasmaTab, aes(x=Date, y=Patient, color=Label)) +
   geom_point(size = 2) +
   labs(title = 'Exact Dates') +
   scale_x_date(date_breaks = 'year', date_labels = '%Y') +
-  scale_color_manual(name = 'Time point', values = c('red2', 'grey40')) +
+  scale_color_manual(name = 'Time Point', values = c('red2', 'grey40')) +
   theme_minimal() +
   theme(axis.title = element_text(size = 12, face = 'bold'),
         axis.text.x = element_text(size = 10, angle = 60, vjust = 1, hjust = 1),
         plot.title = element_text(size = 14, face = 'bold', hjust = 0.5),
         legend.title = element_text(size = 12), legend.text = element_text(size = 10))
+#   theme(axis.title = element_text(size = 24, face = 'bold'),
+#         axis.text.x = element_text(size = 12, angle = 60, vjust = 1, hjust = 1),
+#         legend.title = element_text(size = 22), legend.text = element_text(size = 20))
+# ggsave('./output/group_meeting/smp_dates_proPlasma_Krij.png', device = 'png', dpi = 400, height = 10, width = 12)
 ```
 
 ```{r include=F, eval=F}
 # Preprocess data
 proPlasma <- doPreprocessing(proPlasmaTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
-                             smpAnno = c(smpAnno, 'TimePoint', 'Date'), do_featFilt = T,
-                             cutoff = 0.67, viz_miss = T, bins = 20) #save_path = './data/AG_Krijgsveld/proPlasma'
+                             smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
+                             viz_miss = T, bins = 20, save_path = './data/AG_Krijgsveld/proPlasma')
 # Show dimensions of original data (289 samples and 969 features)
 dim(proPlasma$ori.data)
 # Show missingness of original data
@@ -361,8 +389,8 @@ proPlasma$ori.data.miss +
 # Show sample mean-variance relationship of original data
 proPlasma$ori.smp.mean.var
 
-# Remove features quantified in less than 2/3 of samples
-# Show dimensions of filtered data (289 samples and 542 features)
+# Remove features quantified in less than 1/2 of samples
+# Show dimensions of filtered data (289 samples and 607 features)
 dim(proPlasma$filt.data)
 # Show missingness of filtered data
 proPlasma$filt.data.miss +
@@ -379,15 +407,15 @@ proPlasma$vsn.feat.mean.var
 
 ## Baseline samples
 
-Show dimensions of original data (42 samples and 969 features)
+Show dimensions of original data (63 samples and 969 features)
 ```{r}
 # Subset certain samples
 proBaseTab <- dplyr::filter(proPlasmaTab, Condition == 'Baseline')
 # Preprocess data
 proBase <- doPreprocessing(proBaseTab, feat = 'Protein.Group', smp = 'Sample',
                            val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
-                           smpAnno = c(smpAnno, 'TimePoint', 'Date'), do_featFilt = T,
-                           cutoff = 0.5, viz_miss = T, bins = 20) #save_path = './data/AG_Krijgsveld/proBase'
+                           smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
+                           viz_miss = T, bins = 20, save_path = './data/AG_Krijgsveld/proBase')
 dim(proBase$ori.data)
 ```
 
@@ -403,7 +431,7 @@ proBase$ori.data.dist
 ```
 
 **Remove features quantified in less than 1/2 of samples**\
-Show dimensions of filtered data (42 samples and 665 features)
+Show dimensions of filtered data (63 samples and 613 features)
 ```{r}
 dim(proBase$filt.data)
 ```
