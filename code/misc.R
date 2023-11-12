@@ -1,3 +1,9 @@
+library(pcaMethods)
+library(limma)
+library(proDA)
+library(SummarizedExperiment)
+library(tidyverse)
+
 df2SummExp <- function(df, row_id, col_id, values,
                        row_anno = NULL, col_anno = NULL) {
   #' Convert tidy table to SummarizedExperiment object
@@ -36,26 +42,31 @@ df2SummExp <- function(df, row_id, col_id, values,
   
   # Prepare row annotation
   if (!is.null(row_anno)) {
-    rowAnno <- df[,c(row_id, row_anno)]
-    rowAnno <- rowAnno[!duplicated(rowAnno[[row_id]]),] %>%
+    rowAnno <- df[, c(row_id, row_anno), drop = F]
+    rowAnno <- rowAnno[!duplicated(rowAnno[[row_id]]),, drop = F] %>%
       tibble::column_to_rownames(row_id) 
   } else {
     rowAnno <- NULL
-    # print('There is no row annotation.')
+    message('Message: There is no row annotation.')
   }
   # Prepare column annotation
   if (!is.null(col_anno)) {
-    colAnno <- df[,c(col_id, col_anno)]
-    colAnno <- colAnno[!duplicated(colAnno[[col_id]]),] %>%
+    colAnno <- df[, c(col_id, col_anno), drop = F]
+    colAnno <- colAnno[!duplicated(colAnno[[col_id]]),, drop = F] %>%
       tibble::column_to_rownames(col_id)
   } else {
     colAnno <- NULL
-    # print('There is no column annotation.')
+    message('Message: There is no column annotation.')
   }
   # Assemble all information into SummarizedExperiment object
-  summExp <- SummarizedExperiment(assays = matList,
-                                  rowData = rowAnno,
-                                  colData = colAnno)
+  if (!is.null(colAnno)) {
+    summExp <- SummarizedExperiment(assays = matList,
+                                    rowData = rowAnno,
+                                    colData = colAnno)
+  } else {
+    summExp <- SummarizedExperiment(assays = matList,
+                                    rowData = rowAnno)
+  }
   return(summExp)
 }
 
@@ -146,14 +157,16 @@ doPCA <- function(data, pca_method = 'pca', num_PCs = 20) {
 
 
 testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
-                            var_equal = T) {
+                            use_limma = F, use_proDA = F) {
   #' Iterate association tests between dependent and independent variables whose
   #' information is stored in data and metadata tables, respectively. Data table
   #' should contain numerical values of samples (e.g., protein abundances or PCs)
   #' and metadata table contains sample's metadata (Patient genders or ages).
   #' Depending on types of independent variables, varied tests are performed. That
   #' is, if independent variable is numerical, correlation is computed; if independent
-  #' variable is categorical, t-test or ANOVA is used.
+  #' variable is categorical, t-test or ANOVA is used. Three types of t-test are
+  #' provided: Regular Student's t-test by lm (default), moderated t-test by limma,
+  #' and t-test by proDA.
   #'
   #' Parameters
   #' data: A normalized Sample x Feature numerical data frame
@@ -162,20 +175,13 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
   #' data and metadata tables for combining them to match the information
   #' cor_method: A character specifying the correlation method to use, which should
   #' be one of 'pearson' (default), 'spearman', or 'kendall'
-  #' var_equal: A logical variable indicating whether to treat the variances of
-  #' two groups as being equal. If TRUE (default), Student's t-test is performed,
-  #' otherwise Welch's t-test is used
+  #' use_limma: A logical variable indicating whether to use limma to conduct moderated
+  #' t-test. Default is FALSE
+  #' use_proDA: A logical variable indicating whether to use proDA to account for
+  #' missing values for obtaining more reliable t-test results. Default is FALSE
   #' 
   #' Return
   #' resTab: A data frame collecting all association test results
-  #' 
-  #' Try to simply silently return NA for errors due to limited number (one in
-  #' each group) or zero variation of observations when function is called multiple
-  #' time as part of automated procedure
-  #' my.t.test.p.value <- function(...) {
-  #'   obj <- try(t.test(...), silent=TRUE)
-  #'   if (is(obj, 'try-error')) return(NA) else return(obj$p.value)
-  #' }
   
   # Check arguments
   if (!(is(data, 'data.frame') & is(metadata, 'data.frame'))) {
@@ -187,8 +193,8 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
   if (!is.character(cmn_col)) {
     stop("Argument for 'cmn_col' should be class 'character'.")
   }
-  if (!is.logical(var_equal)) {
-    stop("Argument for 'var_equal' should be class 'logical'.")
+  if (!(is.logical(use_limma) & is.logical(use_proDA))) {
+    stop("Argument for 'use_limma' and 'use_proDA' should be class 'logical'.")
   }
   # Check completeness of metadata and data variable type (for myself aware of everything)
   completeMetadata <- complete.cases(metadata)
@@ -202,12 +208,12 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
   
   # Combine data and metadata by a common column to ensure matched information
   combinedTab <- dplyr::left_join(data, metadata, by = cmn_col) %>%
-    dplyr::select(-all_of(cmn_col))
+    tibble::column_to_rownames(cmn_col)
   # Conduct all possible association tests
   numVar1 <- ncol(data) - 1
   numVar2 <- ncol(metadata) - 1
-  resTab <- lapply(seq(numVar1), function(i) {
-    lapply(seq(numVar2), function(j) {
+  resTab <- lapply(seq_len(numVar1), function(i) {
+    lapply(seq_len(numVar2), function(j) {
       var1 <- combinedTab[[i]]
       var2 <- combinedTab[[numVar1+j]]
       # Perform corresponding tests depending on types of independent variables
@@ -221,23 +227,25 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
           statistic <- corrRes$estimate
         } else if ((is.character(var2) | is.factor(var2)) &
                    length(unique(var2)) == 2) {
-          # Perform t-test if independent variable is categorical and has 2 levels
-          test <- 'T-test'
-          tStatRes <- t.test(var1 ~ var2, paired = F, var.equal = var_equal)
-          pValue <- tStatRes$p.value
-          statistic <- tStatRes$statistic
+          # Perform Student's t-test if independent variable is categorical and has 2 levels
+          if (!(use_limma | use_proDA)) {
+            test <- 'T-test'
+            tStatRes <- summary(lm(var1 ~ var2))$coefficients
+            pValue <- tStatRes[2, 4]
+            statistic <- tStatRes[2, 3]
+          }
         } else if ((is.character(var2) | is.factor(var2)) &
                    length(unique(var2)) > 2) {
           # Perform ANOVA if independent variable is categorical and has more than 2 levels
           test <- 'ANOVA'
-          anovaRes <- summary(aov(var1 ~ var2))
-          pValue <- anovaRes[[1]][['Pr(>F)']][1]
-          statistic <- anovaRes[[1]][['F value']][1]
+          fStatRes <- summary(aov(var1 ~ var2))
+          pValue <- fStatRes[[1]][['Pr(>F)']][1]
+          statistic <- fStatRes[[1]][['F value']][1]
         },
         silent = T
       )
       # Create data frame for summarizing results
-      if (!is(singleRes, 'try-error')) {
+      if (!is(singleRes, 'try-error') & !is.null(singleRes)) {
         # Prevent error in creating data frame due to differing number of rows,
         # i.e., p-value and statistic are NULL and fail to be retrieved (e.g., 20
         # samples and 20 groups in ANOVA)
@@ -249,41 +257,91 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
                    Var2 = colnames(combinedTab)[numVar1+j],
                    pVal = pValue, Stat = statistic, Test = test,
                    stringsAsFactors = F, row.names = c())
-      } else {
+      } else if (is(singleRes, 'try-error')) {
         data.frame(Var1 = colnames(combinedTab)[i],
                    Var2 = colnames(combinedTab)[numVar1+j],
                    pVal = NA, Stat = NA, Test = test,
                    stringsAsFactors = F, row.names = c())
       }
     }) %>% dplyr::bind_rows()
-  }) %>% dplyr::bind_rows() %>%
-    dplyr::arrange(pVal)
+  }) %>% dplyr::bind_rows()
+  
+  # Use limma to conduct moderated t-test
+  if (use_limma) {
+    # Prepare data matrix for fitting linear model
+    datMat <- combinedTab[, 1:numVar1, drop = F] %>%
+      t()
+    resTab <- lapply(seq_len(numVar2), function(i) {
+      metadatVar <- combinedTab[[numVar1+i]]
+      if ((is.character(metadatVar) | is.factor(metadatVar)) &
+          length(unique(metadatVar)) == 2) {
+        design <- model.matrix(~ metadatVar)
+        fit <- limma::lmFit(datMat, design = design)
+        fit <- limma::eBayes(fit)
+        tStatRes <- limma::topTable(fit, coef = 2, number = Inf)
+        data.frame(Var1 = rownames(tStatRes),
+                   Var2 = colnames(combinedTab)[numVar1+i],
+                   pVal = tStatRes$P.Value, Stat = tStatRes$t,
+                   Test = 'T-test (limma)')
+      }
+    }) %>% dplyr::bind_rows() %>%
+      dplyr::bind_rows(resTab)
+  }
+  
+  # Use proDA to account for missing values for more reliable t-test  
+  if (use_proDA) {
+    # Prepare data matrix for fitting linear probabilistic dropout model
+    datMat <- combinedTab[, 1:numVar1, drop = F] %>%
+      t()
+    resTab <- lapply(seq_len(numVar2), function(i) {
+      metadatVar <- combinedTab[[numVar1+i]]
+      if ((is.character(metadatVar) | is.factor(metadatVar)) &
+          length(unique(metadatVar)) == 2) {
+        fit <- proDA(datMat, design = ~ metadatVar)
+        # if (confounder) {
+        #   # confounder is a vector of sample metadata
+        #   fit <- proDA(datMat, design = ~ metadatVar + confounder)
+        # }
+        diffTerm <- proDA::result_names(fit)[2]
+        tStatRes <- proDA::test_diff(fit, contrast = diffTerm)
+        data.frame(Var1 = tStatRes$name,
+                   Var2 = colnames(combinedTab)[numVar1+i],
+                   pVal = tStatRes$pval, Stat = tStatRes$t_statistic,
+                   Test = 'T-test (proDA)', stringsAsFactors = F)
+      }
+    }) %>% dplyr::bind_rows() %>%
+      dplyr::bind_rows(resTab)
+  }
   
   # Compute adjusted p-value
-  resTab <- dplyr::mutate(resTab, pValAdj = p.adjust(pVal, method = 'BH')) %>%
-    dplyr::relocate(pValAdj, .after = pVal)
+  resTab <- dplyr::mutate(resTab, pValAdj = p.adjust(pVal, method = 'BH'),
+                          pVal = as.numeric(formatC(pVal, format = 'g', digits = 3)),
+                          Stat = as.numeric(formatC(Stat, format = 'g', digits = 3)),
+                          pValAdj = as.numeric(formatC(pValAdj, format = 'g', digits = 3))) %>%
+    dplyr::relocate(pValAdj, .after = pVal) %>%
+    dplyr::arrange(pVal)
   return(resTab)
 }
 
 
 doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 0.05,
-                  num_PCfeats = NULL, do_onlyPCA = F, ...) {
-  # To-do: Expand function to e.g., MultiAssayExperiment object and add proDA
+                  num_PCfeats = NULL, do_onlyPCA = F, use_limma = F, use_proDA = F, ...) {
+  # To-do: Expand function to e.g., MultiAssayExperiment object
   
   #' Perform single-omics analysis on preprocessed data stored in SE container to
   #' have initial look at data properties and data power in terms of certain scientific
   #' questions, e.g., identifying biomarkers for predicting patient cancer recurrences.
-  #' This function mainly includes PCA and association test between two variables,
-  #' which attempts to capture significant PCs and features.
+  #' This function mainly includes PCA (multivariate) and univariate association
+  #' test between two variables, which attempts to capture significant PCs and features.
   #' 
   #' Parameters
   #' summ_exp: A SummarizedExperiment object containing normalized Feature x Sample
   #' data and metadata
   #' meta_var: A character or a vector of characters indicating the variable(S)
-  #' in sample metadata from a SE object for association tests. Categorical variable
-  #' (factor) is used as grouping factor to separate samples into two or several
-  #' groups for conducting t-test or ANOVA; numerical variable (covariate) can be
-  #' used to compute correlation coefficient
+  #' in the sample metadata from an SE object for association tests. Categorical
+  #' variable (factor) is used as grouping factor to separate samples into two or
+  #' several groups for conducting t-test or ANOVA; numerical variable (covariate)
+  #' is used to compute correlation coefficient
   #' pca_method: A character specifying the PCA method to use, which should be one
   #' of 'pca' (default), 'ppca', or 'bpca'
   #' num_PCs: A numeric value specifying the number of PCs to estimate. The preciseness
@@ -297,28 +355,36 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   #' tests between PCs and metadata variables are performed. If FALSE (default),
   #' univariate association tests between features (e.g., protein abundances) and
   #' metadata variables are also conducted
-  #' ...: Further arguments to be passed to, such as 'var_equal' to 'testAssociation'
+  #' use_limma: A logical variable indicating whether to use limma to conduct moderated
+  #' t-test for univariate association tests. Default is FALSE
+  #' use_proDA: A logical variable indicating whether to use proDA to account for
+  #' missing values for obtaining more reliable t-test results for univariate association
+  #' tests. Default is FALSE
+  #' ...: Further arguments to be passed to 'testAssociation', e.g., correlation
+  #' method 'cor_method'
   #' 
   #' Return
   #' A list containing the following components:
   #' data: A data matrix from the SE object
   #' smpMetadata: A table storing sample metadata, e.g., patient genders, ages, etc.
   #' pcaRes: A complete PCA result obtained using 'prcomp' or 'pcaMethods::pca'
-  #' tPCASigRes: A table showing significant association test results between PCs
-  #' and metadata variables (defined by parameter 'meta_var')
+  #' pcSigAssoRes: A table showing significant association test results between PCs
+  #' and metadata variables (defined by parameter 'meta_var'). Percentages after
+  #' PC are variance explained
   #' pcTopFeatTab: A list containing lists of top features (determined by parameter
   #' 'num_PCfeats') of potential PCs
-  #' pcTab: A PC table containing sample representations and metadata
-  #' tFeatSigRes: A table showing significant association test results between
+  #' pcTab: A PC table containing sample representations and metadata. Percentages
+  #' after PC are variance explained
+  #' featSigAssoRes: A table showing significant association test results between
   #' features and metadata variables (defined by parameter 'meta_var')
-  #' tFeatRes: A table showing all association test results between features and
+  #' featAssoRes: A table showing all association test results between features and
   #' metadata variables (defined by parameter 'meta_var')
   
   # Check arguments
   if (!is(summ_exp, 'SummarizedExperiment')) {
     stop("This function takes only 'SummarizedExperiment' object for now.")
   }
-  if (!is(meta_var, 'character') & !all(meta_var %in% colnames(colData(summ_exp)))) {
+  if (!is(meta_var, 'character') | !all(meta_var %in% colnames(colData(summ_exp)))) {
     stop("Argument for 'meta_var' should be class 'character' and included in sample metadata.")
   }
   if (!(pca_method %in% c('pca', 'ppca', 'bpca'))) {
@@ -348,28 +414,34 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   if (pca_method == 'pca') {
     pcTab <- pcaRes$x %>%
       tibble::as_tibble(rownames = 'Sample')
+    varExplained <- pcaRes$sdev^2 / sum(pcaRes$sdev^2)
   } else if (pca_method == 'ppca' | pca_method == 'bpca') {
     pcTab <- pcaRes@scores %>%
       tibble::as_tibble(rownames = 'Sample')
+    varExplained <- pcaRes@sDev^2 / sum(pcaRes@sDev^2)
   }
+  newPCs <- paste0('PC', seq_along(varExplained), ' (', round(varExplained*100, 1), '%)')
+  colnames(pcTab) <- c('Sample', newPCs)
   metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(meta_var)))
-  tPCASigRes <- testAssociation(pcTab, metaTab, cmn_col = 'Sample', ...) %>%
+  pcSigAssoRes <- testAssociation(pcTab, metaTab, cmn_col = 'Sample', use_limma = F,
+                                  use_proDA = F, cor_method = 'pearson') %>%
     dplyr::filter(pVal <= alpha)
   # Create complete PC table containing sample representations and metadata
   pcTab <- dplyr::left_join(pcTab, smpMetadat, by = 'Sample')
   # Extract top features with highest absolute loadings of significant PCs
   if (!is.null(num_PCfeats)) {
-    sigPCs <- tPCASigRes[['Var1']]
+    sigPCs <- stringr::str_remove(pcSigAssoRes[['Var1']], ' \\(.+\\)')
     pcTopFeatTab <- lapply(sigPCs, function(pc) {
       if (pca_method == 'pca') {
         featLoad <- pcaRes$rotation[, pc]
       } else if (pca_method == 'ppca' | pca_method == 'bpca') {
         featLoad <- pcaRes@loadings[, pc]
       }
-      topFeatLoad <- sort(abs(featLoad), decreasing = T)[1:num_PCfeats]
+      topFeatLoadIdx <- order(abs(featLoad), decreasing = T)[1:num_PCfeats]
+      topFeatLoad <- featLoad[topFeatLoadIdx]
       topFeatIDs <- names(topFeatLoad)
       data.frame(Feature = topFeatIDs,
-                 Loading = topFeatLoad,
+                 Loading = as.numeric(formatC(topFeatLoad, format = 'g', digits = 3)),
                  row.names = c())
     })
     names(pcTopFeatTab) <- sigPCs
@@ -381,22 +453,30 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   if (do_onlyPCA == F) {
     featTab <- as_tibble(t(datMat), rownames = 'Sample')
     metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(meta_var)))
-    tFeatRes <- testAssociation(featTab, metaTab, cmn_col = 'Sample', ...)
+    featAssoRes <- testAssociation(featTab, metaTab, cmn_col = 'Sample',
+                                   use_limma = use_limma, use_proDA = use_proDA, ...)
     # Extract features that can significantly separate groups of samples
-    tFeatSigRes <- dplyr::filter(tFeatRes, pVal <= alpha)
+    featSigAssoRes <- dplyr::filter(featAssoRes, pVal <= alpha)
   } else {
-    tFeatRes <- NULL
-    tFeatSigRes <- NULL
+    featAssoRes <- NULL
+    featSigAssoRes <- NULL
   }
   
   return(list(data = datMat, smpMetadata = smpMetadat, pcaRes = pcaRes,
-              tPCASigRes = tPCASigRes, pcTopFeatTab = pcTopFeatTab,
-              pcTab = pcTab, tFeatSigRes = tFeatSigRes, tFeatRes = tFeatRes))
+              pcSigAssoRes = pcSigAssoRes, pcTopFeatTab = pcTopFeatTab, pcTab = pcTab,
+              featSigAssoRes = featSigAssoRes, featAssoRes = featAssoRes))
 }
 
 
 testAsso <- function(tabX, tabY, cmn_col, cor_method = 'pearson', var_equal = T) {
   #' Systematically perform association tests between variables from two input tables
+  #' 
+  #' Parameters
+  #' cor_method: A character specifying the correlation method to use, which should
+  #' be one of 'pearson' (default), 'spearman', or 'kendall'
+  #' var_equal: A logical variable indicating whether to treat the variances of
+  #' two groups as being equal. If TRUE (default), Student's t-test is performed,
+  #' otherwise Welch's t-test is used
   
   # Combine two input tables by a common column to ensure matched information
   combinedTab <- dplyr::left_join(tabX, tabY, by = cmn_col) %>%
@@ -404,10 +484,14 @@ testAsso <- function(tabX, tabY, cmn_col, cor_method = 'pearson', var_equal = T)
   # Conduct all possible association tests
   numVar1 <- ncol(tabX) - 1
   numVar2 <- ncol(tabY) - 1
-  resTab <- lapply(seq(numVar1), function(i) {
-    lapply(seq(numVar2), function(j) {
+  resTab <- lapply(seq_len(numVar1), function(i) {
+    lapply(seq_len(numVar2), function(j) {
       var1 <- combinedTab[[i]]
       var2 <- combinedTab[[numVar1+j]]
+      # Stop when any variable has only one level
+      if (length(unique(var1)) == 1 | length(unique(var2)) == 1) {
+        stop("Please remove categorical variables with only one level.")
+      }
       # Perform corresponding tests depending on variable types
       singleRes <- try(
         if (is.numeric(var1) & is.numeric(var2)) {
