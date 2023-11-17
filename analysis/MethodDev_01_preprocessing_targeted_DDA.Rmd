@@ -1,5 +1,5 @@
 ---
-title: 'Preprocessing: Method development lung cancer patient cohort'
+title: 'Preprocessing: Targeted Metabolomics and DDA Proteomics of Method Development cohort'
 author: "Qian-Wu Liao"
 output:
   workflowr::wflow_html:
@@ -15,8 +15,8 @@ information of each dataset (4 in total) in SummarizedExperiment objects for fur
 analyses. </font>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10)
-knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer')
 ```
 
 Load libraries
@@ -39,35 +39,83 @@ th <- theme_bw(base_size = 15) +
         legend.text = element_text(size = 15))
 ```
 
-```{r message = F}
-# Prepare patient metadata table
-# Retrieve patient recurrence information
-recurAnno <- readxl::read_excel(
-  './data/AG_Hell/Thorax cohort_not-normalized_subset plasma.xlsx',
-  skip = 1) %>%
-  filter(!is.na(parents)) %>%
-  dplyr::select(c(Individual_ID, Status)) %>%
-  dplyr::rename(Patient = 'Individual_ID',
-                Condition = 'Status') %>%
-  dplyr::filter(Condition != 'BASELINE_SURGERY') %>%
-  dplyr::mutate(Recurrence = dplyr::case_when(
-    Condition == 'FOLLOW-UP' ~ 'No',
-    Condition == 'RECURRENCE' ~ 'Yes'
-  )) %>%
-  dplyr::select(-Condition)
-# Clean up patient metadata information (adjuvant chemotherapy can be used later)
-metadataTab <- readr::read_tsv('./data/patient_metadata.tsv') %>%
-  dplyr::select(Code, Gender, `Age at diagnosis`, `Smoking status`, `Pathological stage`) %>%
-  dplyr::rename(Patient = Code, Age = `Age at diagnosis`, Smoking = `Smoking status`,
-                Stage = `Pathological stage`) %>%
-  dplyr::filter(Patient %in% recurAnno$Patient) %>%
+```{r prepare global info, message=F}
+# Load sample metadata
+smpMetadat <- readxl::read_excel('./data/sample_metadata.xlsx')
+colnames(smpMetadat) <- smpMetadat[3,, drop = F]
+smpMetadat <- dplyr::slice(smpMetadat, -c(1:3)) %>%
+  dplyr::select(c(Code, Parents, Visit, `Material submitted`, `Date and time of collection or surgery`,
+                  `SMART-CARE cohort identifier`)) %>%
+  dplyr::rename(Sample = Code, Patient = Parents, TimePoint = Visit, SmpType = `Material submitted`,
+                Date = `Date and time of collection or surgery`, Cohort = `SMART-CARE cohort identifier`) %>%
+  dplyr::mutate(Sample = stringr::str_remove_all(Sample, '^SC_T_S_|^SC_DIS_S_|^SC_S_|_P'),
+                Patient = stringr::str_remove(Patient, '^/THRX_SPACE/THRX_DB/'),
+                TimePoint = dplyr::case_when(TimePoint == 'PRETHERAPEUTIC' ~ 'Baseline',
+                                             TimePoint == 'FOLLOW-UP' ~ 'Follow-up',
+                                             TimePoint == 'RECURRENCE' ~ 'Recurrence'),
+                SmpType = dplyr::case_when(SmpType == 'EDTA_PLASMA' ~ 'Plasma',
+                                           SmpType == 'FRESH_FROZEN_TISSUE' ~ 'Tissue'),
+                Condition = dplyr::case_when(grepl('_TU|TG', Sample) ~ 'Tumor',
+                                             grepl('_NG', Sample) ~ 'Normal',
+                                             !grepl('_TU|_NG', Sample) ~ TimePoint),
+                Date = stringr::str_extract(Date, '^\\d+-\\d+-\\d+'),
+                Cohort = dplyr::case_when(Cohort == 'DISCOVERY_COHORT' ~ 'Discovery',
+                                          Cohort == 'METHOD_DEVELOPMENT_COHORT' ~ 'MethodDev'),
+                Date = as.Date(Date, format = '%Y-%m-%d'))
+
+# Load patient metadata
+patientMetadat <- readxl::read_excel('./data/patient_metadata.xlsx')
+colnames(patientMetadat) <- patientMetadat[3,, drop = F]
+patientMetadat <- dplyr::slice(patientMetadat, -c(1:3)) %>%
+  dplyr::select(c(Code, Gender, `Age at diagnosis`, `Pathological stage`, `Smoking status`,
+                  `Adjuvant chemotherapy`,)) %>%
+  dplyr::rename(Patient = Code, Age = `Age at diagnosis`, Stage = `Pathological stage`,
+                Smoking = `Smoking status`, Adjuvant = `Adjuvant chemotherapy`) %>%
   dplyr::mutate(Gender = dplyr::case_when(Gender == 'MALE' ~ 'Male',
                                           Gender == 'FEMALE' ~ 'Female'),
                 Smoking = dplyr::case_when(Smoking == 'SMOKER' ~ 'Smoker',
                                            Smoking == 'EX-SMOKER' ~ 'Ex-smoker',
-                                           Smoking == 'NON-SMOKER' ~ 'Non-smoker'))
-# Combine all patient information into a table
-metadataTab <- dplyr::left_join(recurAnno, metadataTab, by = 'Patient')
+                                           Smoking == 'NON-SMOKER' ~ 'Non-smoker'),
+                Adjuvant = dplyr::case_when(Adjuvant == 'true' ~ 'True',
+                                            Adjuvant == 'false' ~ 'False'),
+                Age = as.numeric(Age))
+# Include patient recurrence information in patient metadata
+recurPats <- dplyr::filter(smpMetadat, TimePoint == 'Recurrence') %>%
+  dplyr::pull(Patient)
+patientMetadat <- dplyr::mutate(patientMetadat, Recurrence = dplyr::case_when(Patient %in% recurPats ~ 'Yes',
+                                                                              !Patient %in% recurPats ~ 'No'))
+
+# Load aliquot metadata
+aliquotMetadat <- readxl::read_excel('./data/aliquot_metadata.xlsx')
+colnames(aliquotMetadat) <- aliquotMetadat[3,, drop = F]
+aliquotMetadat <- dplyr::slice(aliquotMetadat, -c(1:3)) %>%
+  dplyr::select(Code, Parents, `Tumor Cell Content (%)`, `Cohort Identifier`, `Submission to`,
+                `Delivered?`) %>%
+  dplyr::rename(Aliquot = Code, Sample = Parents, TumorPurity = `Tumor Cell Content (%)`,
+                Cohort = `Cohort Identifier`, To = `Submission to`, Delivered = `Delivered?`) %>%
+  dplyr::mutate(Sample = stringr::str_remove_all(Sample, '^/THRX_SPACE/THRX_DB/SC_T_S_|_P'),
+                Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_DIS_S_'),
+                Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_S_'),
+                Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_DIS_'),
+                Sample = dplyr::case_when(Sample == 'SDIR55_TU' ~ 'PDIR55_TU',
+                                          Sample == 'SDIR55_NG' ~ 'PDIR55_NG',
+                                          !Sample %in% c('SDIR55_TU', 'SDIR55_NG') ~ Sample),
+                Cohort = dplyr::case_when(Cohort == 'method establishment' ~ 'MethodDev',
+                                          Cohort == 'DISCOVERY_COHORT' ~ 'Discovery'),
+                TumorPurity = as.numeric(TumorPurity),
+                Sample = dplyr::case_when(grepl('^SC_DIS_A_Y4W4L7_P_V2', Aliquot) ~ 'Y4W4L7_V2',
+                                          !grepl('^SC_DIS_A_Y4W4L7_P_V2', Aliquot) ~ Sample)) %>%
+  dplyr::filter(To %in% c('HELL', 'KRIJGSVELD'))
+# Prepare aliquot metadata containing tumor purity information
+tumorPurityInfo <- dplyr::select(aliquotMetadat, Aliquot, Sample, TumorPurity)
+
+# Combine all needed metadata
+summMetadat <- dplyr::left_join(tumorPurityInfo, smpMetadat, by = 'Sample') %>%
+  dplyr::left_join(patientMetadat, by = 'Patient')
+
+# List sample annotations to keep in SE objects
+smpAnno <- c('Patient', 'SmpType', 'TimePoint', 'Date', 'Cohort', 'Condition',
+             'Recurrence', 'Gender', 'Age', 'Smoking', 'Stage', 'Adjuvant')
 ```
 
 # Plasma Metabolomics
@@ -75,29 +123,19 @@ metadataTab <- dplyr::left_join(recurAnno, metadataTab, by = 'Patient')
 ```{r message = F}
 # Clean up data and convert data to long data
 metaPlasmaTab <- readxl::read_excel(
-  './data/AG_Hell/Thorax cohort_not-normalized_subset plasma.xlsx',
+  './data/MethodDev/AG_Hell/Thorax cohort_not-normalized_subset plasma.xlsx',
   skip = 1) %>%
   filter(!is.na(parents)) %>%
-  dplyr::select(-c(Sample_identification_cut, parents)) %>%
-  rename(Sample = 'patients_tissue',
-         Patient = 'Individual_ID',
-         Condition = 'Status',
-         Identifier = 'Sample Identification') %>%
-  pivot_longer(cols = -c('Sample', 'Patient', 'Condition', 'Identifier'),
+  dplyr::select(-c(Sample_identification_cut, parents, patients_tissue, Individual_ID, Status)) %>%
+  rename(Aliquot = 'Sample Identification') %>%
+  pivot_longer(cols = -'Aliquot',
                names_to = 'Metabolite',
                values_to = 'Abundance') %>%
-  mutate(Condition = case_when(Condition == 'BASELINE_SURGERY' ~ 'Baseline',
-                               Condition == 'FOLLOW-UP' ~ 'Follow-up',
-                               Condition == 'RECURRENCE' ~ 'Recurrence'),
-         Abundance = as.numeric(Abundance)) %>%
-  left_join(metadataTab, by = 'Patient')
-
+  mutate(Abundance = as.numeric(Abundance)) %>%
+  left_join(summMetadat, by = 'Aliquot')
 # Convert long data to SE object
 metaPlasma <- df2SummExp(metaPlasmaTab, row_id = 'Metabolite', col_id = 'Sample',
-                         values = 'Abundance', col_anno = c('Condition', 'Patient',
-                                                            'Recurrence', 'Gender',
-                                                            'Age', 'Smoking', 'Stage',
-                                                            'Identifier'))
+                         values = 'Abundance', col_anno = smpAnno)
 ```
 
 Display dimensions of processed data (40 samples and 630 features)
@@ -126,8 +164,8 @@ exprMat <- as.matrix(assay(metaPlasma))
 fit <- vsnMatrix(exprMat)
 metaPlasmaNorm <- metaPlasma
 assay(metaPlasmaNorm) <- predict(fit, exprMat)
-# save vsn normalized data
-# saveRDS(metaPlasmaNorm, './data/AG_Hell/metaPlasmaNorm.rds')
+# Save vsn normalized data
+saveRDS(metaPlasmaNorm, './data/MethodDev/AG_Hell/metaPlasmaVsn.rds')
 
 metaPlasmaNorm4Plot <- summExp2df(metaPlasmaNorm, assay = 'Abundance',
                                   row_id = 'Metabolite', col_id = 'Sample')
@@ -137,7 +175,14 @@ ggplot(metaPlasmaNorm4Plot, aes(x=Sample, y=Value)) +
   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
-```{r eval = F}
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+vsn::meanSdPlot(assay(metaPlasmaNorm), ranks = T, plot = F, bins = 30)$gg +
+  labs(x = 'Rank of mean', y = 'SD') +
+  th
+```
+
+```{r message=F}
 # Store median normalized data for computing log2(FC) later
 exprMat <- as.matrix(assay(metaPlasma))
 sampleAnno <- tibble::as_tibble(colData(metaPlasma), rownames = 'Sample')
@@ -149,16 +194,14 @@ metaPlasmaMediTab <- limma::normalizeBetweenArrays(exprMat, method = 'scale') %>
   dplyr::mutate(mediAbundance = log2(mediAbundance+0.0001)) %>%
   dplyr::left_join(sampleAnno, by = 'Sample')
 
-ggplot(metaPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
-  geom_boxplot() +
-  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+# ggplot(metaPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
+#   geom_boxplot() +
+#   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
 metaPlasmaMedi <- df2SummExp(metaPlasmaMediTab, row_id = 'Feature', col_id = 'Sample',
-                             values = 'mediAbundance', col_anno = c('Condition', 'Patient',
-                                                                    'Recurrence', 'Gender',
-                                                                    'Age', 'Smoking', 'Stage',
-                                                                    'Identifier'))
-# saveRDS(metaPlasmaMedi, './data/AG_Hell/metaPlasmaMedi.rds')
+                             values = 'mediAbundance', col_anno = smpAnno)
+# Save median normalized data
+saveRDS(metaPlasmaMedi, './data/MethodDev/AG_Hell/metaPlasmaMedi.rds')
 ```
 
 ## Perform PCA
@@ -207,27 +250,19 @@ ggplot(metaPlasmaNorm4Plot2, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
 ```{r message = F, warning = F}
 # Clean up data and convert data to long data
 metaTissueTab <- readxl::read_excel(
-  './data/AG_Hell/Thorax cohort_not-normalized_subset tissue.xlsx',
+  './data/MethodDev/AG_Hell/Thorax cohort_not-normalized_subset tissue.xlsx',
   skip = 1) %>%
   dplyr::filter(!is.na(parents)) %>%
-  dplyr::select(-c(Sample_identification_cut, parents)) %>%
-  dplyr::rename(Sample = patients_tissue,
-                Patient = Individual_ID,
-                Condition = Status,
-                Identifier = `Sample Identification`) %>%
-  tidyr::pivot_longer(cols = -c('Sample', 'Patient', 'Condition', 'Identifier'),
-                      names_to = 'Metabolite', values_to = 'Abundance') %>%
-  dplyr::mutate(Condition = dplyr::case_when(Condition == 'Normalgewebe' ~ 'Normal',
-                                             Condition == 'Tumorgewebe' ~ 'Tumor'),
-                Abundance = as.numeric(Abundance)) %>%
-  dplyr::left_join(metadataTab, by = 'Patient')
-
+  dplyr::select(-c(Sample_identification_cut, parents, patients_tissue, Individual_ID, Status)) %>%
+  dplyr::rename(Aliquot = `Sample Identification`) %>%
+  tidyr::pivot_longer(cols = -'Aliquot',
+                      names_to = 'Metabolite',
+                      values_to = 'Abundance') %>%
+  dplyr::mutate(Abundance = as.numeric(Abundance)) %>%
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 # Convert long data to SE object
 metaTissue <- df2SummExp(metaTissueTab, row_id = 'Metabolite', col_id = 'Sample',
-                         values = 'Abundance', col_anno = c('Condition', 'Patient',
-                                                            'Recurrence', 'Gender',
-                                                            'Age', 'Smoking', 'Stage',
-                                                            'Identifier'))
+                         values = 'Abundance', col_anno = c(smpAnno, 'TumorPurity'))
 ```
 
 Display dimensions of processed data (40 samples and 630 features)
@@ -238,7 +273,7 @@ dim(metaTissue)
 Display 3 NA data points in this dataset
 ```{r}
 dplyr::filter(metaTissueTab, is.na(Abundance)) %>%
-  dplyr::select(-c(Identifier, Recurrence, Gender, Smoking, Stage))
+  dplyr::select(Metabolite, Abundance, Sample, Condition)
 
 # Values of these data points were infinite (character) before converting them to
 # numeric class.
@@ -265,7 +300,7 @@ fit <- vsnMatrix(exprMat)
 metaTissueNorm <- metaTissue
 assay(metaTissueNorm) <- predict(fit, exprMat)
 # Save vsn normalized data
-# saveRDS(metaTissueNorm, './data/AG_Hell/metaTissueNorm.rds')
+saveRDS(metaTissueNorm, './data/MethodDev/AG_Hell/metaTissueVsn.rds')
 
 metaTissueNorm4Plot <- summExp2df(metaTissueNorm, assay = 'Abundance',
                                   row_id = 'Metabolite', col_id = 'Sample')
@@ -275,7 +310,14 @@ ggplot(metaTissueNorm4Plot, aes(x=Sample, y=Value)) +
   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
-```{r eval = F}
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+vsn::meanSdPlot(assay(metaTissueNorm), ranks = T, plot = F, bins = 30)$gg +
+  labs(x = 'Rank of mean', y = 'SD') +
+  th
+```
+
+```{r message=F}
 # Store median normalized data for computing log2(FC)
 exprMat <- as.matrix(assay(metaTissue))
 sampleAnno <- tibble::as_tibble(colData(metaTissue), rownames = 'Sample')
@@ -287,16 +329,14 @@ metaTissueMediTab <- limma::normalizeBetweenArrays(exprMat, method = 'scale') %>
   dplyr::mutate(mediAbundance = log2(mediAbundance+0.0001)) %>%
   dplyr::left_join(sampleAnno, by = 'Sample')
 
-ggplot(metaTissueMediTab, aes(x=Sample, y=mediAbundance)) +
-  geom_boxplot() +
-  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+# ggplot(metaTissueMediTab, aes(x=Sample, y=mediAbundance)) +
+#   geom_boxplot() +
+#   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
 metaTissueMedi <- df2SummExp(metaTissueMediTab, row_id = 'Feature', col_id = 'Sample',
-                             values = 'mediAbundance', col_anno = c('Condition', 'Patient',
-                                                                    'Recurrence', 'Gender',
-                                                                    'Age', 'Smoking', 'Stage',
-                                                                    'Identifier'))
-# saveRDS(metaTissueMedi, './data/AG_Hell/metaTissueMedi.rds')
+                             values = 'mediAbundance', col_anno = c(smpAnno, 'TumorPurity'))
+# Save median normalized data
+saveRDS(metaTissueMedi, './data/MethodDev/AG_Hell/metaTissueMedi.rds')
 ```
 
 ## Perform PCA
@@ -372,141 +412,12 @@ ggplot(dTab4Plot, aes(x=nCall, y=nSample)) +
 
 
 
-# Plasma Proteomics
-
-```{r message = F}
-# Abundance data
-proPlasmaTab <- readxl::read_excel(
-  './data/AG_Krijgsveld/20211119_133842_20211018_TMMS_TRX_plasma_Report.xlsx',
-  sheet = 1) %>%
-  dplyr::select(PG.Genes, PG.ProteinGroups, contains('oecf4')) %>%
-  pivot_longer(cols = -c('PG.Genes', 'PG.ProteinGroups'),
-               names_to = 'Sample_IDs',
-               values_to = 'Abundance') %>%
-  mutate(Abundance = as.numeric(Abundance)) %>%
-  group_by(PG.Genes, PG.ProteinGroups, Sample_IDs) %>%
-  summarise(Abundance = mean(Abundance, na.rm = TRUE)) %>%
-  ungroup() %>%
-  filter(!is.na(Abundance))
-
-# Column PG.ProteinGroups has no overlap and column PG.Genes has few overlaps (NA:5).
-```
-
-```{r}
-# Sample conditions of 'LH32F07U_P_R' and 'E04NMF53_P_R' were not recorded (follow-up
-# or recurrence), yet, annotations can be recovered according to Plasma Metabolomics
-# due to same patient cohort.
-
-# Annotation data
-proPlasmaAnno <- readxl::read_excel(
-  './data/AG_Krijgsveld/20211119_133842_20211018_TMMS_TRX_plasma_Report.xlsx',
-  sheet = 2) %>%
-  dplyr::select(Sample_IDs, Condition, parents, Identifier) %>%
-  mutate(Patient = str_remove_all(parents, '/THRX_SPACE/THRX_DB/SC_T_S_|_P_B|_P_R'),
-         Sample = str_remove(parents, '/THRX_SPACE/THRX_DB/SC_T_S_'),
-         Identifier = str_remove(parents, '/THRX_SPACE/THRX_DB/')) %>%
-  dplyr::select(-parents) %>%
-  left_join(metadataTab, by = 'Patient')
-
-# Unify plasma annotations for Plasma Proteomics and Metabolomics
-newCondition <- proPlasmaAnno$Condition
-newCondition[which(newCondition == 'Pretherapeutic')] <- 'Baseline'
-newCondition[which(proPlasmaAnno$Sample == 'LH32F07U_P_R')] <- 'Follow-up'
-newCondition[which(proPlasmaAnno$Sample == 'E04NMF53_P_R')] <- 'Recurrence'
-proPlasmaAnno$Condition <- newCondition
-```
-
-Show dimensions of processed data (40 samples and 435 features)
-```{r}
-proPlasmaTab <- left_join(proPlasmaTab, proPlasmaAnno, by = 'Sample_IDs')
-proPlasma <- df2SummExp(proPlasmaTab, row_id = 'PG.ProteinGroups', col_id = 'Sample',
-                        values = 'Abundance', row_anno = 'PG.Genes',
-                        col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                     'Age', 'Smoking', 'Stage', 'Identifier'))
-dim(proPlasma)
-```
-
-Display distribution of original data
-```{r}
-proPlasma4Plot <- summExp2df(proPlasma, assay = 'Abundance',
-                             row_id = 'PG.ProteinGroups', col_id = 'Sample')
-ggplot(proPlasma4Plot, aes(x=Sample, y=Value)) +
-  geom_boxplot() +
-  scale_y_log10() +
-  labs(x = 'Sample ID', y = 'Protein Abundance') +
-  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-```
-
-## perform VSN
-
-```{r}
-exprMat <- as.matrix(assay(proPlasma))
-fit <- vsnMatrix(exprMat)
-proPlasmaNorm <- proPlasma
-assay(proPlasmaNorm) <- predict(fit, exprMat)
-# Save vsn normalized data
-# saveRDS(proPlasmaNorm, './data/AG_Krijgsveld/proPlasmaNorm.rds')
-
-proPlasmaNorm4Plot <- summExp2df(proPlasmaNorm, assay = 'Abundance',
-                                 row_id = 'PG.ProteinGroups', col_id = 'Sample')
-ggplot(proPlasmaNorm4Plot, aes(x=Sample, y=Value)) +
-  geom_boxplot() +
-  labs(x = 'Sample ID', y = 'Protein Abundance') +
-  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-```
-
-```{r eval = F}
-# Store median normalized data for computing log2(FC)
-exprMat <- as.matrix(assay(proPlasma))
-sampleAnno <- tibble::as_tibble(colData(proPlasma), rownames = 'Sample')
-featAnno <- tibble::as_tibble(rowData(proPlasma), rownames = 'Feature')
-proPlasmaMediTab <- limma::normalizeBetweenArrays(exprMat, method = 'scale') %>%
-  tibble::as_tibble(rownames = 'Feature') %>%
-  tidyr::pivot_longer(cols = -'Feature',
-                      names_to = 'Sample',
-                      values_to = 'mediAbundance') %>%
-  dplyr::mutate(mediAbundance = log2(mediAbundance)) %>%
-  dplyr::left_join(sampleAnno, by = 'Sample') %>%
-  dplyr::left_join(featAnno, by = 'Feature')
-
-ggplot(proPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
-  geom_boxplot() +
-  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-
-proPlasmaMedi <- df2SummExp(proPlasmaMediTab, row_id = 'Feature', col_id = 'Sample',
-                            values = 'mediAbundance', row_anno = 'PG.Genes',
-                            col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                         'Age', 'Smoking', 'Stage', 'Identifier'))
-# saveRDS(proPlasmaMedi, './data/AG_Krijgsveld/proPlasmaMedi.rds')
-```
-
-## Perform PCA
-
-```{r}
-exprMat <- assay(proPlasmaNorm)
-resPC <- prcomp(t(exprMat), center = TRUE, scale. = FALSE)
-
-anno <- dplyr::distinct(proPlasmaTab, Sample, Patient, Condition)
-proPlasmaNorm4Plot <- resPC$x[, 1:10] %>%
-  as.data.frame() %>%
-  tibble::rownames_to_column('Sample') %>%
-  dplyr::left_join(anno, by = 'Sample')
-
-ggplot(proPlasmaNorm4Plot, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
-  geom_point() +
-  geom_line(col = 'grey50', linetype = 'dashed') +
-  th
-```
-
-
-
-
 # Tissue Proteomics
 
 ```{r message = F}
 # Abundance data
 proTissueTab <- readxl::read_excel(
-  './data/AG_Krijgsveld/20211119_151605_20211104_TMMS_Tissue_Report.xlsx',
+  './data/MethodDev/AG_Krijgsveld/20211119_151605_20211104_TMMS_Tissue_Report.xlsx',
   sheet = 1) %>%
   dplyr::select(PG.Genes, PG.ProteinGroups, contains('oecf4')) %>%
   # Convert messy data to tidy table
@@ -530,15 +441,13 @@ proTissueTab <- readxl::read_excel(
 ```{r message = F}
 # Annotation data
 proTissueAnno <- readxl::read_excel(
-  './data/AG_Krijgsveld/20211119_151605_20211104_TMMS_Tissue_Report.xlsx',
+  './data/MethodDev/AG_Krijgsveld/20211119_151605_20211104_TMMS_Tissue_Report.xlsx',
   sheet = 2) %>%
-  dplyr::select(Sample_IDs, Condition, parents, Identifier) %>%
-  dplyr::mutate(Patient = str_remove_all(parents, '/THRX_SPACE/THRX_DB/SC_T_S_|_TG|_NG'),
-                Sample = str_remove(parents, '/THRX_SPACE/THRX_DB/SC_T_S_'),
-                Identifier = str_remove(Identifier, '/THRX_SPACE/'),
+  dplyr::select(Sample_IDs, Identifier) %>%
+  rename(Aliquot = Identifier) %>%
+  dplyr::mutate(Aliquot = str_remove(Aliquot, '/THRX_SPACE/'),
                 id = paste0('smp', seq(nrow(.)))) %>%
-  dplyr::select(-parents) %>%
-  dplyr::left_join(metadataTab, by = 'Patient')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 ```
 
 Show dimensions of processed data (40 samples and 5193 features)
@@ -548,8 +457,7 @@ proTissueTab <- dplyr::left_join(proTissueTab, proTissueAnno, by = 'Sample_IDs')
 # Convert tidy table to value matrix for further analysis
 proTissue <- df2SummExp(proTissueTab, row_id = 'PG.ProteinGroups', col_id = 'id',
                         values = 'Abundance', row_anno = 'PG.Genes',
-                        col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                     'Age', 'Smoking', 'Stage', 'Sample', 'Identifier'))
+                        col_anno = c(smpAnno, 'TumorPurity', 'Sample'))
 dim(proTissue)
 ```
 
@@ -589,6 +497,13 @@ ggplot(proTissueNorm4Plot, aes(x=id, y=Value)) +
   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+vsn::meanSdPlot(assay(proTissueNorm), ranks = T, plot = F)$gg +
+  labs(x = 'Rank of mean', y = 'SD') +
+  th
+```
+
 ## Perform PCA
 Take an initial look at dataset for quality control
 
@@ -614,8 +529,8 @@ ggplot(proTissueNorm4Plot, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
   geom_line(col = 'grey50', linetype = 'dashed') +
   th
 ```
-Patient "LH32F07U" has two tumor samples (smp24, smp29) and one normal sample (smp9).\
-Patient "F04ERF3M" does not have a paired tumor sample (smp22).\
+Patient "AHTYU035" has two tumor samples (smp24, smp29) and one normal sample (smp9).\
+Patient "P3457YLC" does not have a paired tumor sample (smp22).\
 It is very probably mislabeling. If not, check correlation between two tumor samples
 from the same patient to get further idea.
 <br/>
@@ -627,26 +542,28 @@ ids <- colnames(proTissueNorm)
 colnames(proTissueNorm) <- colData(proTissueNorm)$Sample
 colnames(proTissueNorm)[which(ids == 'smp29')] <- 'F04ERF3M_TG'
 colData(proTissueNorm)$Sample <- colnames(proTissueNorm)
-colData(proTissueNorm)$Patient[which(ids == 'smp29')] <- 'F04ERF3M'
+colData(proTissueNorm)$Patient[which(ids == 'smp29')] <- 'P3457YLC'
 colData(proTissueNorm)$Recurrence[which(ids == 'smp29')] <- 'Yes'
 colData(proTissueNorm)$Age[which(ids == 'smp29')] <- 68
+colData(proTissueNorm)$Adjuvant[which(ids == 'smp29')] <- 'False'
 # Remove redundant Sample column in column annotation table
 colData(proTissueNorm) <- colData(proTissueNorm)[, -which(colnames(colData(proTissueNorm)) == 'Sample')]
 
 # Save vsn normalized data
-# saveRDS(proTissueNorm, './data/AG_Krijgsveld/proTissueNorm.rds')
+saveRDS(proTissueNorm, './data/MethodDev/AG_Krijgsveld/proTissueVsn_DDA.rds')
 ```
 
-```{r eval = F}
+```{r}
 # Store median normalized data for computing log2(FC)
 # Manually modify potential mislabeling for now
 ids <- colnames(proTissue)
 colnames(proTissue) <- colData(proTissue)$Sample
 colnames(proTissue)[which(ids == 'smp29')] <- 'F04ERF3M_TG'
 colData(proTissue)$Sample <- colnames(proTissue)
-colData(proTissue)$Patient[which(ids == 'smp29')] <- 'F04ERF3M'
+colData(proTissue)$Patient[which(ids == 'smp29')] <- 'P3457YLC'
 colData(proTissue)$Recurrence[which(ids == 'smp29')] <- 'Yes'
 colData(proTissue)$Age[which(ids == 'smp29')] <- 68
+colData(proTissue)$Adjuvant[which(ids == 'smp29')] <- 'False'
 
 exprMat <- as.matrix(assay(proTissue))
 sampleAnno <- tibble::as_tibble(colData(proTissue))
@@ -660,15 +577,15 @@ proTissueMediTab <- limma::normalizeBetweenArrays(exprMat, method = 'scale') %>%
   dplyr::left_join(sampleAnno, by = 'Sample') %>%
   dplyr::left_join(featAnno, by = 'Feature')
 
-ggplot(proTissueMediTab, aes(x=Sample, y=mediAbundance)) +
-  geom_boxplot() +
-  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+# ggplot(proTissueMediTab, aes(x=Sample, y=mediAbundance)) +
+#   geom_boxplot() +
+#   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
 proTissueMedi <- df2SummExp(proTissueMediTab, row_id = 'Feature', col_id = 'Sample',
                             values = 'mediAbundance', row_anno = 'PG.Genes',
-                            col_anno = c('Condition', 'Patient', 'Recurrence', 'Gender',
-                                         'Age', 'Smoking', 'Stage', 'Identifier'))
-# saveRDS(proTissueMedi, './data/AG_Krijgsveld/proTissueMedi.rds')
+                            col_anno = c(smpAnno, 'TumorPurity'))
+# Save median normalized data
+saveRDS(proTissueMedi, './data/MethodDev/AG_Krijgsveld/proTissueMedi_DDA.rds')
 ```
 
 ```{r include = F, eval = F}
@@ -737,80 +654,119 @@ ggplot(dTab4Plot, aes(x=nCall, y=nSample)) +
 
 
 
-# Abundance comparisons
-Tissue vs Plasma:\
-Investigate overall differences of Metabolomics and Proteomics abundance between
-Tissue and Plasma samples
-```{r}
-# Load normalized data
-metaTissueNorm <- readRDS('./data/AG_Hell/metaTissueNorm.rds')
-metaPlasmaNorm <- readRDS('./data/AG_Hell/metaPlasmaNorm.rds')
-proTissueNorm <- readRDS('./data/AG_Krijgsveld/proTissueNorm.rds')
-proPlasmaNorm <- readRDS('./data/AG_Krijgsveld/proPlasmaNorm.rds')
-```
-
-## Metabolomics
-
-```{r warning = F}
-# Convert SummarizedExperiment objects to tables for plotting
-# Tissue Metabolomics
-metaTissueNorm4Plot <- summExp2df(metaTissueNorm, assay = 'Abundance',
-                                  row_id = 'Metabolite', col_id = 'Sample') %>%
-  dplyr::select(c('Metabolite', 'Sample', 'Value')) %>%
-  dplyr::mutate(Sample_type = 'Tissue', Sample = paste0('Tissue_', Sample))
-
-# Plasma Metabolomics
-metaPlasmaNorm4Plot <- summExp2df(metaPlasmaNorm, assay = 'Abundance',
-                                  row_id = 'Metabolite', col_id = 'Sample') %>%
-  dplyr::select(c('Metabolite', 'Sample', 'Value')) %>%
-  dplyr::mutate(Sample_type = 'Plasma', Sample = paste0('Plasma_', Sample))
-
-# Concatenate two tables
-metaTab4Plot <- rbind(metaTissueNorm4Plot, metaPlasmaNorm4Plot)
-
-ggplot(metaTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
-  geom_boxplot(width = 0.7) +
-  labs(y = 'Metabolite abundance', title = 'Metabolomics', col = 'Sample type') +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
-
-# ggplot(metaTab4Plot, aes(x=Sample_type, y=Value, col=Sample_type)) +
-#   geom_boxplot() +
-#   labs(x = 'Sample type', y = 'Metabolite abundance', title = 'Metabolomics') +
-#   theme(legend.position = 'none') +
-#   ggpubr::stat_compare_means(method = 'wilcox.test', paired = F)
-
-# When sample size is large, even minor differences are coming with highly significant
-# p-values. Statistical meaningfulness does not equal biological meaningfulness.
-# In this case, a complementary approach, effect size, should be reported.
-```
-
-## Proteomics
-
-```{r}
-# Tissue Proteomics
-proTissueNorm4Plot <- summExp2df(proTissueNorm, assay = 'Abundance',
-                                 row_id = 'PG.ProteinGroups', col_id = 'Sample') %>%
-  dplyr::select(c('PG.ProteinGroups', 'Sample', 'Value')) %>%
-  dplyr::mutate(Sample_type = 'Tissue', Sample = paste0('Tissue_', Sample))
-
 # Plasma Proteomics
-proPlasmaNorm4Plot <- summExp2df(proPlasmaNorm, assay = 'Abundance',
-                                 row_id = 'PG.ProteinGroups', col_id = 'Sample') %>%
-  dplyr::select(c('PG.ProteinGroups', 'Sample', 'Value')) %>%
-  dplyr::mutate(Sample_type = 'Plasma', Sample = paste0('Plasma_', Sample))
 
-# Concatenate two tables
-proTab4Plot <- rbind(proTissueNorm4Plot, proPlasmaNorm4Plot)
+```{r message = F}
+# Abundance data
+proPlasmaTab <- readxl::read_excel(
+  './data/MethodDev/AG_Krijgsveld/20211119_133842_20211018_TMMS_TRX_plasma_Report.xlsx'
+  , sheet = 1) %>%
+  dplyr::select(PG.Genes, PG.ProteinGroups, contains('oecf4')) %>%
+  pivot_longer(cols = -c('PG.Genes', 'PG.ProteinGroups'),
+               names_to = 'Sample_IDs',
+               values_to = 'Abundance') %>%
+  mutate(Abundance = as.numeric(Abundance)) %>%
+  group_by(PG.Genes, PG.ProteinGroups, Sample_IDs) %>%
+  summarise(Abundance = mean(Abundance, na.rm = TRUE)) %>%
+  ungroup() %>%
+  filter(!is.na(Abundance))
 
-ggplot(proTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
-  geom_boxplot(width = 0.7) +
-  labs(y = 'Protein abundance', title = 'Proteomics', col = 'Sample type') +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
-
-# ggplot(proTab4Plot, aes(x=Sample_type, y=Value, col=Sample_type)) +
-#   geom_boxplot() +
-#   labs(x = 'Sample type', y = 'Protein abundance', title = 'Proteomics') +
-#   theme(legend.position = 'none') +
-#   ggpubr::stat_compare_means(method = 'wilcox.test', paired = F)
+# Column PG.ProteinGroups has no overlap and column PG.Genes has few overlaps (NA:5).
 ```
-The overall protein level of Tissue samples is higher than that of Plasma samples.
+
+```{r}
+# Annotation data
+proPlasmaAnno <- readxl::read_excel(
+  './data/MethodDev/AG_Krijgsveld/20211119_133842_20211018_TMMS_TRX_plasma_Report.xlsx',
+  sheet = 2) %>%
+  dplyr::select(Sample_IDs, Identifier) %>%
+  rename(Aliquot = Identifier) %>%
+  mutate(Aliquot = str_remove(Aliquot, '/THRX_SPACE/')) %>%
+  left_join(summMetadat, by = 'Aliquot')
+```
+
+Show dimensions of processed data (40 samples and 435 features)
+```{r}
+proPlasmaTab <- left_join(proPlasmaTab, proPlasmaAnno, by = 'Sample_IDs')
+proPlasma <- df2SummExp(proPlasmaTab, row_id = 'PG.ProteinGroups', col_id = 'Sample',
+                        values = 'Abundance', row_anno = 'PG.Genes', col_anno = smpAnno)
+dim(proPlasma)
+```
+
+Display distribution of original data
+```{r}
+proPlasma4Plot <- summExp2df(proPlasma, assay = 'Abundance',
+                             row_id = 'PG.ProteinGroups', col_id = 'Sample')
+ggplot(proPlasma4Plot, aes(x=Sample, y=Value)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(x = 'Sample ID', y = 'Protein Abundance') +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+## perform VSN
+
+```{r}
+exprMat <- as.matrix(assay(proPlasma))
+fit <- vsnMatrix(exprMat)
+proPlasmaNorm <- proPlasma
+assay(proPlasmaNorm) <- predict(fit, exprMat)
+# Save vsn normalized data
+saveRDS(proPlasmaNorm, './data/MethodDev/AG_Krijgsveld/proPlasmaVsn_DDA.rds')
+
+proPlasmaNorm4Plot <- summExp2df(proPlasmaNorm, assay = 'Abundance',
+                                 row_id = 'PG.ProteinGroups', col_id = 'Sample')
+ggplot(proPlasmaNorm4Plot, aes(x=Sample, y=Value)) +
+  geom_boxplot() +
+  labs(x = 'Sample ID', y = 'Protein Abundance') +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+vsn::meanSdPlot(assay(proPlasmaNorm), ranks = T, plot = F, bins = 30)$gg +
+  labs(x = 'Rank of mean', y = 'SD') +
+  th
+```
+
+```{r}
+# Store median normalized data for computing log2(FC)
+exprMat <- as.matrix(assay(proPlasma))
+sampleAnno <- tibble::as_tibble(colData(proPlasma), rownames = 'Sample')
+featAnno <- tibble::as_tibble(rowData(proPlasma), rownames = 'Feature')
+proPlasmaMediTab <- limma::normalizeBetweenArrays(exprMat, method = 'scale') %>%
+  tibble::as_tibble(rownames = 'Feature') %>%
+  tidyr::pivot_longer(cols = -'Feature',
+                      names_to = 'Sample',
+                      values_to = 'mediAbundance') %>%
+  dplyr::mutate(mediAbundance = log2(mediAbundance)) %>%
+  dplyr::left_join(sampleAnno, by = 'Sample') %>%
+  dplyr::left_join(featAnno, by = 'Feature')
+
+# ggplot(proPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
+#   geom_boxplot() +
+#   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+proPlasmaMedi <- df2SummExp(proPlasmaMediTab, row_id = 'Feature', col_id = 'Sample',
+                            values = 'mediAbundance', row_anno = 'PG.Genes', col_anno = smpAnno)
+# Save median normalized data
+saveRDS(proPlasmaMedi, './data/MethodDev/AG_Krijgsveld/proPlasmaMedi_DDA.rds')
+```
+
+## Perform PCA
+
+```{r}
+exprMat <- assay(proPlasmaNorm)
+resPC <- prcomp(t(exprMat), center = TRUE, scale. = FALSE)
+
+anno <- dplyr::distinct(proPlasmaTab, Sample, Patient, Condition)
+proPlasmaNorm4Plot <- resPC$x[, 1:10] %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column('Sample') %>%
+  dplyr::left_join(anno, by = 'Sample')
+
+ggplot(proPlasmaNorm4Plot, aes(x=PC1, y=PC2, col=Condition, group=Patient)) +
+  geom_point() +
+  geom_line(col = 'grey50', linetype = 'dashed') +
+  th
+```

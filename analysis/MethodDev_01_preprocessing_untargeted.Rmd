@@ -1,5 +1,5 @@
 ---
-title: 'Preprocessing: Method development lung cancer patient cohort'
+title: 'Preprocessing: Untargeted Metabolomics and Lipidomics of Method Development cohort'
 author: "Qian-Wu Liao"
 output:
   workflowr::wflow_html:
@@ -15,8 +15,8 @@ VSN, and median normalization) on data and comparing them in terms of whether al
 samples are brought to same scale and similarity of triplicate measures of each sample,
 (2) conducting batch correction if needed, and (3) merging triplicates into individual
 measures and storing all information in SummarizedExperiment objects for further
-analyses. Among varied normalization methods, vsn normalized data is selected. Note
-that, since features have not been identified yet by comparing against databases,
+analyses. Among varied normalization methods, vsn normalized data was selected.
+Note that, since features have not been annotated yet by comparing against databases,
 we defined them by m/z and retention time.\
 
 Update: Remove those features whose Retention Times are shorter than 0.3 min and
@@ -27,7 +27,7 @@ groups of interest after data fusion. </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
-knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer_MethodDev')
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer')
 ```
 
 Load libraries
@@ -48,18 +48,92 @@ th <- theme_bw(base_size = 15) +
         axis.text = element_text(face = 'bold'),
         axis.ticks = element_line(linewidth = 0.8),
         legend.text = element_text(size = 15))
+```
+
+```{r prepare global info, message=F}
+# Load sample metadata
+smpMetadat <- readxl::read_excel('./data/sample_metadata.xlsx')
+colnames(smpMetadat) <- smpMetadat[3,, drop = F]
+smpMetadat <- dplyr::slice(smpMetadat, -c(1:3)) %>%
+  dplyr::select(c(Code, Parents, Visit, `Material submitted`, `Date and time of collection or surgery`,
+                  `SMART-CARE cohort identifier`)) %>%
+  dplyr::rename(Sample = Code, Patient = Parents, TimePoint = Visit, SmpType = `Material submitted`,
+                Date = `Date and time of collection or surgery`, Cohort = `SMART-CARE cohort identifier`) %>%
+  dplyr::mutate(Sample = stringr::str_remove_all(Sample, '^SC_T_S_|^SC_DIS_S_|^SC_S_|_P'),
+                Patient = stringr::str_remove(Patient, '^/THRX_SPACE/THRX_DB/'),
+                TimePoint = dplyr::case_when(TimePoint == 'PRETHERAPEUTIC' ~ 'Baseline',
+                                             TimePoint == 'FOLLOW-UP' ~ 'Follow-up',
+                                             TimePoint == 'RECURRENCE' ~ 'Recurrence'),
+                SmpType = dplyr::case_when(SmpType == 'EDTA_PLASMA' ~ 'Plasma',
+                                           SmpType == 'FRESH_FROZEN_TISSUE' ~ 'Tissue'),
+                Condition = dplyr::case_when(grepl('_TU|TG', Sample) ~ 'Tumor',
+                                             grepl('_NG', Sample) ~ 'Normal',
+                                             !grepl('_TU|_NG', Sample) ~ TimePoint),
+                Date = stringr::str_extract(Date, '^\\d+-\\d+-\\d+'),
+                Cohort = dplyr::case_when(Cohort == 'DISCOVERY_COHORT' ~ 'Discovery',
+                                          Cohort == 'METHOD_DEVELOPMENT_COHORT' ~ 'MethodDev'),
+                Date = as.Date(Date, format = '%Y-%m-%d'))
+
+# Load patient metadata
+patientMetadat <- readxl::read_excel('./data/patient_metadata.xlsx')
+colnames(patientMetadat) <- patientMetadat[3,, drop = F]
+patientMetadat <- dplyr::slice(patientMetadat, -c(1:3)) %>%
+  dplyr::select(c(Code, Gender, `Age at diagnosis`, `Pathological stage`, `Smoking status`,
+                  `Adjuvant chemotherapy`,)) %>%
+  dplyr::rename(Patient = Code, Age = `Age at diagnosis`, Stage = `Pathological stage`,
+                Smoking = `Smoking status`, Adjuvant = `Adjuvant chemotherapy`) %>%
+  dplyr::mutate(Gender = dplyr::case_when(Gender == 'MALE' ~ 'Male',
+                                          Gender == 'FEMALE' ~ 'Female'),
+                Smoking = dplyr::case_when(Smoking == 'SMOKER' ~ 'Smoker',
+                                           Smoking == 'EX-SMOKER' ~ 'Ex-smoker',
+                                           Smoking == 'NON-SMOKER' ~ 'Non-smoker'),
+                Adjuvant = dplyr::case_when(Adjuvant == 'true' ~ 'True',
+                                            Adjuvant == 'false' ~ 'False'),
+                Age = as.numeric(Age))
+# Include patient recurrence information in patient metadata
+recurPats <- dplyr::filter(smpMetadat, TimePoint == 'Recurrence') %>%
+  dplyr::pull(Patient)
+patientMetadat <- dplyr::mutate(patientMetadat, Recurrence = dplyr::case_when(Patient %in% recurPats ~ 'Yes',
+                                                                              !Patient %in% recurPats ~ 'No'))
+
+# Load aliquot metadata
+aliquotMetadat <- readxl::read_excel('./data/aliquot_metadata.xlsx')
+colnames(aliquotMetadat) <- aliquotMetadat[3,, drop = F]
+aliquotMetadat <- dplyr::slice(aliquotMetadat, -c(1:3)) %>%
+  dplyr::select(Code, Parents, `Tumor Cell Content (%)`, `Cohort Identifier`, `Submission to`,
+                `Delivered?`) %>%
+  dplyr::rename(Aliquot = Code, Sample = Parents, TumorPurity = `Tumor Cell Content (%)`,
+                Cohort = `Cohort Identifier`, To = `Submission to`, Delivered = `Delivered?`) %>%
+  dplyr::mutate(Sample = stringr::str_remove_all(Sample, '^/THRX_SPACE/THRX_DB/SC_T_S_|_P'),
+                Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_DIS_S_'),
+                Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_S_'),
+                Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_DIS_'),
+                Sample = dplyr::case_when(Sample == 'SDIR55_TU' ~ 'PDIR55_TU',
+                                          Sample == 'SDIR55_NG' ~ 'PDIR55_NG',
+                                          !Sample %in% c('SDIR55_TU', 'SDIR55_NG') ~ Sample),
+                Cohort = dplyr::case_when(Cohort == 'method establishment' ~ 'MethodDev',
+                                          Cohort == 'DISCOVERY_COHORT' ~ 'Discovery'),
+                TumorPurity = as.numeric(TumorPurity),
+                Sample = dplyr::case_when(grepl('^SC_DIS_A_Y4W4L7_P_V2', Aliquot) ~ 'Y4W4L7_V2',
+                                          !grepl('^SC_DIS_A_Y4W4L7_P_V2', Aliquot) ~ Sample)) %>%
+  dplyr::filter(To %in% c('HOPF'))
+# Prepare aliquot metadata containing tumor purity information
+tumorPurityInfo <- dplyr::select(aliquotMetadat, Aliquot, Sample, TumorPurity)
+
+# Combine all needed metadata
+summMetadat <- dplyr::left_join(tumorPurityInfo, smpMetadat, by = 'Sample') %>%
+  dplyr::left_join(patientMetadat, by = 'Patient')
 
 # List sample annotations to keep in SE objects
-anno <- c('Condition', 'Patient', 'Recurrence', 'Gender', 'Age', 'Smoking',
-          'Stage', 'Identifier')
+smpAnno <- c('Patient', 'SmpType', 'TimePoint', 'Date', 'Cohort', 'Condition',
+             'Recurrence', 'Gender', 'Age', 'Smoking', 'Stage', 'Adjuvant')
 ```
 
 # Plasma Metabolomics
 
 ```{r message = F}
 # Load dataset
-metaPlasmaTab <- readxl::read_excel('./data/AG_Hopf/PLASMA_METABOLOMICS_20221108.Feature list.xlsx')
-
+metaPlasmaTab <- readxl::read_excel('./data/MethodDev/AG_Hopf/PLASMA_METABOLOMICS_20221108.Feature list.xlsx')
 # Take care of sample and feature identifications
 # Put new suffixes to column names to indicate technical triplicates
 colNam <- colnames(metaPlasmaTab) %>%
@@ -99,24 +173,17 @@ cat('The following features have duplication:\n',
 
 Display distribution of original data
 ```{r}
-# Load sample metadata from preprocessed Targeted Metabolomics SE object
-smpAnno <- colData(readRDS('./data/AG_Hell/metaPlasmaNorm.rds')) %>%
-  tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
-
 # Convert messy wide data to tidy long table
-metaPlasmaTab <- tidyr::pivot_longer(metaPlasmaTab,
-                                     cols = -c('m/z_RT', 'Feature_ID'),
-                                     names_to = 'Sample_ID',
-                                     values_to = 'Abundance') %>%
+metaPlasmaTab <- tidyr::pivot_longer(metaPlasmaTab, cols = -c('m/z_RT', 'Feature_ID'),
+                                     names_to = 'Sample_ID', values_to = 'Abundance') %>%
   # Convert zero values to NA since zeros are not real zeros, but undetected,
   # might be extremely small or normal values and perform log2-transformation on
   # feature abundance
   dplyr::mutate(Abundance = replace(Abundance, Abundance == 0, NA),
-                Identifier = stringr::str_remove(Sample_ID, '_2_.'),
+                Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_'),
                 log2Abundance = log2(Abundance)) %>%
-  dplyr::left_join(smpAnno, by = 'Identifier')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display original data distribution
 ggplot(metaPlasmaTab, aes(x=Sample_ID, y=Abundance)) +
@@ -182,9 +249,9 @@ metaPlasmaVsnTab <- tidyr::pivot_longer(abunVsnMat,
                                         cols = -'Feature_ID',
                                         names_to = 'Sample_ID',
                                         values_to = 'vsnAbundance') %>%
-  dplyr::mutate(Identifier = stringr::str_remove(Sample_ID, '_2_.'),
+  dplyr::mutate(Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_')) %>%
-  dplyr::left_join(smpAnno, by = 'Identifier')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display VSN normalized data
 ggplot(metaPlasmaVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
@@ -208,9 +275,9 @@ metaPlasmaMediTab <- limma::normalizeBetweenArrays(abunMat, method = 'scale') %>
                       names_to = 'Sample_ID',
                       values_to = 'mediAbundance') %>%
   dplyr::mutate(mediAbundance = log2(mediAbundance),
-                Identifier = stringr::str_remove(Sample_ID, '_2_.'),
+                Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_')) %>%
-  dplyr::left_join(smpAnno, by = 'Identifier')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display median normalized data
 ggplot(metaPlasmaMediTab, aes(x=Sample_ID, y=mediAbundance)) +
@@ -731,7 +798,7 @@ Display distribution of merged data
 merge_metaPlasmaVsnTab <- dplyr::group_by(metaPlasmaVsnTabBC, Feature_ID, Sample) %>%
   dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %>%
   dplyr::ungroup() %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(metaPlasmaTab, `m/z_RT`, Feature_ID) %>%
@@ -781,13 +848,21 @@ merge_metaPlasmaVsnTab <- dplyr::filter(merge_metaPlasmaVsnTab, !Feature_ID %in%
 
 # Convert tidy long table to SummarizedExperiment object and save it for further analysis
 metaPlasmaVsn <- df2SummExp(merge_metaPlasmaVsnTab, row_id = 'Feature_ID', col_id = 'Sample',
-                            values = 'vsnAbundance', row_anno = 'm/z_RT', col_anno = anno)
-# saveRDS(metaPlasmaVsn, './data/AG_Hopf/metaPlasmaVsn.rds')
+                            values = 'vsnAbundance', row_anno = 'm/z_RT', col_anno = smpAnno)
+# Save vsn normalized data
+saveRDS(metaPlasmaVsn, './data/MethodDev/AG_Hopf/metaPlasmaVsn.rds')
 ```
 
 Display dimensions of filtered dataset
 ```{r}
 dim(metaPlasmaVsn)
+```
+
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+vsn::meanSdPlot(as.matrix(assay(metaPlasmaVsn)), ranks = T, plot = F, bins = 30)$gg +
+  labs(x = 'Rank of mean', y = 'SD') +
+  th
 ```
 
 PCA
@@ -844,7 +919,7 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-```{r message = F, eval = F}
+```{r message = F}
 # Store median normalized data for computing log(FC) later
 # Perform batch correction to see if triplicates can be clustered
 # Convert long table to wide data
@@ -873,11 +948,11 @@ metaPlasmaMediTabBC <- limma::removeBatchEffect(abunMediMat,
 
 # Display batch corrected median normalized data to check if there is any negative
 # values
-ggplot(metaPlasmaMediTabBC, aes(x=Sample_ID, y=mediAbundance)) +
-  geom_boxplot() +
-  labs(x = 'Sample', y = 'Normalized Abundance',
-       title = 'Median normalized data (after batch correction)') +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+# ggplot(metaPlasmaMediTabBC, aes(x=Sample_ID, y=mediAbundance)) +
+#   geom_boxplot() +
+#   labs(x = 'Sample', y = 'Normalized Abundance',
+#        title = 'Median normalized data (after batch correction)') +
+#   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 
 # Perform PCA
 # Remove rows (features) that have any NA values
@@ -891,18 +966,18 @@ pcMediTabBC <- pcMediResBC$x[, 1:10] %>%
   tibble::as_tibble(rownames = 'Sample_ID') %>%
   dplyr::left_join(condition, by = 'Sample_ID')
 
-ggplot(pcMediTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Median normalized data (after batch correction)') +
-  th
+# ggplot(pcMediTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
+#   geom_point() +
+#   geom_line(col = 'grey50', linetype = 'dashed') +
+#   labs(title = 'Median normalized data (after batch correction)') +
+#   th
 
 # Merge triplicates (take mean)
 merge_metaPlasmaMediTab <- dplyr::group_by(metaPlasmaMediTabBC, Feature_ID, Sample) %>%
   dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %>%
   dplyr::ungroup() %>%
   dplyr::filter(!Feature_ID %in% rmFeats) %>%
-  dplyr::left_join(smpAnno, 'Sample')
+  dplyr::left_join(summMetadat, 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(metaPlasmaTab, `m/z_RT`, Feature_ID) %>%
@@ -910,19 +985,20 @@ MZRT <- dplyr::select(metaPlasmaTab, `m/z_RT`, Feature_ID) %>%
 merge_metaPlasmaMediTab <- dplyr::left_join(merge_metaPlasmaMediTab, MZRT,
                                             by = 'Feature_ID')
 
-ggplot(merge_metaPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
-  geom_boxplot() +
-  labs(y = 'Normalized abundance', title = 'Median normalized data') +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+# ggplot(merge_metaPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
+#   geom_boxplot() +
+#   labs(y = 'Normalized abundance', title = 'Median normalized data') +
+#   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Convert tidy long table to SummarizedExperiment object and save it for further
 # analysis
 metaPlasmaMedi <- df2SummExp(merge_metaPlasmaMediTab, row_id = 'Feature_ID', col_id = 'Sample',
-                             values = 'mediAbundance', row_anno = 'm/z_RT', col_anno = anno)
-saveRDS(metaPlasmaMedi, './data/AG_Hopf/metaPlasmaMedi.rds')
+                             values = 'mediAbundance', row_anno = 'm/z_RT', col_anno = smpAnno)
+# Save median normalized data
+saveRDS(metaPlasmaMedi, './data/MethodDev/AG_Hopf/metaPlasmaMedi.rds')
 ```
 
-```{r eval = F}
+```{r eval = F, include=F}
 # Missing values imputation
 # Load normalized data
 metaPlasmaVsn <- readRDS('./data/AG_Hopf/metaPlasmaVsn.rds')
@@ -1080,8 +1156,7 @@ ggplot(abunSumm4Plot, aes(x=Sample_ID, y=Median, col=Method)) +
 
 ```{r message = F}
 # Load dataset
-lipPlasmaTab <- readxl::read_excel('./data/AG_Hopf/PLASMA_LIPIDOMICS_20221108.Feature list.xlsx')
-
+lipPlasmaTab <- readxl::read_excel('./data/MethodDev/AG_Hopf/PLASMA_LIPIDOMICS_20221108.Feature list.xlsx')
 # Take care of sample and feature identifications
 # Put new suffixes to column names to indicate technical triplicates
 colNam <- colnames(lipPlasmaTab) %>%
@@ -1121,11 +1196,6 @@ cat('The following features have duplication:\n',
 
 Display distribution of original data
 ```{r}
-# Load sample metadata from preprocessed Targeted Metabolomics SE object
-smpAnno <- colData(readRDS('./data/AG_Hell/metaPlasmaNorm.rds')) %>%
-  tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
-
 # Convert messy wide data to tidy long table
 lipPlasmaTab <- tidyr::pivot_longer(lipPlasmaTab,
                                     cols = -c('m/z_RT', 'Feature_ID'),
@@ -1135,10 +1205,10 @@ lipPlasmaTab <- tidyr::pivot_longer(lipPlasmaTab,
   # might be extremely small or normal values and perform log2-transformation on
   # feature abundance
   dplyr::mutate(Abundance = replace(Abundance, Abundance == 0, NA),
-                Identifier = stringr::str_remove(Sample_ID, '_2_.'),
+                Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_'),
                 log2Abundance = log2(Abundance)) %>%
-  dplyr::left_join(smpAnno, by = 'Identifier')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display original data distribution
 ggplot(lipPlasmaTab, aes(x=Sample_ID, y=Abundance)) +
@@ -1180,9 +1250,9 @@ lipPlasmaVsnTab <- tidyr::pivot_longer(abunVsnMat,
                                        cols = -'Feature_ID',
                                        names_to = 'Sample_ID',
                                        values_to = 'vsnAbundance') %>%
-  dplyr::mutate(Identifier = stringr::str_remove(Sample_ID, '_2_.'),
+  dplyr::mutate(Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_')) %>%
-  dplyr::left_join(smpAnno, by = 'Identifier')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display VSN normalized data
 ggplot(lipPlasmaVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
@@ -1201,9 +1271,9 @@ lipPlasmaMediTab <- limma::normalizeBetweenArrays(abunMat, method = 'scale') %>%
                       names_to = 'Sample_ID',
                       values_to = 'mediAbundance') %>%
   dplyr::mutate(mediAbundance = log2(mediAbundance),
-                Identifier = stringr::str_remove(Sample_ID, '_2_.'),
+                Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, 'SC_T_A_.*_2_')) %>%
-  dplyr::left_join(smpAnno, by = 'Identifier')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display median normalized data
 ggplot(lipPlasmaMediTab, aes(x=Sample_ID, y=mediAbundance)) +
@@ -1597,7 +1667,7 @@ Display distribution of merged data
 merge_lipPlasmaVsnTab <- dplyr::group_by(lipPlasmaVsnTabBC, Feature_ID, Sample) %>%
   dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %>%
   dplyr::ungroup() %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(lipPlasmaTab, `m/z_RT`, Feature_ID) %>%
@@ -1640,13 +1710,21 @@ merge_lipPlasmaVsnTab <- dplyr::filter(merge_lipPlasmaVsnTab, !Feature_ID %in% r
 
 # Convert tidy long table to SummarizedExperiment object and save it for further analysis
 lipPlasmaVsn <- df2SummExp(merge_lipPlasmaVsnTab, row_id = 'Feature_ID', col_id = 'Sample',
-                            values = 'vsnAbundance', row_anno = 'm/z_RT', col_anno = anno)
-# saveRDS(lipPlasmaVsn, './data/AG_Hopf/lipPlasmaVsn.rds')
+                            values = 'vsnAbundance', row_anno = 'm/z_RT', col_anno = smpAnno)
+# Save vsn normalized data 
+saveRDS(lipPlasmaVsn, './data/MethodDev/AG_Hopf/lipPlasmaVsn.rds')
 ```
 
 Display dimensions of filtered dataset
 ```{r}
 dim(lipPlasmaVsn)
+```
+
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+vsn::meanSdPlot(as.matrix(assay(lipPlasmaVsn)), ranks = T, plot = F)$gg +
+  labs(x = 'Rank of mean', y = 'SD') +
+  th
 ```
 
 PCA
@@ -1702,7 +1780,7 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-```{r message = F, eval = F}
+```{r message = F}
 # Store median normalized data for computing log(FC) later
 # Perform batch correction to see if triplicates can be clustered
 # Convert long table to wide data
@@ -1731,11 +1809,11 @@ lipPlasmaMediTabBC <- limma::removeBatchEffect(abunMediMat,
 
 # Display batch corrected median normalized data to check if there is any negative
 # values
-ggplot(lipPlasmaMediTabBC, aes(x=Sample_ID, y=mediAbundance)) +
-  geom_boxplot() +
-  labs(x = 'Sample', y = 'Normalized Abundance',
-       title = 'Median normalized data (after batch correction)') +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+# ggplot(lipPlasmaMediTabBC, aes(x=Sample_ID, y=mediAbundance)) +
+#   geom_boxplot() +
+#   labs(x = 'Sample', y = 'Normalized Abundance',
+#        title = 'Median normalized data (after batch correction)') +
+#   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 
 # Perform PCA
 # Remove rows (features) that have any NA values
@@ -1749,18 +1827,18 @@ pcMediTabBC <- pcMediResBC$x[, 1:10] %>%
   tibble::as_tibble(rownames = 'Sample_ID') %>%
   dplyr::left_join(condition, by = 'Sample_ID')
 
-ggplot(pcMediTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
-  geom_point() +
-  geom_line(col = 'grey50', linetype = 'dashed') +
-  labs(title = 'Median normalized data (after batch correction)') +
-  th
+# ggplot(pcMediTabBC, aes(x=PC1, y=PC2, col=Batch, group=Sample)) +
+#   geom_point() +
+#   geom_line(col = 'grey50', linetype = 'dashed') +
+#   labs(title = 'Median normalized data (after batch correction)') +
+#   th
 
 # Merge triplicates (take mean)
 merge_lipPlasmaMediTab <- dplyr::group_by(lipPlasmaMediTabBC, Feature_ID, Sample) %>%
   dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %>%
   dplyr::ungroup() %>%
   dplyr::filter(!Feature_ID %in% rmFeats) %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(lipPlasmaTab, `m/z_RT`, Feature_ID) %>%
@@ -1768,19 +1846,19 @@ MZRT <- dplyr::select(lipPlasmaTab, `m/z_RT`, Feature_ID) %>%
 merge_lipPlasmaMediTab <- dplyr::left_join(merge_lipPlasmaMediTab, MZRT,
                                            by = 'Feature_ID')
 
-ggplot(merge_lipPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
-  geom_boxplot() +
-  labs(y = 'Normalized abundance', title = 'Median normalized data') +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+# ggplot(merge_lipPlasmaMediTab, aes(x=Sample, y=mediAbundance)) +
+#   geom_boxplot() +
+#   labs(y = 'Normalized abundance', title = 'Median normalized data') +
+#   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Convert tidy long table to SummarizedExperiment object and save it for further
 # analysis
 lipPlasmaMedi <- df2SummExp(merge_lipPlasmaMediTab, row_id = 'Feature_ID', col_id = 'Sample',
-                            values = 'mediAbundance', row_anno = 'm/z_RT', col_anno = anno)
-saveRDS(lipPlasmaMedi, './data/AG_Hopf/lipPlasmaMedi.rds')
+                            values = 'mediAbundance', row_anno = 'm/z_RT', col_anno = smpAnno)
+saveRDS(lipPlasmaMedi, './data/MethodDev/AG_Hopf/lipPlasmaMedi.rds')
 ```
 
-```{r eval = F}
+```{r eval = F, include=F}
 # Missing values imputation
 # Load normalized data
 lipPlasmaVsn <- readRDS('./data/AG_Hopf/lipPlasmaVsn.rds')
@@ -1866,33 +1944,25 @@ if (identical(rownames(lipPlasmaImpuFilt2),
 ```{r message = F}
 # Load dataset
 metaTissueTab <- read.table(
-  './data/AG_Hopf/TISSUE_METABOLOMICS_20230222.Feature list.txt',
+  './data/MethodDev/AG_Hopf/TISSUE_METABOLOMICS_20230222.Feature list.txt',
   header = T, sep = '\t', dec = ',') %>%
   dplyr::mutate(m.z.meas. = paste0(m.z.meas., '/', RT..min.)) %>%
   dplyr::select(-RT..min., -contains('Process_blank'), -starts_with('QC')) %>%
   dplyr::rename(`MZ/RT` = m.z.meas.)
 
 # Prepare sample ID table for changing sample names
-smpIDs <- readxl::read_excel('./data/AG_Hopf/TISSUE.Sample IDs.xlsx') %>%
+smpIDs <- readxl::read_excel('./data/MethodDev/AG_Hopf/TISSUE.Sample IDs.xlsx') %>%
   dplyr::select(`Number on MS vials`, `Code from OpenBis`) %>%
   dplyr::rename(Sample_ID = `Number on MS vials`,
-                Identifier = `Code from OpenBis`) %>%
-  dplyr::mutate(Sample_ID = paste0('X', Sample_ID),
-                Identifier = stringr::str_remove(Identifier, '_2'))
-smpIDs2 <- readRDS('./data/AG_Hell/metaTissueNorm.rds') %>%
-  colData() %>%
-  tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::select(Identifier, Sample) %>%
-  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3'))
-smpIDs <- dplyr::left_join(smpIDs, smpIDs2, by = 'Identifier')
-rm(smpIDs2)
+                Aliquot = `Code from OpenBis`) %>%
+  dplyr::mutate(Sample_ID = paste0('X', Sample_ID))
 
 # Take care of sample and feature identifications
 colNam <- colnames(metaTissueTab) %>%
   stringr::str_remove_all('Tissue_PITC_batch|_pos_.*')
 smpNam <- colNam[2:length(colNam)] %>%
   stringr::str_remove('_.$') %>%
-  plyr::mapvalues(smpIDs$Sample_ID, smpIDs$Sample)
+  plyr::mapvalues(smpIDs$Sample_ID, smpIDs$Aliquot)
 colNam[2:length(colNam)] <- paste0(smpNam, '_', c(rep(1, length(smpNam)/3),
                                                   rep(2, length(smpNam)/3),
                                                   rep(3, length(smpNam)/3)))
@@ -1921,18 +1991,13 @@ dim(dplyr::select(metaTissueTab, -c(`MZ/RT`, Feature_ID)))
 There is no duplicated feature that have same m/z and retention time
 ```{r}
 # Check duplicated MZ/RT (features) to see if further actions are needed
-cat('The following features have duplication:\n',
-    paste(unique(metaTissueTab$`MZ/RT`[duplicated(metaTissueTab$`MZ/RT`)]),
-          collapse = '  '))
+cat('The following features have duplication: NA')
+    # paste(unique(metaTissueTab$`MZ/RT`[duplicated(metaTissueTab$`MZ/RT`)]),
+    #       collapse = '  '))
 ```
 
 Display distribution of original data
 ```{r}
-# Load sample metadata from preprocessed Targeted Metabolomics SE object
-smpAnno <- colData(readRDS('./data/AG_Hell/metaTissueNorm.rds')) %>%
-  tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
-
 # Convert messy wide data to tidy long table
 metaTissueTab <- tidyr::pivot_longer(metaTissueTab,
                                      cols = -c('MZ/RT', 'Feature_ID'),
@@ -1942,10 +2007,10 @@ metaTissueTab <- tidyr::pivot_longer(metaTissueTab,
   # might be extremely small or normal values and perform log2-transformation on
   # feature abundance
   dplyr::mutate(Abundance = replace(Abundance, Abundance == 0, NA),
-                Sample = stringr::str_remove(Sample_ID, '_.$'),
+                Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, '^.*_.*_'),
                 log2Abundance = log2(Abundance)) %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display original data distribution
 ggplot(metaTissueTab, aes(x=Sample_ID, y=Abundance)) +
@@ -1987,9 +2052,9 @@ metaTissueVsnTab <- tidyr::pivot_longer(abunVsnMat,
                                         cols = -'Feature_ID',
                                         names_to = 'Sample_ID',
                                         values_to = 'vsnAbundance') %>%
-  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, '_.$'),
+  dplyr::mutate(Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, '^.*_.*_')) %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display VSN normalized data
 ggplot(metaTissueVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
@@ -2028,9 +2093,9 @@ metaTissueMediTab <- limma::normalizeBetweenArrays(abunMat, method = 'scale') %>
                       names_to = 'Sample_ID',
                       values_to = 'mediAbundance') %>%
   dplyr::mutate(mediAbundance = log2(mediAbundance),
-                Sample = stringr::str_remove(Sample_ID, '_.$'),
+                Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, '^.*_.*_')) %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display median normalized data
 ggplot(metaTissueMediTab, aes(x=Sample_ID, y=mediAbundance)) +
@@ -2167,7 +2232,7 @@ Display distribution of merged data
 merge_metaTissueVsnTab <- dplyr::group_by(metaTissueVsnTab, Feature_ID, Sample) %>%
   dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %>%
   dplyr::ungroup() %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Sample')
 
 # Incorporate MZ/RT information
 MZRT <- dplyr::select(metaTissueTab, `MZ/RT`, Feature_ID) %>%
@@ -2204,13 +2269,21 @@ merge_metaTissueVsnTab <- dplyr::filter(merge_metaTissueVsnTab, !Feature_ID %in%
 
 # Convert tidy long table to SummarizedExperiment object and save it for further analysis
 metaTissueVsn <- df2SummExp(merge_metaTissueVsnTab, row_id = 'Feature_ID', col_id = 'Sample',
-                            values = 'vsnAbundance', row_anno = 'MZ/RT', col_anno = anno)
-# saveRDS(metaTissueVsn, './data/AG_Hopf/metaTissueVsn.rds')
+                            values = 'vsnAbundance', row_anno = 'MZ/RT', col_anno = c(smpAnno, 'TumorPurity'))
+# Save vsn normalized data
+saveRDS(metaTissueVsn, './data/MethodDev/AG_Hopf/metaTissueVsn.rds')
 ```
 
 Display dimensions of filtered dataset
 ```{r}
 dim(metaTissueVsn)
+```
+
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+vsn::meanSdPlot(as.matrix(assay(metaTissueVsn)), ranks = T, plot = F, bins = 30)$gg +
+  labs(x = 'Rank of mean', y = 'SD') +
+  th
 ```
 
 PCA
@@ -2242,7 +2315,7 @@ ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Condition, shape=Recurrence,
   th
 ```
 <br/>
--> PCA mainly captures source of variation in tissue conditions.
+-> PCA mainly captures source of variation in tissue conditions, which indicates decent data quality.
 <br/>
 <br/>
 
@@ -2260,14 +2333,14 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-```{r message = F, eval = F}
+```{r message = F}
 # Store median normalized data for computing log(FC) later
 # Merge triplicates (take mean)
 merge_metaTissueMediTab <- dplyr::group_by(metaTissueMediTab, Feature_ID, Sample) %>%
   dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %>%
   dplyr::ungroup() %>%
   dplyr::filter(!Feature_ID %in% rmFeats) %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(metaTissueTab, `MZ/RT`, Feature_ID) %>%
@@ -2275,16 +2348,17 @@ MZRT <- dplyr::select(metaTissueTab, `MZ/RT`, Feature_ID) %>%
 merge_metaTissueMediTab <- dplyr::left_join(merge_metaTissueMediTab, MZRT,
                                             by = 'Feature_ID')
 
-ggplot(merge_metaTissueMediTab, aes(x=Sample, y=mediAbundance)) +
-  geom_boxplot() +
-  labs(y = 'Normalized abundance', title = 'Median normalized data') +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+# ggplot(merge_metaTissueMediTab, aes(x=Sample, y=mediAbundance)) +
+#   geom_boxplot() +
+#   labs(y = 'Normalized abundance', title = 'Median normalized data') +
+#   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Convert tidy long table to SummarizedExperiment object and save it for further
 # analysis
 metaTissueMedi <- df2SummExp(merge_metaTissueMediTab, row_id = 'Feature_ID', col_id = 'Sample',
-                             values = 'mediAbundance', row_anno = 'MZ/RT', col_anno = anno)
-saveRDS(metaTissueMedi, './data/AG_Hopf/metaTissueMedi.rds')
+                             values = 'mediAbundance', row_anno = 'MZ/RT', col_anno = c(smpAnno, 'TumorPurity'))
+# Save median normalized data
+saveRDS(metaTissueMedi, './data/MethodDev/AG_Hopf/metaTissueMedi.rds')
 ```
 
 
@@ -2297,33 +2371,25 @@ saveRDS(metaTissueMedi, './data/AG_Hopf/metaTissueMedi.rds')
 ```{r message = F}
 # Load dataset
 lipTissueTab <- read.table(
-  './data/AG_Hopf/TISSUE_LIPIDOMICS_20230222.Feature list.txt',
+  './data/MethodDev/AG_Hopf/TISSUE_LIPIDOMICS_20230222.Feature list.txt',
   header = T, sep = '\t', dec = ',') %>%
   dplyr::mutate(m.z.meas. = paste0(m.z.meas., '/', RT..min.)) %>%
   dplyr::select(-RT..min., -starts_with('Blank'), -starts_with('QC')) %>%
   dplyr::rename(`MZ/RT` = m.z.meas.)
 
 # Prepare sample ID table for changing sample names
-smpIDs <- readxl::read_excel('./data/AG_Hopf/TISSUE.Sample IDs.xlsx') %>%
+smpIDs <- readxl::read_excel('./data/MethodDev/AG_Hopf/TISSUE.Sample IDs.xlsx') %>%
   dplyr::select(`Number on MS vials`, `Code from OpenBis`) %>%
   dplyr::rename(Sample_ID = `Number on MS vials`,
-                Identifier = `Code from OpenBis`) %>%
-  dplyr::mutate(Sample_ID = paste0('Sample', Sample_ID),
-                Identifier = stringr::str_remove(Identifier, '_2'))
-smpIDs2 <- readRDS('./data/AG_Hell/metaTissueNorm.rds') %>%
-  colData() %>%
-  tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::select(Identifier, Sample) %>%
-  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3'))
-smpIDs <- dplyr::left_join(smpIDs, smpIDs2, by = 'Identifier')
-rm(smpIDs2)
+                Aliquot = `Code from OpenBis`) %>%
+  dplyr::mutate(Sample_ID = paste0('Sample', Sample_ID))
 
 # Take care of sample and feature identifications
 colNam <- colnames(lipTissueTab) %>%
   stringr::str_remove_all('\\._|_lipids|batch|_pos_.*')
 smpNam <- colNam[2:length(colNam)] %>%
   stringr::str_remove('_.$') %>%
-  plyr::mapvalues(smpIDs$Sample_ID, smpIDs$Sample)
+  plyr::mapvalues(smpIDs$Sample_ID, smpIDs$Aliquot)
 colNam[2:length(colNam)] <- paste0(smpNam, '_', c(rep(1, length(smpNam)/3),
                                                   rep(2, length(smpNam)/3),
                                                   rep(3, length(smpNam)/3)))
@@ -2359,11 +2425,6 @@ cat('The following features have duplication:\n',
 
 Display distribution of original data
 ```{r}
-# Load sample metadata from preprocessed Targeted Metabolomics SE object
-smpAnno <- colData(readRDS('./data/AG_Hell/metaTissueNorm.rds')) %>%
-  tibble::as_tibble(rownames = 'Sample') %>%
-  dplyr::mutate(Identifier = stringr::str_remove(Identifier, '_3$'))
-
 # Convert messy wide data to tidy long table
 lipTissueTab <- tidyr::pivot_longer(lipTissueTab,
                                     cols = -c('MZ/RT', 'Feature_ID'),
@@ -2373,10 +2434,10 @@ lipTissueTab <- tidyr::pivot_longer(lipTissueTab,
   # might be extremely small or normal values and perform log2-transformation on
   # feature abundance
   dplyr::mutate(Abundance = replace(Abundance, Abundance == 0, NA),
-                Sample = stringr::str_remove(Sample_ID, '_.$'),
+                Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, '^.*_.*_'),
                 log2Abundance = log2(Abundance)) %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display original data distribution
 ggplot(lipTissueTab, aes(x=Sample_ID, y=Abundance)) +
@@ -2418,9 +2479,9 @@ lipTissueVsnTab <- tidyr::pivot_longer(abunVsnMat,
                                        cols = -'Feature_ID',
                                        names_to = 'Sample_ID',
                                        values_to = 'vsnAbundance') %>%
-  dplyr::mutate(Sample = stringr::str_remove(Sample_ID, '_.$'),
+  dplyr::mutate(Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, '^.*_.*_')) %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display VSN normalized data
 ggplot(lipTissueVsnTab, aes(x=Sample_ID, y=vsnAbundance)) +
@@ -2439,9 +2500,9 @@ lipTissueMediTab <- limma::normalizeBetweenArrays(abunMat, method = 'scale') %>%
                       names_to = 'Sample_ID',
                       values_to = 'mediAbundance') %>%
   dplyr::mutate(mediAbundance = log2(mediAbundance),
-                Sample = stringr::str_remove(Sample_ID, '_.$'),
+                Aliquot = stringr::str_remove(Sample_ID, '_\\d$'),
                 Batch = stringr::str_remove(Sample_ID, '^.*_.*_')) %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Aliquot')
 
 # Display median normalized data
 ggplot(lipTissueMediTab, aes(x=Sample_ID, y=mediAbundance)) +
@@ -2723,7 +2784,7 @@ Display distribution of merged data
 merge_lipTissueVsnTab <- dplyr::group_by(lipTissueVsnTab, Feature_ID, Sample) %>%
   dplyr::summarise(vsnAbundance = mean(vsnAbundance, na.rm = T)) %>%
   dplyr::ungroup() %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Sample')
 
 # Incorporate MZ/RT information
 MZRT <- dplyr::select(lipTissueTab, `MZ/RT`, Feature_ID) %>%
@@ -2760,13 +2821,21 @@ merge_lipTissueVsnTab <- dplyr::filter(merge_lipTissueVsnTab, !Feature_ID %in% r
 
 # Convert tidy long table to SummarizedExperiment object and save it for further analysis
 lipTissueVsn <- df2SummExp(merge_lipTissueVsnTab, row_id = 'Feature_ID', col_id = 'Sample',
-                           values = 'vsnAbundance', row_anno = 'MZ/RT', col_anno = anno)
-# saveRDS(lipTissueVsn, './data/AG_Hopf/lipTissueVsn.rds')
+                           values = 'vsnAbundance', row_anno = 'MZ/RT', col_anno = c(smpAnno, 'TumorPurity'))
+# Save vsn normalized data
+saveRDS(lipTissueVsn, './data/MethodDev/AG_Hopf/lipTissueVsn.rds')
 ```
 
 Display dimensions of filtered dataset
 ```{r}
 dim(lipTissueVsn)
+```
+
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+vsn::meanSdPlot(as.matrix(assay(lipTissueVsn)), ranks = T, plot = F)$gg +
+  labs(x = 'Rank of mean', y = 'SD') +
+  th
 ```
 
 PCA
@@ -2796,7 +2865,7 @@ ggplot(pcVsnTab, aes(x=PC1, y=PC2, col=Condition, shape=Recurrence,
   th
 ```
 <br/>
--> PCA mainly captures source of variation in tissue conditions. 
+-> PCA mainly captures source of variation in tissue conditions, which indicates decent data quality. 
 <br/>
 <br/>
 
@@ -2814,14 +2883,14 @@ ggplot(varTab, aes(x=PC, y=Var_explained*100)) +
   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-```{r message = F, eval = F}
+```{r message = F}
 # Store median normalized data for computing log(FC) later
 # Merge triplicates (take mean)
 merge_lipTissueMediTab <- dplyr::group_by(lipTissueMediTab, Feature_ID, Sample) %>%
   dplyr::summarise(mediAbundance = mean(mediAbundance, na.rm = T)) %>%
   dplyr::ungroup() %>%
   dplyr::filter(!Feature_ID %in% rmFeats) %>%
-  dplyr::left_join(smpAnno, by = 'Sample')
+  dplyr::left_join(summMetadat, by = 'Sample')
 
 # Incorporate m/z_RT information
 MZRT <- dplyr::select(lipTissueTab, `MZ/RT`, Feature_ID) %>%
@@ -2829,80 +2898,14 @@ MZRT <- dplyr::select(lipTissueTab, `MZ/RT`, Feature_ID) %>%
 merge_lipTissueMediTab <- dplyr::left_join(merge_lipTissueMediTab, MZRT,
                                            by = 'Feature_ID')
 
-ggplot(merge_lipTissueMediTab, aes(x=Sample, y=mediAbundance)) +
-  geom_boxplot() +
-  labs(y = 'Normalized abundance', title = 'Median normalized data') +
-  th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+# ggplot(merge_lipTissueMediTab, aes(x=Sample, y=mediAbundance)) +
+#   geom_boxplot() +
+#   labs(y = 'Normalized abundance', title = 'Median normalized data') +
+#   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Convert tidy long table to SummarizedExperiment object and save it for further
 # analysis
 lipTissueMedi <- df2SummExp(merge_lipTissueMediTab, row_id = 'Feature_ID', col_id = 'Sample',
-                             values = 'mediAbundance', row_anno = 'MZ/RT', col_anno = anno)
-saveRDS(lipTissueMedi, './data/AG_Hopf/lipTissueMedi.rds')
+                             values = 'mediAbundance', row_anno = 'MZ/RT', col_anno = c(smpAnno, 'TumorPurity'))
+saveRDS(lipTissueMedi, './data/MethodDev/AG_Hopf/lipTissueMedi.rds')
 ```
-
-
-
-
-# Abundance comparisons
-Tissue vs Plasma:\
-Investigate overall differences of Metabolomics and Lipidomics abundance between
-Tissue and Plasma samples
-```{r}
-# Load normalized data
-metaTissue <- readRDS('./data/AG_Hopf/metaTissueVsn.rds')
-metaPlasma <- readRDS('./data/AG_Hopf/metaPlasmaVsn.rds')
-lipTissue <- readRDS('./data/AG_Hopf/lipTissueVsn.rds')
-lipPlasma <- readRDS('./data/AG_Hopf/lipPlasmaVsn.rds')
-```
-
-## Metabolomics
-
-```{r}
-# Convert SummarizedExperiment objects to tables for plotting
-# Tissue Metabolomics
-metaTissue4Plot <- summExp2df(metaTissue, assay = 'vsnAbundance',
-                              row_id = 'Metabolite', col_id = 'Sample') %>%
-  dplyr::select(c('Metabolite', 'Sample', 'Value')) %>%
-  dplyr::mutate(Sample_type = 'Tissue', Sample = paste0('Tissue_', Sample))
-
-# Plasma Metabolomics
-metaPlasma4Plot <- summExp2df(metaPlasma, assay = 'vsnAbundance',
-                              row_id = 'Metabolite', col_id = 'Sample') %>%
-  dplyr::select(c('Metabolite', 'Sample', 'Value')) %>%
-  dplyr::mutate(Sample_type = 'Plasma', Sample = paste0('Plasma_', Sample))
-
-# Concatenate two tables
-metaTab4Plot <- rbind(metaTissue4Plot, metaPlasma4Plot)
-
-ggplot(metaTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
-  geom_boxplot(width = 0.7) +
-  labs(y = 'Metabolite abundance', title = 'Metabolomics', col = 'Sample type') +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
-```
-
-## Lipidomics
-
-```{r}
-# Tissue Lipidomics
-lipTissue4Plot <- summExp2df(lipTissue, assay = 'vsnAbundance',
-                             row_id = 'Lipid', col_id = 'Sample') %>%
-  dplyr::select(c('Lipid', 'Sample', 'Value')) %>%
-  dplyr::mutate(Sample_type = 'Tissue', Sample = paste0('Tissue_', Sample))
-
-# Plasma Lipidomics
-lipPlasma4Plot <- summExp2df(lipPlasma, assay = 'vsnAbundance',
-                             row_id = 'Lipid', col_id = 'Sample') %>%
-  dplyr::select(c('Lipid', 'Sample', 'Value')) %>%
-  dplyr::mutate(Sample_type = 'Plasma', Sample = paste0('Plasma_', Sample))
-
-# Concatenate two tables
-lipTab4Plot <- rbind(lipTissue4Plot, lipPlasma4Plot)
-
-ggplot(lipTab4Plot, aes(x=Sample, y=Value, col=Sample_type)) +
-  geom_boxplot(width = 0.7) +
-  labs(y = 'Lipid abundance', title = 'Lipidomics', col = 'Sample type') +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
-```
-The overall metabolite and lipid levels of Plasma samples are higher than those
-of Tissue samples.

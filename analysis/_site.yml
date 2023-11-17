@@ -1,7 +1,7 @@
-name: SMART-CARE_LungCancer_MethodDev
+name: SMART-CARE_LungCancer
 output_dir: ../docs
 navbar:
-  title: 'SMART-CARE: Lung Cancer Method Development Cohort'
+  title: 'SMART-CARE: Lung Cancer'
   # left:
   # - text: Home
   #   href: index.html
@@ -12,7 +12,7 @@ navbar:
   right:
   - icon: fab fa-github
     text: Source code
-    href: https://github.com/LiaoQianWu/SMART-CARE_LungCancer_MethodDev
+    href: https://github.com/LiaoQianWu/SMART-CARE_LungCancer
 output:
   workflowr::wflow_html:
     toc: yes
