@@ -100,14 +100,9 @@ aliquotMetadat <- dplyr::slice(aliquotMetadat, -c(1:3)) %>%
                 Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_DIS_S_'),
                 Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_S_'),
                 Sample = stringr::str_remove(Sample, '^/THRX_SPACE/THRX_DB/SC_DIS_'),
-                Sample = dplyr::case_when(Sample == 'SDIR55_TU' ~ 'PDIR55_TU',
-                                          Sample == 'SDIR55_NG' ~ 'PDIR55_NG',
-                                          !Sample %in% c('SDIR55_TU', 'SDIR55_NG') ~ Sample),
                 Cohort = dplyr::case_when(Cohort == 'method establishment' ~ 'MethodDev',
                                           Cohort == 'DISCOVERY_COHORT' ~ 'Discovery'),
-                TumorPurity = as.numeric(TumorPurity),
-                Sample = dplyr::case_when(grepl('^SC_DIS_A_Y4W4L7_P_V2', Aliquot) ~ 'Y4W4L7_V2',
-                                          !grepl('^SC_DIS_A_Y4W4L7_P_V2', Aliquot) ~ Sample)) %>%
+                TumorPurity = as.numeric(TumorPurity)) %>%
   dplyr::filter(To %in% c('KRIJGSVELD', 'KLINGMUELLER'))
 # Prepare aliquot metadata containing tumor purity information
 tumorPurityInfo <- dplyr::select(aliquotMetadat, Aliquot, Sample, TumorPurity)
