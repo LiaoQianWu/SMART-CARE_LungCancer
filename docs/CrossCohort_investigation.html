@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Qian-Wu Liao" />
+
+
+<title>Cross-cohort analysis</title>
+
+<script src="site_libs/header-attrs-2.23/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.4.0/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.0/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">SMART-CARE: Lung Cancer</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Cross-cohort analysis</h1>
+<h4 class="author">Qian-Wu Liao</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2023-12-06
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong> <code>SMART-CARE_LungCancer/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.0). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20230425code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20230425)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20230425code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20230425)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
+</p>
+</div>
+<div id="strongFilepathsstrongabsolute" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Using absolute paths to the files within your workflowr project makes it
+difficult for you and others to run your code on a different machine.
+Change the absolute path(s) below to the suggested relative path(s) to
+make your code more reproducible.
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+absolute
+</th>
+<th style="text-align:left;">
+relative
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+/Users/qianwu/Desktop/SMART-CARE_LungCancer
+</td>
+<td style="text-align:left;">
+.
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree7f8311b18786948e24e79c7cdbe7bc7780db99c6targetblank7f8311ba">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/7f8311b18786948e24e79c7cdbe7bc7780db99c6" target="_blank">7f8311b</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree7f8311b18786948e24e79c7cdbe7bc7780db99c6targetblank7f8311ba"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/7f8311b18786948e24e79c7cdbe7bc7780db99c6" target="_blank">7f8311b</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    analysis/.DS_Store
+    Ignored:    code/.DS_Store
+    Ignored:    data/.DS_Store
+    Ignored:    output/.DS_Store
+
+Untracked files:
+    Untracked:  analysis/feature_selection.Rmd
+    Untracked:  code/archive/
+    Untracked:  code/dataset_list.R
+    Untracked:  code/workflowr_commands.R
+    Untracked:  data/Discovery/
+    Untracked:  data/MethodDev/
+    Untracked:  data/aliquot_metadata.xlsx
+    Untracked:  data/patient_metadata.xlsx
+    Untracked:  data/sample_metadata.xlsx
+    Untracked:  output/MethodDev/
+    Untracked:  output/SC_meeting/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/CrossCohort_investigation.Rmd</code>) and HTML
+(<code>docs/CrossCohort_investigation.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/dbf3e4faea41b901a536f2cc5e8bb85955af4cdb/analysis/CrossCohort_investigation.Rmd" target="_blank">dbf3e4f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-05
+</td>
+<td>
+Assess data quality and result reproducibility
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/bba10115517c46c67704f4f5a2d707d3172ef1a5/analysis/CrossCohort_investigation.Rmd" target="_blank">bba1011</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-11-17
+</td>
+<td>
+Rearrange file locations and redo preprocessing of all method
+development datasets
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<p><font size='4'> Description: Investigate reproducibility of data and
+results between Method Development and Discovery lung cancer patient
+cohorts. </font></p>
+<p>Load libraries</p>
+<pre class="r"><code>library(ggrepel)
+library(ggvenn)
+library(SummarizedExperiment)
+library(tidyverse)
+# Load user-defined functions
+source(&#39;./code/misc.R&#39;)
+
+# Set plot theme
+th &lt;- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = &#39;bold&#39;),
+        axis.text = element_text(face = &#39;bold&#39;),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))</code></pre>
+<pre class="r"><code>doFeatAssoTest &lt;- function(data, meta_var, subset = NULL, prot_gene_tbl = NULL,
+                           method = &#39;proDA&#39;) {
+  #&#39; Conduct univariate association test (t-test for now) between each feature and
+  #&#39; sample metadata variable of interest
+  #&#39; 
+  #&#39; Parameters
+  #&#39; data: A SummarizedExperiment object that contains the data matrix and metadata
+  #&#39; meta_var: A character specifying the sample metadata variable that has two
+  #&#39; levels for conducting t-test
+  #&#39; subset: A vector of length 2 containing characters specifying the sample metadata
+  #&#39; variable and one of its level to split the dataset. Default is NULL, meaning
+  #&#39; the whole dataset is used
+  #&#39; prot_gene_tbl: A table containing proteins and their encoding genes for providing
+  #&#39; gene names in a resulting table. Default is NULL. The column for proteins should
+  #&#39; be named &#39;Proteins&#39; and for genes should be named &#39;Genes&#39;. Furthermore, only
+  #&#39; the first protein and gene should be kept if there are more than one
+  #&#39; method: A character specifying the method used to conduct t-test, which should
+  #&#39; be one of &#39;proDA&#39; (default) and &#39;limma&#39;
+  #&#39; 
+  #&#39; Return
+  #&#39; assoTestRes: A table of feature significance test and statistical results
+  
+  # Check arguments
+  # meta_var should be length of 1 and in sample metadata
+  # subset should be length of 2 and in sample metadata
+  # method should be one of &#39;proDA&#39; and limma&#39;&#39;
+  
+  # Subset samples if specified
+  if (!is.null(subset)) {
+    subsetIdx &lt;- which(colData(data)[[subset[1]]] == subset[2])
+    data &lt;- data[, subsetIdx]
+  }
+  datMat &lt;- SummarizedExperiment::assay(data)
+  smpAnno &lt;- tibble::as_tibble(colData(data), rownames = &#39;Sample&#39;)
+  
+  # Perform analysis
+  if (method == &#39;proDA&#39;) {
+    # Fit linear probabilistic dropout model to normalized data
+    fit &lt;- proDA(datMat, design = ~ smpAnno[[meta_var]])
+    diffTerm &lt;- proDA::result_names(fit)[2]
+    assoTestRes &lt;- proDA::test_diff(fit, contrast = diffTerm, sort_by = &#39;pval&#39;) %&gt;%
+      dplyr::select(name, pval, adj_pval, diff) %&gt;%
+      dplyr::rename(Feature = name, pVal = pval, pValAdj = adj_pval, logFC = diff)
+  } else if (method == &#39;limma&#39;) {
+    design &lt;- model.matrix(~ smpAnno[[meta_var]])
+    fit &lt;- limma::lmFit(datMat, design = design)
+    fit &lt;- limma::eBayes(fit)
+    assoTestRes &lt;- limma::topTable(fit, coef = 2, number = Inf) %&gt;%
+      tibble::as_tibble(rownames = &#39;Feature&#39;) %&gt;%
+      dplyr::select(Feature, P.Value, adj.P.Val, logFC) %&gt;%
+      dplyr::rename(pVal = P.Value, pValAdj = adj.P.Val)
+  }
+  assoTestRes &lt;- dplyr::mutate(assoTestRes,
+                               pVal = as.numeric(formatC(pVal, format = &#39;g&#39;, digits = 3)),
+                               pValAdj = as.numeric(formatC(pValAdj, format = &#39;g&#39;, digits = 3)))
+  # Include feature 
+  if (!is.null(prot_gene_tbl)) {
+    assoTestRes &lt;- dplyr::mutate(assoTestRes, Gene = plyr::mapvalues(Feature,
+                                                                     from = prot_gene_tbl$Proteins,
+                                                                     to = prot_gene_tbl$Genes,
+                                                                     warn_missing = F)) %&gt;%
+      dplyr::relocate(Gene, .after = Feature)
+  }
+  
+  return(assoTestRes)
+}
+
+# data1 &lt;- proTissue_Discovery
+# data2 &lt;- proTissue_MethodDev
+# name1 &lt;- &#39;Discovery&#39;
+# name2 &lt;- &#39;MethodDev&#39;
+# meta_var &lt;- &#39;Recurrence&#39;
+# subset &lt;- c(&#39;Condition&#39;, &#39;Tumor&#39;)
+# method &lt;- &#39;proDA&#39;
+# prot_gene_tbl &lt;- featInfo
+# alpha &lt;- 0.05
+# num_topSigFeats &lt;- 6
+# plot_pVal &lt;- T
+# plot_topSigFeats &lt;- T
+# plot_logFC &lt;- T
+summarizeFeatAssoRes &lt;- function(data1, data2, name1, name2, meta_var, subset = NULL,
+                                 prot_gene_tbl = NULL, method = &#39;proDA&#39;, alpha = 0.05,
+                                 num_topSigFeats = 6, plot_pVal = T, plot_topSigFeats = T,
+                                 plot_logFC = T) {
+  #&#39; Conduct univariate analysis (t-test for now) between features and sample metadata
+  #&#39; variable of interest, and combine and tidy up significance test and statistical
+  #&#39; results (p-values, top significant features, and log fold changes) into tables for making plots
+  #&#39; 
+  #&#39; Parameters
+  #&#39; data1, data2: SummarizedExperiment objects that contain the data matrices and metadata
+  #&#39; name1, name2: Characters indicating the dataset names in the plot legend
+  #&#39; meta_var: A character specifying the sample metadata variable that has two
+  #&#39; levels for grouping samples to conduct t-test
+  #&#39; subset: A vector of length 2 containing characters specifying the sample metadata
+  #&#39; variable and one of its level to split the dataset. Default is NULL, meaning
+  #&#39; the whole dataset is used
+  #&#39; prot_gene_tbl: A table containing proteins and their encoding genes for providing
+  #&#39; and labeling gene names in plots. Default is NULL. The column for proteins
+  #&#39; should be named &#39;Proteins&#39; and for genes should be named &#39;Genes&#39;. Furthermore,
+  #&#39; only the first protein and gene should be kept if there are more than one
+  #&#39; method: A character specifying the method used to conduct t-test, which should
+  #&#39; be one of &#39;proDA&#39; (default) and &#39;limma&#39;
+  #&#39; alpha: A numeric value specifying the significance level for summarizing p-value
+  #&#39; information. Default is 0.05
+  #&#39; num_topSigFeats: A numeric value specifying the number of top significant features
+  #&#39; to visualize. Default is 6
+  #&#39; plot_pVal: A logical variable indicating whether to generate the summarized
+  #&#39; p-value table for plotting. Default is TRUE
+  #&#39; plot_topSigFeats: A logical variable indicating whether to generate the summarized
+  #&#39; table of top significant features based on &#39;data1&#39; for plotting. Default is TRUE
+  #&#39; plot_logFC: A logical variable indicating whether to generate the summarized
+  #&#39; log(FC) table for plotting. Default is TRUE
+  #&#39; 
+  #&#39; Return
+  #&#39; A list containing the following components:
+  #&#39; tbl_featAsso1: A table containing association test results of &#39;data1&#39;
+  #&#39; tbl_featAsso2: A table containing association test results of &#39;data2&#39;
+  #&#39; tbl_pVal: A table containing summarized significance test results, labeling
+  #&#39; information, etc. for making plots
+  #&#39; tbl_topSigFeats: A table containing abundances of top significant features,
+  #&#39; grouping information, etc. for making plots
+  #&#39; tbl_logFC: A table containing summarized log(FC) results, coloring information,
+  #&#39; etc. for making plots
+  
+  # Extract common features between two datasets
+  # Select first protein as representative if there are more than one
+  rownames(data1) &lt;- stringr::str_remove(rownames(data1), &#39;;.*&#39;)
+  rownames(data2) &lt;- stringr::str_remove(rownames(data2), &#39;;.*&#39;)
+  commonFeats &lt;- intersect(rownames(data1), rownames(data2))
+  
+  # Compute associations between features and sample metadata variable of interest
+  # and keep only results of common features
+  assoTestRes1 &lt;- doFeatAssoTest(data1, meta_var = meta_var, subset = subset,
+                                 prot_gene_tbl = prot_gene_tbl, method = method)
+  assoTestRes_dat1 &lt;- dplyr::filter(assoTestRes1, Feature %in% commonFeats)
+  assoTestRes2 &lt;- doFeatAssoTest(data2, meta_var = meta_var, subset = subset,
+                                 prot_gene_tbl = prot_gene_tbl, method = method)
+  assoTestRes_dat2 &lt;- dplyr::filter(assoTestRes2, Feature %in% commonFeats)
+  
+  # Summarize resulting p-Values
+  if (plot_pVal) {
+    # Prepare feature significance information
+    tmp_assoTestRes_dat1 &lt;- dplyr::select(assoTestRes_dat1, Feature, pVal) %&gt;%
+      dplyr::mutate(Sig_dat1 = dplyr::case_when(pVal &lt;= alpha ~ &#39;Yes&#39;,
+                                                pVal &gt; alpha ~ &#39;No&#39;)) %&gt;%
+      dplyr::rename(pVal_dat1 = pVal)
+    tmp_assoTestRes_dat2 &lt;- dplyr::select(assoTestRes_dat2, Feature, pVal) %&gt;%
+      dplyr::mutate(Sig_dat2 = dplyr::case_when(pVal &lt;= alpha ~ &#39;Yes&#39;,
+                                                pVal &gt; alpha ~ &#39;No&#39;)) %&gt;%
+      dplyr::rename(pVal_dat2 = pVal)
+    # Combine association test results and all needed information into a table
+    combinedAssoTestRes_pVal &lt;- dplyr::left_join(tmp_assoTestRes_dat1, tmp_assoTestRes_dat2,
+                                                 by = &#39;Feature&#39;) %&gt;%
+      # Include coloring information
+      dplyr::mutate(Significance = dplyr::case_when(
+        Sig_dat1 == &#39;Yes&#39; &amp; Sig_dat2 == &#39;Yes&#39; ~ &#39;Sig. in Both&#39;,
+        Sig_dat1 == &#39;Yes&#39; &amp; Sig_dat2 == &#39;No&#39; ~ paste(&#39;Sig. in&#39;, name1),
+        Sig_dat1 == &#39;No&#39; &amp; Sig_dat2 == &#39;Yes&#39; ~ paste(&#39;Sig. in&#39;, name2),
+        Sig_dat1 == &#39;No&#39; &amp; Sig_dat2 == &#39;No&#39; ~ &#39;Not Sig.&#39;
+      ),
+      Significance = factor(Significance, levels = c(&#39;Sig. in Both&#39;,
+                                                     paste(&#39;Sig. in&#39;, name1),
+                                                     paste(&#39;Sig. in&#39;, name2),
+                                                     &#39;Not Sig.&#39;)))
+    # Include labeling information
+    if (is.null(prot_gene_tbl)) {
+      combinedAssoTestRes_pVal &lt;- dplyr::mutate(combinedAssoTestRes_pVal,
+                                                Label = dplyr::case_when(
+                                                  Significance == &#39;Sig. in Both&#39; ~ Feature
+                                                ))
+    } else {
+      combinedAssoTestRes_pVal &lt;- dplyr::mutate(combinedAssoTestRes_pVal,
+                                                Gene = plyr::mapvalues(
+                                                  Feature,
+                                                  from = prot_gene_tbl$Proteins,
+                                                  to = prot_gene_tbl$Genes,
+                                                  warn_missing = F
+                                                ),
+                                                Label = dplyr::case_when(
+                                                  Significance == &#39;Sig. in Both&#39; ~ Gene
+                                                ))
+    }
+    # Reorder points in graph
+    significance &lt;- combinedAssoTestRes_pVal$Significance
+    combinedAssoTestRes_pVal &lt;- combinedAssoTestRes_pVal[c(which(significance == &#39;Not Sig.&#39;),
+                                                           which(significance == &#39;Sig. in Both&#39;),
+                                                           which(significance == paste(&#39;Sig. in&#39;, name1)),
+                                                           which(significance == paste(&#39;Sig. in&#39;, name2))),]
+  } else {
+    combinedAssoTestRes_pVal &lt;- NULL
+  }
+  
+  # Summarize top significant features
+  # Check if there is any common significant feature
+    sigFeats1 &lt;- dplyr::filter(assoTestRes_dat1, pVal &lt;= alpha) %&gt;%
+      dplyr::arrange() %&gt;%
+      dplyr::pull(Feature)
+    sigFeats2 &lt;- dplyr::filter(assoTestRes_dat2, pVal &lt;= alpha) %&gt;%
+      dplyr::arrange() %&gt;%
+      dplyr::pull(Feature)
+    sigFeats &lt;- intersect(sigFeats1, sigFeats2)
+  if (plot_topSigFeats &amp; (length(sigFeats) != 0)) {
+    # Retrieve top common significant features based on &#39;data1&#39;
+    topSigFeats &lt;- intersect(sigFeats1, sigFeats2)
+    if (length(topSigFeats) &gt; num_topSigFeats) {
+      topSigFeats &lt;- topSigFeats[1:num_topSigFeats]
+    }
+    # Extract abundances of top common significant features and combine all needed
+    # information into a table
+    # Subset samples if specified
+    if (!is.null(subset)) {
+      data1 &lt;- data1[, which(colData(data1)[[subset[1]]] == subset[2])]
+      data2 &lt;- data2[, which(colData(data2)[[subset[1]]] == subset[2])]
+    }
+    # Prepare sample grouping information
+    smpGpInfo1 &lt;- tibble::as_tibble(colData(data1), rownames = &#39;Sample&#39;) %&gt;%
+      dplyr::select(Sample, all_of(meta_var))
+    smpGpInfo2 &lt;- tibble::as_tibble(colData(data2), rownames = &#39;Sample&#39;) %&gt;%
+      dplyr::select(Sample, all_of(meta_var))
+    # Prepare abundance information for top common significant features
+    topSigFeatTab1 &lt;- t(SummarizedExperiment::assay(data1)) %&gt;%
+      tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
+      dplyr::select(c(Sample, topSigFeats)) %&gt;%
+      tidyr::pivot_longer(cols = -&#39;Sample&#39;, names_to = &#39;Feature&#39;, values_to = &#39;Abundance&#39;) %&gt;%
+      dplyr::left_join(smpGpInfo1, by = &#39;Sample&#39;) %&gt;%
+      dplyr::mutate(DataName = name1)
+    topSigFeatTab2 &lt;- t(SummarizedExperiment::assay(data2)) %&gt;%
+      tibble::as_tibble(rownames = &#39;Sample&#39;) %&gt;%
+      dplyr::select(c(Sample, topSigFeats)) %&gt;%
+      tidyr::pivot_longer(cols = -&#39;Sample&#39;, names_to = &#39;Feature&#39;, values_to = &#39;Abundance&#39;) %&gt;%
+      dplyr::left_join(smpGpInfo2, by = &#39;Sample&#39;) %&gt;%
+      dplyr::mutate(DataName = name2)
+    # Combine all information
+    combinedTopSigFeatTab &lt;- dplyr::bind_rows(topSigFeatTab1, topSigFeatTab2) %&gt;%
+      # Include new grouping information
+      dplyr::mutate(newGroup = paste0(.data[[meta_var]], &#39;_&#39;, DataName))
+    # Create new feature names if feature annotations are provided
+    if (!is.null(prot_gene_tbl)) {
+      combinedTopSigFeatTab &lt;- dplyr::mutate(combinedTopSigFeatTab,
+                                             Gene = plyr::mapvalues(Feature,
+                                                                    from = prot_gene_tbl$Proteins,
+                                                                    to = prot_gene_tbl$Genes,
+                                                                    warn_missing = F),
+                                             newFeature = paste0(Feature, &#39; (&#39;, Gene, &#39;)&#39;),
+                                             newFeature = factor(newFeature,
+                                                                 levels = unique(newFeature)))
+    }
+  } else {
+    combinedTopSigFeatTab &lt;- NULL
+  }
+  
+  # Summarize resulting log(FC)
+  if (plot_logFC) {
+    # Prepare feature log(FC) information
+    tmp_assoTestRes_dat1 &lt;- dplyr::select(assoTestRes_dat1, Feature, logFC) %&gt;%
+      dplyr::mutate(Dir_dat1 = dplyr::case_when(logFC &gt; 0 ~ &#39;Up&#39;,
+                                                logFC &lt; 0 ~ &#39;Down&#39;)) %&gt;%
+      dplyr::rename(logFC_dat1 = logFC)
+    tmp_assoTestRes_dat2 &lt;- dplyr::select(assoTestRes_dat2, Feature, logFC) %&gt;%
+      dplyr::mutate(Dir_dat2 = dplyr::case_when(logFC &gt; 0 ~ &#39;Up&#39;,
+                                                logFC &lt; 0 ~ &#39;Down&#39;)) %&gt;%
+      dplyr::rename(logFC_dat2 = logFC)
+    # Combine association test results and all needed information into a table
+    combinedAssoTestRes_logFC &lt;- dplyr::left_join(tmp_assoTestRes_dat1, tmp_assoTestRes_dat2,
+                                                  by = &#39;Feature&#39;) %&gt;%
+      # Include coloring information
+      dplyr::mutate(Direction = dplyr::case_when(
+        Dir_dat1 == &#39;Up&#39; &amp; Dir_dat2 == &#39;Up&#39; ~ &#39;Up in Both&#39;,
+        Dir_dat1 == &#39;Down&#39; &amp; Dir_dat2 == &#39;Down&#39; ~ &#39;Down in Both&#39;,
+        Dir_dat1 == &#39;Up&#39; &amp; Dir_dat2 == &#39;Down&#39; ~ &#39;Inconsistent&#39;,
+        Dir_dat1 == &#39;Down&#39; &amp; Dir_dat2 == &#39;Up&#39; ~ &#39;Inconsistent&#39;
+      ),
+      Direction = factor(Direction, levels = c(&#39;Up in Both&#39;, &#39;Down in Both&#39;, &#39;Inconsistent&#39;)))
+    # Include gene annotations
+    if (!is.null(prot_gene_tbl)) {
+      combinedAssoTestRes_logFC &lt;- dplyr::mutate(combinedAssoTestRes_logFC,
+                                                 Gene = plyr::mapvalues(Feature,
+                                                                        from = prot_gene_tbl$Proteins,
+                                                                        to = prot_gene_tbl$Genes,
+                                                                        warn_missing = F))
+    }
+    # Reorder points in graph
+    direction &lt;- combinedAssoTestRes_logFC$Direction
+    combinedAssoTestRes_logFC &lt;- combinedAssoTestRes_logFC[c(which(direction == &#39;Inconsistent&#39;),
+                                                             which(direction == &#39;Down in Both&#39;),
+                                                             which(direction == &#39;Up in Both&#39;)),]
+  } else {
+    combinedAssoTestRes_logFC &lt;- NULL
+  }
+  
+  return(list(tbl_featAsso1 = assoTestRes1, tbl_featAsso2 = assoTestRes2,
+              tbl_pVal = combinedAssoTestRes_pVal, tbl_topSigFeats = combinedTopSigFeatTab,
+              tbl_logFC = combinedAssoTestRes_logFC))
+}</code></pre>
+<div id="tissue-dia-proteomics" class="section level1">
+<h1>Tissue DIA Proteomics</h1>
+<p>Metadata-assisted quality assessment: Check association of tissue
+type-related feature significance between Discovery and Method
+Development datasets</p>
+<div id="ag-krijgsveld" class="section level2">
+<h2>AG Krijgsveld</h2>
+<p>Display association of tissue type-related feature significance
+between Discovery and Method Development DIA Proteomics generated by AG
+Krijgsveld<br />
+<strong>p-values (significance level = 0.05)</strong></p>
+<pre class="r"><code># Load normalized data
+proTissue_Discovery &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/proTissueVsn.rds&#39;)
+proTissue_MethodDev &lt;- readRDS(&#39;./data/MethodDev/AG_Krijgsveld/new_proTissueVsn.rds&#39;)
+# Prepare protein-gene table for providing gene names
+featInfo &lt;- tibble::as_tibble(rowData(proTissue_Discovery), rownames = &#39;Proteins&#39;) %&gt;%
+  dplyr::select(Proteins, Genes) %&gt;%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, &#39;;.*&#39;),
+                Genes = stringr::str_remove(Genes, &#39;;.*&#39;))
+
+# Prepare summarized tables of comparison between Tumor and Normal tissue samples
+condiFeatAssoTabs_Krij &lt;- summarizeFeatAssoRes(proTissue_Discovery, proTissue_MethodDev,
+                                               &#39;Discovery&#39;, &#39;MethodDev&#39;, meta_var = &#39;Condition&#39;,
+                                               subset = NULL, method = &#39;proDA&#39;, alpha = 0.05,
+                                               prot_gene_tbl = featInfo)
+featAssoTabs &lt;- condiFeatAssoTabs_Krij
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.8) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;darkgreen&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;-log10(pVal) of Discovery Cohort&#39;, y = &#39;-log10(pVal) of MethodDev Cohort&#39;,
+       title = &#39;Tumor vs Normal: Tissue DIA Proteomics (AG Krijgsveld)&#39;) +
+  th #+ theme(axis.title = element_text(size = 22),</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-1-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>             # axis.text = element_text(size = 16),
+             # legend.title = element_text(size = 20), legend.text = element_text(size = 18))
+# ggsave(&#39;./output/SC_meeting/pVals_Dis_vs_MetDev_proTissue_condi_Krij.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+
+# Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_pVal$Significance == &#39;Sig. in Both&#39;) /
+                   sum(featAssoTabs$tbl_pVal$Significance != &#39;Not Sig.&#39;), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of significant results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 67.9% of significant results are consistent</code></pre>
+<p><strong>log(FC)</strong></p>
+<pre class="r"><code># Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.8) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;log(FC) of Discovery Cohort&#39;, y = &#39;log(FC) of MethodDev Cohort&#39;,
+       title = &#39;Tumor vs Normal: Tissue DIA Proteomics (AG Krijgsveld)&#39;) +
+  th #+ theme(axis.title = element_text(size = 22),</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-2-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>             # axis.text = element_text(size = 16),
+             # legend.title = element_text(size = 20), legend.text = element_text(size = 18))
+# ggsave(&#39;./output/SC_meeting/log(FC)_Dis_vs_MetDev_proTissue_condi_Krij.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+
+# Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_logFC$Direction != &#39;Inconsistent&#39;) /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 84.7% of results are consistent</code></pre>
+</div>
+<div id="ag-klingmüller" class="section level2">
+<h2>AG Klingmüller</h2>
+<p>Display association of tissue type-related feature significance
+between Discovery and Method Development DIA Proteomics generated by AG
+Klingmüller<br />
+<strong>p-values (significance level = 0.05)</strong></p>
+<pre class="r"><code># Load normalized data
+proTissue_Klin &lt;- readRDS(&#39;./data/MethodDev/AG_Klingmueller/proTissueVsn.rds&#39;)
+proTissue_Discovery &lt;- proTissue_Klin[, colData(proTissue_Klin)$Cohort == &#39;Discovery&#39;]
+proTissue_MethodDev &lt;- proTissue_Klin[, colData(proTissue_Klin)$Cohort == &#39;MethodDev&#39;]
+# Prepare protein-gene table for providing gene names
+featInfo &lt;- tibble::as_tibble(rowData(proTissue_Discovery), rownames = &#39;Proteins&#39;) %&gt;%
+  dplyr::rename(Genes = PG.Genes) %&gt;%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, &#39;;.*&#39;),
+                Genes = stringr::str_remove(Genes, &#39;;.*&#39;))
+
+# Prepare summarized tables of comparison between Tumor and Normal tissue samples
+condiFeatAssoTabs_Klin &lt;- summarizeFeatAssoRes(proTissue_Discovery, proTissue_MethodDev,
+                                               &#39;Discovery&#39;, &#39;MethodDev&#39;, meta_var = &#39;Condition&#39;,
+                                               subset = NULL, method = &#39;proDA&#39;, alpha = 0.05,
+                                               prot_gene_tbl = featInfo)
+featAssoTabs &lt;- condiFeatAssoTabs_Klin
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.8) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;darkgreen&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;-log10(pVal) of Discovery Cohort&#39;, y = &#39;-log10(pVal) of MethodDev Cohort&#39;,
+       title = &#39;Tumor vs Normal: Tissue DIA Proteomics (AG Klingmüller)&#39;) +
+  th #+ theme(axis.title = element_text(size = 22),</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-3-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>             # axis.text = element_text(size = 16),
+             # legend.title = element_text(size = 20), legend.text = element_text(size = 18))
+# ggsave(&#39;./output/SC_meeting/pVals_Dis_vs_MetDev_proTissue_condi_Klin.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+
+# Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_pVal$Significance == &#39;Sig. in Both&#39;) /
+                   sum(featAssoTabs$tbl_pVal$Significance != &#39;Not Sig.&#39;), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of significant results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 58.7% of significant results are consistent</code></pre>
+<p><strong>log(FC)</strong></p>
+<pre class="r"><code># Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.8) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;log(FC) of Discovery Cohort&#39;, y = &#39;log(FC) of MethodDev Cohort&#39;,
+       title = &#39;Tumor vs Normal: Tissue DIA Proteomics (AG Klingmüller)&#39;) +
+  th #+ theme(axis.title = element_text(size = 22),</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-4-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#              axis.text = element_text(size = 16),
+#              legend.title = element_text(size = 20), legend.text = element_text(size = 18))
+# ggsave(&#39;./output/SC_meeting/log(FC)_Dis_vs_MetDev_proTissue_condi_Klin.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+
+# Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_logFC$Direction != &#39;Inconsistent&#39;) /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 82.7% of results are consistent</code></pre>
+</div>
+</div>
+<div id="normal-tissue-proteomics" class="section level1">
+<h1>Normal Tissue Proteomics</h1>
+<p>Check association of recurrence-related feature significance between
+Discovery and Method Development datasets from same working group, so
+that working group differences can be excluded</p>
+<div id="ag-krijgsveld-1" class="section level2">
+<h2>AG Krijgsveld</h2>
+<p>Display association of feature recurrence predictive power between
+Discovery and Method Development Normal Tissue DIA Proteomics generated
+by AG Krijgsveld<br />
+<strong>p-values (significance level = 0.05)</strong></p>
+<pre class="r"><code># Load normalized data
+proTissue_Discovery &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/proTissueVsn.rds&#39;)
+proTissue_MethodDev &lt;- readRDS(&#39;./data/MethodDev/AG_Krijgsveld/new_proTissueVsn.rds&#39;)
+# Prepare protein-gene table for providing gene names
+featInfo &lt;- tibble::as_tibble(rowData(proTissue_Discovery), rownames = &#39;Proteins&#39;) %&gt;%
+  dplyr::select(Proteins, Genes) %&gt;%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, &#39;;.*&#39;),
+                Genes = stringr::str_remove(Genes, &#39;;.*&#39;))
+
+# Prepare summarized tables of comparison between Recurrence and Non-recurrence patient groups
+recurNormalFeatAssoTabs_Krij &lt;- summarizeFeatAssoRes(proTissue_Discovery, proTissue_MethodDev,
+                                                     &#39;Discovery&#39;, &#39;MethodDev&#39;,
+                                                     meta_var = &#39;Recurrence&#39;,
+                                                     method = &#39;proDA&#39;,
+                                                     subset = c(&#39;Condition&#39;, &#39;Normal&#39;),
+                                                     prot_gene_tbl = featInfo,
+                                                     alpha = 0.05)
+featAssoTabs &lt;- recurNormalFeatAssoTabs_Krij
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2),
+                                  col=Significance, label=Label)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.5) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;darkgreen&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  geom_text_repel(size = 4, show.legend = F) +
+  labs(x = &#39;-log10(pVal) of Discovery Cohort&#39;, y = &#39;-log10(pVal) of MethodDev Cohort&#39;,
+       title = &#39;Recurrence: Normal Tissue DIA Proteomics (AG Krijgsveld)&#39;) +
+  th #+ theme(axis.title = element_text(size = 22),</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-6-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>             # axis.text = element_text(size = 16),
+             # legend.title = element_text(size = 20), legend.text = element_text(size = 18))
+# ggsave(&#39;./output/SC_meeting/pVals_Dis_vs_MetDev_proNormal_recur_Krij.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+
+# Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_pVal$Significance == &#39;Sig. in Both&#39;) /
+                   sum(featAssoTabs$tbl_pVal$Significance != &#39;Not Sig.&#39;), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of significant results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 2.7% of significant results are consistent</code></pre>
+<p><strong>log(FC)</strong></p>
+<pre class="r"><code># Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.5) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;log(FC) of Discovery Cohort&#39;, y = &#39;log(FC) of MethodDev Cohort&#39;,
+       title = &#39;Recurrence: Normal Tissue DIA Proteomics (AG Krijgsveld)&#39;) +
+  th #+ theme(axis.title = element_text(size = 22),</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>             # axis.text = element_text(size = 16),
+             # legend.title = element_text(size = 20), legend.text = element_text(size = 18))
+# ggsave(&#39;./output/SC_meeting/log(FC)_Dis_vs_MetDev_proNormal_recur_Krij.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+
+# Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_logFC$Direction != &#39;Inconsistent&#39;) /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 54.4% of results are consistent</code></pre>
+<p>Visualize top significant proteins identified in both Discovery and
+Method Development datasets and based on Discovery one. Note that Method
+Development data is provided to have more comprehensive analysis and it
+may not be on same scale as Discovery data.<br />
+ns: p &gt; 0.05, ∗: p &lt;= 0.05, ∗∗: p &lt;= 0.01, ***: p &lt;=
+0.001</p>
+<pre class="r"><code># Plot top significant features based on &#39;data1&#39;
+topSigFeatTab &lt;- dplyr::mutate(featAssoTabs$tbl_topSigFeats,
+                               newGroup = factor(newGroup, levels = c(&#39;Yes_Discovery&#39;,
+                                                                      &#39;No_Discovery&#39;,
+                                                                      &#39;Yes_MethodDev&#39;,
+                                                                      &#39;No_MethodDev&#39;)))
+ggplot(topSigFeatTab, aes(x=newGroup, y=Abundance, col=DataName, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
+  geom_jitter(position = position_jitter(0.2), size = 3, show.legend = F) +
+  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F, method.args = list(var.equal = T),
+                             comparisons = list(c(&#39;Yes_Discovery&#39;, &#39;No_Discovery&#39;),
+                                                c(&#39;Yes_MethodDev&#39;, &#39;No_MethodDev&#39;)),
+                             label = &#39;p.signif&#39;, tip.length = 0.015, bracket.size = 0.7, size = 4) +
+  labs(x = &#39;Recurrence&#39;, title = &#39;Recurrence: Normal Tissue DIA Proteomics (AG Krijgsveld)&#39;) +
+  scale_color_manual(name = &#39;Cohort&#39;, values = c(&#39;firebrick&#39;, &#39;grey50&#39;)) +
+  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  facet_wrap(vars(newFeature), scales = &#39;free&#39;) +
+  th +
+  theme(strip.text = element_text(size = 13, face = &#39;bold&#39;),
+        axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#   theme(strip.text = element_text(size = 14, face = &#39;bold&#39;),
+#         axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1, size = 20),
+#         axis.title = element_text(size = 26),
+#         legend.title = element_text(size = 24), legend.text = element_text(size = 22))
+# ggsave(&#39;./output/group_meeting/topSigFeats_Discovery_vs_MethodDev_proNormal_Krij.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 16)</code></pre>
+</div>
+<div id="ag-klingmüller-1" class="section level2">
+<h2>AG Klingmüller</h2>
+<p>Display association of feature recurrence predictive power between
+Discovery and Method Development Normal Tissue DIA Proteomics generated
+by AG Klingmüller<br />
+<strong>p-values (significance level = 0.05)</strong></p>
+<pre class="r"><code># Load normalized data
+proTissue_Klin &lt;- readRDS(&#39;./data/MethodDev/AG_Klingmueller/proTissueVsn.rds&#39;)
+proTissue_Discovery &lt;- proTissue_Klin[, colData(proTissue_Klin)$Cohort == &#39;Discovery&#39;]
+proTissue_MethodDev &lt;- proTissue_Klin[, colData(proTissue_Klin)$Cohort == &#39;MethodDev&#39;]
+# Prepare protein-gene table for providing gene names
+featInfo &lt;- tibble::as_tibble(rowData(proTissue_Discovery), rownames = &#39;Proteins&#39;) %&gt;%
+  dplyr::rename(Genes = PG.Genes) %&gt;%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, &#39;;.*&#39;),
+                Genes = stringr::str_remove(Genes, &#39;;.*&#39;))
+
+# Prepare summarized tables of comparison between Recurrence and Non-recurrence patient groups
+recurNormalFeatAssoTabs_Klin &lt;- summarizeFeatAssoRes(proTissue_Discovery, proTissue_MethodDev,
+                                                     &#39;Discovery&#39;, &#39;MethodDev&#39;,
+                                                     meta_var = &#39;Recurrence&#39;,
+                                                     subset = c(&#39;Condition&#39;, &#39;Normal&#39;),
+                                                     prot_gene_tbl = featInfo,
+                                                     method = &#39;proDA&#39;,
+                                                     alpha = 0.05)
+featAssoTabs &lt;- recurNormalFeatAssoTabs_Klin
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2),
+                                  col=Significance, label=Label)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.5) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;darkgreen&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  geom_text_repel(size = 4, show.legend = F) +
+  labs(x = &#39;-log10(pVal) of Discovery Cohort&#39;, y = &#39;-log10(pVal) of MethodDev Cohort&#39;,
+       title = &#39;Recurrence: Normal Tissue DIA Proteomics (AG Klingmüller)&#39;) +
+  th #+ theme(axis.title = element_text(size = 22),</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>             # axis.text = element_text(size = 16),
+             # legend.title = element_text(size = 20), legend.text = element_text(size = 18))
+# ggsave(&#39;./output/SC_meeting/pVals_Dis_vs_MetDev_proNormal_recur_Klin.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+
+# Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_pVal$Significance == &#39;Sig. in Both&#39;) /
+                   sum(featAssoTabs$tbl_pVal$Significance != &#39;Not Sig.&#39;), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of significant results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 5.5% of significant results are consistent</code></pre>
+<p><strong>log(FC)</strong></p>
+<pre class="r"><code># Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.5) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;log(FC) of Discovery Cohort&#39;, y = &#39;log(FC) of MethodDev Cohort&#39;,
+       title = &#39;Recurrence: Normal Tissue DIA Proteomics (AG Klingmüller)&#39;) +
+  th #+ theme(axis.title = element_text(size = 22),</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-10-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>             # axis.text = element_text(size = 16),
+             # legend.title = element_text(size = 20), legend.text = element_text(size = 18))
+# ggsave(&#39;./output/SC_meeting/log(FC)_Dis_vs_MetDev_proNormal_recur_Klin.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+
+# Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_logFC$Direction != &#39;Inconsistent&#39;) /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 63.1% of results are consistent</code></pre>
+<p>Visualize top significant proteins identified in both Discovery and
+Method Development datasets and based on Discovery one. Note that Method
+Development data is provided to have more comprehensive analysis and it
+may not be on same scale as Discovery data.<br />
+ns: p &gt; 0.05, ∗: p &lt;= 0.05, ∗∗: p &lt;= 0.01, ***: p &lt;=
+0.001</p>
+<pre class="r"><code># Plot top significant features based on &#39;data1&#39;
+topSigFeatTab &lt;- dplyr::mutate(featAssoTabs$tbl_topSigFeats,
+                               newGroup = factor(newGroup, levels = c(&#39;Yes_Discovery&#39;,
+                                                                      &#39;No_Discovery&#39;,
+                                                                      &#39;Yes_MethodDev&#39;,
+                                                                      &#39;No_MethodDev&#39;)))
+ggplot(topSigFeatTab, aes(x=newGroup, y=Abundance, col=DataName, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
+  geom_jitter(position = position_jitter(0.2), size = 3, show.legend = F) +
+  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F, method.args = list(var.equal = T),
+                             comparisons = list(c(&#39;Yes_Discovery&#39;, &#39;No_Discovery&#39;),
+                                                c(&#39;Yes_MethodDev&#39;, &#39;No_MethodDev&#39;)),
+                             label = &#39;p.signif&#39;, tip.length = 0.015, bracket.size = 0.7, size = 4) +
+  labs(x = &#39;Recurrence&#39;, title = &#39;Recurrence: Normal Tissue DIA Proteomics (AG Klingmüller)&#39;) +
+  scale_color_manual(name = &#39;Cohort&#39;, values = c(&#39;firebrick&#39;, &#39;grey50&#39;)) +
+  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  facet_wrap(vars(newFeature), scales = &#39;free&#39;) +
+  th +
+  theme(strip.text = element_text(size = 13, face = &#39;bold&#39;),
+        axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-11-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="integrative-analysis" class="section level2">
+<h2>Integrative analysis</h2>
+<p>Show intersections of potential Normal proteins identified in
+different datasets (significance level = 0.05)</p>
+<pre class="r"><code># Prepare recurrence-related significant features
+alpha &lt;- 0.05
+# AG Klingmüller
+sigFeats_Discovery_Klin &lt;- recurNormalFeatAssoTabs_Klin$tbl_featAsso1 %&gt;%
+  dplyr::filter(pVal &lt;= alpha) %&gt;%
+  dplyr::pull(Feature)
+sigFeats_MethodDev_Klin &lt;- recurNormalFeatAssoTabs_Klin$tbl_featAsso2 %&gt;%
+  dplyr::filter(pVal &lt;= alpha) %&gt;%
+  dplyr::pull(Feature)
+# AG Krijgsveld
+sigFeats_Discovery_Krij &lt;- recurNormalFeatAssoTabs_Krij$tbl_featAsso1 %&gt;%
+  dplyr::filter(pVal &lt;= alpha) %&gt;%
+  dplyr::pull(Feature)
+sigFeats_MethodDev_Krij &lt;- recurNormalFeatAssoTabs_Krij$tbl_featAsso2 %&gt;%
+  dplyr::filter(pVal &lt;= alpha) %&gt;%
+  dplyr::pull(Feature)
+
+# Make venn graphs
+ggvenn(list(Discovery_Krij. = sigFeats_Discovery_Krij, MethodDev_Krij. = sigFeats_MethodDev_Krij,
+            MethodDev_Klin. = sigFeats_MethodDev_Klin),
+       fill_color = c(&#39;darkred&#39;, &#39;darkblue&#39;, &#39;darkgreen&#39;), fill_alpha = 0.6,
+       set_name_color = c(&#39;darkred&#39;, &#39;darkblue&#39;, &#39;darkgreen&#39;), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-12-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(&#39;./output/SC_meeting/venn_sigFeats_Krij_dis.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+# Identify fully overlapped features
+# ol &lt;- intersect(intersect(sigFeats_Discovery_Krij, sigFeats_MethodDev_Krij), sigFeats_MethodDev_Klin)
+# recurNormalFeatAssoTabs_Krij$tbl_featAsso1[recurNormalFeatAssoTabs_Krij$tbl_featAsso1$Feature %in% ol,]</code></pre>
+<p>=&gt; That one protein identified in all datasets is ‘P37235
+(HPCAL1)’.</p>
+<pre class="r"><code>ggvenn(list(Discovery_Klin. = sigFeats_Discovery_Klin, MethodDev_Klin. = sigFeats_MethodDev_Klin,
+            MethodDev_Krij. = sigFeats_MethodDev_Krij),
+       fill_color = c(&#39;darkorange&#39;, &#39;darkgreen&#39;, &#39;darkblue&#39;), fill_alpha = 0.6,
+       set_name_color = c(&#39;darkorange&#39;, &#39;darkgreen&#39;, &#39;darkblue&#39;), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(&#39;./output/SC_meeting/venn_sigFeats_Klin_dis.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+# Identify fully overlapped features
+# ol &lt;- intersect(intersect(sigFeats_Discovery_Klin, sigFeats_MethodDev_Klin), sigFeats_MethodDev_Krij)
+# recurNormalFeatAssoTabs_Klin$tbl_featAsso1[recurNormalFeatAssoTabs_Klin$tbl_featAsso1$Feature %in% ol,]</code></pre>
+<p>=&gt; Those proteins identified in all datasets are ‘Q5S007 (LRRK2)’,
+‘Q99417 (MYCBP)’, ‘Q96PE3 (INPP4A)’, ‘Q8NBQ5 (HSD17B11)’, ‘Q05823
+(RNASEL)’, ‘Q9Y3E5 (PTRH2)’, ‘Q9H8L6 (MMRN2)’</p>
+<pre class="r"><code>ggvenn(list(Discovery_Krij. = sigFeats_Discovery_Krij, Discovery_Klin. = sigFeats_Discovery_Klin,
+            MethodDev_Klin. = sigFeats_MethodDev_Klin),
+       fill_color = c(&#39;darkred&#39;, &#39;darkorange&#39;, &#39;darkgreen&#39;), fill_alpha = 0.6,
+       set_name_color = c(&#39;darkred&#39;, &#39;darkorange&#39;, &#39;darkgreen&#39;), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-14-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(&#39;./output/SC_meeting/venn_sigFeats_Krij_Klin_dis.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+# Identify fully overlapped features
+# ol &lt;- intersect(intersect(sigFeats_Discovery_Krij, sigFeats_Discovery_Klin), sigFeats_MethodDev_Klin)
+# recurNormalFeatAssoTabs_Krij$tbl_featAsso1[recurNormalFeatAssoTabs_Krij$tbl_featAsso1$Feature %in% ol,]</code></pre>
+<p>=&gt; That one protein identified in all datasets is ‘O94855
+(SEC24D)’.</p>
+</div>
+</div>
+<div id="tumor-tissue-proteomics" class="section level1">
+<h1>Tumor Tissue Proteomics</h1>
+<p>Check association of recurrence-related feature significance between
+Discovery and Method Development datasets from same working group, so
+that working group differences can be excluded</p>
+<div id="ag-krijgsveld-2" class="section level2">
+<h2>AG Krijgsveld</h2>
+<p>Display association of feature recurrence predictive power between
+Discovery and Method Development Tumor Tissue DIA Proteomics generated
+by AG Krijgsveld<br />
+<strong>p-values (significance level = 0.05)</strong></p>
+<pre class="r"><code># Load normalized data
+proTissue_Discovery &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/proTissueVsn.rds&#39;)
+proTissue_MethodDev &lt;- readRDS(&#39;./data/MethodDev/AG_Krijgsveld/new_proTissueVsn.rds&#39;)
+# Prepare protein-gene table for providing gene names
+featInfo &lt;- tibble::as_tibble(rowData(proTissue_Discovery), rownames = &#39;Proteins&#39;) %&gt;%
+  dplyr::select(Proteins, Genes) %&gt;%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, &#39;;.*&#39;),
+                Genes = stringr::str_remove(Genes, &#39;;.*&#39;))
+
+# Prepare summarized tables of comparison between Recurrence and Non-recurrence patient groups
+recurTumorFeatAssoTabs_Krij &lt;- summarizeFeatAssoRes(proTissue_Discovery, proTissue_MethodDev,
+                                                    &#39;Discovery&#39;, &#39;MethodDev&#39;,
+                                                    meta_var = &#39;Recurrence&#39;,
+                                                    subset = c(&#39;Condition&#39;, &#39;Tumor&#39;),
+                                                    prot_gene_tbl = featInfo,
+                                                    method = &#39;proDA&#39;,
+                                                    alpha = 0.05)
+featAssoTabs &lt;- recurTumorFeatAssoTabs_Krij
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2),
+                                  col=Significance, label=Label)) +
+  geom_point(size = 2) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;darkgreen&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  geom_text_repel(size = 4, show.legend = F) +
+  labs(x = &#39;-log10(pVal) of Discovery Cohort&#39;, y = &#39;-log10(pVal) of MethodDev Cohort&#39;,
+       title = &#39;Recurrence: Tumor Tissue DIA Proteomics (AG Krijgsveld)&#39;) +
+  th</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-17-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_pVal$Significance == &#39;Sig. in Both&#39;) /
+                   sum(featAssoTabs$tbl_pVal$Significance != &#39;Not Sig.&#39;), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of significant results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 1.1% of significant results are consistent</code></pre>
+<p><strong>log(FC)</strong></p>
+<pre class="r"><code># Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;log(FC) of Discovery Cohort&#39;, y = &#39;log(FC) of MethodDev Cohort&#39;,
+       title = &#39;Recurrence: Tumor Tissue DIA Proteomics (AG Krijgsveld)&#39;) +
+  th</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-18-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_logFC$Direction != &#39;Inconsistent&#39;) /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 43.4% of results are consistent</code></pre>
+<p>Visualize top significant proteins identified in both Discovery and
+Method Development datasets and based on Discovery one. Note that Method
+Development data is provided to have more comprehensive analysis and it
+may not be on same scale as Discovery data.<br />
+ns: p &gt; 0.05, ∗: p &lt;= 0.05, ∗∗: p &lt;= 0.01, ***: p &lt;=
+0.001</p>
+<pre class="r"><code># Plot top significant features based on &#39;data1&#39;
+topSigFeatTab &lt;- dplyr::mutate(featAssoTabs$tbl_topSigFeats,
+                               newGroup = factor(newGroup, levels = c(&#39;Yes_Discovery&#39;,
+                                                                      &#39;No_Discovery&#39;,
+                                                                      &#39;Yes_MethodDev&#39;,
+                                                                      &#39;No_MethodDev&#39;)))
+ggplot(topSigFeatTab, aes(x=newGroup, y=Abundance, col=DataName, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
+  geom_jitter(position = position_jitter(0.2), size = 3, show.legend = F) +
+  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F, method.args = list(var.equal = T),
+                             comparisons = list(c(&#39;Yes_Discovery&#39;, &#39;No_Discovery&#39;),
+                                                c(&#39;Yes_MethodDev&#39;, &#39;No_MethodDev&#39;)),
+                             label = &#39;p.signif&#39;, tip.length = 0.015, bracket.size = 0.7, size = 4) +
+  labs(x = &#39;Recurrence&#39;, title = &#39;Recurrence: Tumor Tissue DIA Proteomics (AG Krijgsveld)&#39;) +
+  scale_color_manual(name = &#39;Cohort&#39;, values = c(&#39;firebrick&#39;, &#39;grey50&#39;)) +
+  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  facet_wrap(vars(newFeature), scales = &#39;free&#39;) +
+  th +
+  theme(strip.text = element_text(size = 13, face = &#39;bold&#39;),
+        axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-19-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="ag-klingmüller-2" class="section level2">
+<h2>AG Klingmüller</h2>
+<p>Display association of feature recurrence predictive power between
+Discovery and Method Development Tumor Tissue DIA Proteomics generated
+by AG Klingmüller<br />
+<strong>p-values (significance level = 0.05)</strong></p>
+<pre class="r"><code># Load normalized data
+proTissue_Klin &lt;- readRDS(&#39;./data/MethodDev/AG_Klingmueller/proTissueVsn.rds&#39;)
+proTissue_Discovery &lt;- proTissue_Klin[, colData(proTissue_Klin)$Cohort == &#39;Discovery&#39;]
+proTissue_MethodDev &lt;- proTissue_Klin[, colData(proTissue_Klin)$Cohort == &#39;MethodDev&#39;]
+# Prepare protein-gene table for providing gene names
+featInfo &lt;- tibble::as_tibble(rowData(proTissue_Discovery), rownames = &#39;Proteins&#39;) %&gt;%
+  dplyr::rename(Genes = PG.Genes) %&gt;%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, &#39;;.*&#39;),
+                Genes = stringr::str_remove(Genes, &#39;;.*&#39;))
+
+# Prepare summarized tables of comparison between Recurrence and Non-recurrence patient groups
+recurTumorFeatAssoTabs_Klin &lt;- summarizeFeatAssoRes(proTissue_Discovery, proTissue_MethodDev,
+                                                    &#39;Discovery&#39;, &#39;MethodDev&#39;,
+                                                    meta_var = &#39;Recurrence&#39;,
+                                                    subset = c(&#39;Condition&#39;, &#39;Tumor&#39;),
+                                                    prot_gene_tbl = featInfo,
+                                                    method = &#39;proDA&#39;,
+                                                    alpha = 0.05)
+featAssoTabs &lt;- recurTumorFeatAssoTabs_Klin
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2),
+                                  col=Significance, label=Label)) +
+  geom_point(size = 2) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;darkgreen&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  geom_text_repel(size = 4, show.legend = F) +
+  labs(x = &#39;-log10(pVal) of Discovery Cohort&#39;, y = &#39;-log10(pVal) of MethodDev Cohort&#39;,
+       title = &#39;Recurrence: Tumor Tissue DIA Proteomics (AG Klingmüller)&#39;) +
+  th</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-20-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_pVal$Significance == &#39;Sig. in Both&#39;) /
+                   sum(featAssoTabs$tbl_pVal$Significance != &#39;Not Sig.&#39;), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of significant results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 1% of significant results are consistent</code></pre>
+<p><strong>log(FC)</strong></p>
+<pre class="r"><code># Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;log(FC) of Discovery Cohort&#39;, y = &#39;log(FC) of MethodDev Cohort&#39;,
+       title = &#39;Recurrence: Tumor Tissue DIA Proteomics (AG Klingmüller)&#39;) +
+  th</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-21-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Show percentage of consistent results
+percent &lt;- round(sum(featAssoTabs$tbl_logFC$Direction != &#39;Inconsistent&#39;) /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0(&#39;=&gt; &#39;, percent, &#39;% of results are consistent&#39;))</code></pre>
+<pre><code>=&gt; 49.8% of results are consistent</code></pre>
+<p>Visualize top significant proteins identified in both Discovery and
+Method Development datasets and based on Discovery one. Note that Method
+Development data is provided to have more comprehensive analysis and it
+may not be on same scale as Discovery data.<br />
+ns: p &gt; 0.05, ∗: p &lt;= 0.05, ∗∗: p &lt;= 0.01, ***: p &lt;=
+0.001</p>
+<pre class="r"><code># Plot top significant features based on &#39;data1&#39;
+topSigFeatTab &lt;- dplyr::mutate(featAssoTabs$tbl_topSigFeats,
+                               newGroup = factor(newGroup, levels = c(&#39;Yes_Discovery&#39;,
+                                                                      &#39;No_Discovery&#39;,
+                                                                      &#39;Yes_MethodDev&#39;,
+                                                                      &#39;No_MethodDev&#39;)))
+ggplot(topSigFeatTab, aes(x=newGroup, y=Abundance, col=DataName, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
+  geom_jitter(position = position_jitter(0.2), size = 3, show.legend = F) +
+  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F, method.args = list(var.equal = T),
+                             comparisons = list(c(&#39;Yes_Discovery&#39;, &#39;No_Discovery&#39;),
+                                                c(&#39;Yes_MethodDev&#39;, &#39;No_MethodDev&#39;)),
+                             label = &#39;p.signif&#39;, tip.length = 0.015, bracket.size = 0.7, size = 4) +
+  labs(x = &#39;Recurrence&#39;, title = &#39;Recurrence: Tumor Tissue DIA Proteomics (AG Klingmüller)&#39;) +
+  scale_color_manual(name = &#39;Cohort&#39;, values = c(&#39;firebrick&#39;, &#39;grey50&#39;)) +
+  scale_fill_manual(values=c(&#39;#00BFC4&#39;, &#39;#F8766D&#39;)) +
+  facet_wrap(vars(newFeature), scales = &#39;free&#39;) +
+  th +
+  theme(strip.text = element_text(size = 13, face = &#39;bold&#39;),
+        axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1))</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-22-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="integrative-analysis-1" class="section level2">
+<h2>Integrative analysis</h2>
+<p>Show intersections of potential Tumor proteins identified in
+different datasets (significance level = 0.05)</p>
+<pre class="r"><code># Prepare recurrence-related significant features
+alpha &lt;- 0.05
+# AG Klingmüller
+sigFeats_Discovery_Klin &lt;- recurTumorFeatAssoTabs_Klin$tbl_featAsso1 %&gt;%
+  dplyr::filter(pVal &lt;= alpha) %&gt;%
+  dplyr::pull(Feature)
+sigFeats_MethodDev_Klin &lt;- recurTumorFeatAssoTabs_Klin$tbl_featAsso2 %&gt;%
+  dplyr::filter(pVal &lt;= alpha) %&gt;%
+  dplyr::pull(Feature)
+# AG Krijgsveld
+sigFeats_Discovery_Krij &lt;- recurTumorFeatAssoTabs_Krij$tbl_featAsso1 %&gt;%
+  dplyr::filter(pVal &lt;= alpha) %&gt;%
+  dplyr::pull(Feature)
+sigFeats_MethodDev_Krij &lt;- recurTumorFeatAssoTabs_Krij$tbl_featAsso2 %&gt;%
+  dplyr::filter(pVal &lt;= alpha) %&gt;%
+  dplyr::pull(Feature)
+
+# Make venn graphs
+ggvenn(list(Discovery_Krij. = sigFeats_Discovery_Krij, MethodDev_Krij. = sigFeats_MethodDev_Krij,
+            MethodDev_Klin. = sigFeats_MethodDev_Klin),
+       fill_color = c(&#39;darkred&#39;, &#39;darkblue&#39;, &#39;darkgreen&#39;), fill_alpha = 0.6,
+       set_name_color = c(&#39;darkred&#39;, &#39;darkblue&#39;, &#39;darkgreen&#39;), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-23-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggvenn(list(Discovery_Klin. = sigFeats_Discovery_Klin, MethodDev_Klin. = sigFeats_MethodDev_Klin,
+            MethodDev_Krij. = sigFeats_MethodDev_Krij),
+       fill_color = c(&#39;darkorange&#39;, &#39;darkgreen&#39;, &#39;darkblue&#39;), fill_alpha = 0.6,
+       set_name_color = c(&#39;darkorange&#39;, &#39;darkgreen&#39;, &#39;darkblue&#39;), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-24-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggvenn(list(Discovery_Krij. = sigFeats_Discovery_Krij, Discovery_Klin. = sigFeats_Discovery_Klin,
+            MethodDev_Klin. = sigFeats_MethodDev_Klin),
+       fill_color = c(&#39;darkred&#39;, &#39;darkorange&#39;, &#39;darkgreen&#39;), fill_alpha = 0.6,
+       set_name_color = c(&#39;darkred&#39;, &#39;darkorange&#39;, &#39;darkgreen&#39;), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)</code></pre>
+<p><img src="figure/CrossCohort_investigation.Rmd/unnamed-chunk-25-1.png" width="960" style="display: block; margin: auto;" /></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.0 (2023-04-21)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Ventura 13.4
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Berlin
+tzcode source: internal
+
+attached base packages:
+[1] stats4    grid      stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] proDA_1.14.0                limma_3.56.2               
+ [3] pcaMethods_1.92.0           lubridate_1.9.2            
+ [5] forcats_1.0.0               stringr_1.5.0              
+ [7] purrr_1.0.2                 readr_2.1.4                
+ [9] tidyr_1.3.0                 tibble_3.2.1               
+[11] tidyverse_2.0.0             SummarizedExperiment_1.30.2
+[13] Biobase_2.60.0              GenomicRanges_1.52.0       
+[15] GenomeInfoDb_1.36.1         IRanges_2.34.1             
+[17] S4Vectors_0.38.1            BiocGenerics_0.46.0        
+[19] MatrixGenerics_1.12.2       matrixStats_1.0.0          
+[21] ggvenn_0.1.10               dplyr_1.1.3                
+[23] ggrepel_0.9.4               ggplot2_3.4.4              
+[25] workflowr_1.7.0            
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.2.0        farver_2.1.1            bitops_1.0-7           
+ [4] fastmap_1.1.1           RCurl_1.98-1.12         promises_1.2.0.1       
+ [7] digest_0.6.33           timechange_0.2.0        lifecycle_1.0.3        
+[10] processx_3.8.2          magrittr_2.0.3          compiler_4.3.0         
+[13] rlang_1.1.1             sass_0.4.7              tools_4.3.0            
+[16] utf8_1.2.4              yaml_2.3.7              ggsignif_0.6.4         
+[19] knitr_1.43              S4Arrays_1.0.4          labeling_0.4.3         
+[22] DelayedArray_0.26.6     plyr_1.8.8              abind_1.4-5            
+[25] withr_2.5.1             fansi_1.0.5             ggpubr_0.6.0           
+[28] git2r_0.32.0            colorspace_2.1-0        scales_1.2.1           
+[31] cli_3.6.1               rmarkdown_2.23          crayon_1.5.2           
+[34] generics_0.1.3          rstudioapi_0.15.0       httr_1.4.6             
+[37] tzdb_0.4.0              cachem_1.0.8            zlibbioc_1.46.0        
+[40] XVector_0.40.0          vctrs_0.6.4             Matrix_1.6-0           
+[43] carData_3.0-5           jsonlite_1.8.7          car_3.1-2              
+[46] callr_3.7.3             hms_1.1.3               rstatix_0.7.2          
+[49] jquerylib_0.1.4         glue_1.6.2              ps_1.7.5               
+[52] stringi_1.7.12          gtable_0.3.4            later_1.3.1            
+[55] munsell_0.5.0           pillar_1.9.0            htmltools_0.5.5        
+[58] GenomeInfoDbData_1.2.10 R6_2.5.1                rprojroot_2.0.3        
+[61] evaluate_0.21           lattice_0.21-8          extraDistr_1.9.1       
+[64] highr_0.10              backports_1.4.1         broom_1.0.5            
+[67] httpuv_1.6.11           bslib_0.5.0             Rcpp_1.0.11            
+[70] whisker_0.4.1           xfun_0.39               fs_1.6.2               
+[73] getPass_0.2-2           pkgconfig_2.0.3        </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
