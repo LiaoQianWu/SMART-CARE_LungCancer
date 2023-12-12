@@ -110,6 +110,9 @@ tumorPurityInfo <- dplyr::select(aliquotMetadat, Sample, TumorPurity)
 # Combine all needed metadata
 summMetadat <- dplyr::left_join(smpMetadat, patientMetadat, by = 'Patient') %>%
   dplyr::left_join(tumorPurityInfo, by = 'Sample')
+summMetadat4methodDev <- dplyr::select(aliquotMetadat, Aliquot, Sample, TumorPurity) %>%
+  dplyr::left_join(smpMetadat, by = 'Sample') %>%
+  dplyr::left_join(patientMetadat, by = 'Patient')
 
 # List sample annotations to keep in SE objects
 smpAnno <- c('Patient', 'SmpType', 'TimePoint', 'Date', 'Cohort', 'Condition',
@@ -117,6 +120,8 @@ smpAnno <- c('Patient', 'SmpType', 'TimePoint', 'Date', 'Cohort', 'Condition',
 ```
 
 # Tissue Proteomics
+
+## Discovery cohort
 
 ```{r message=F}
 # Load unprocessed data
@@ -141,7 +146,7 @@ Show dimensions of original data (86 samples and 7986 features)
 proTissue <- doPreprocessing(proTissueTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                              smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = T,
-                             cutoff = 0.5, viz_miss = T, save_path = './data/Discovery/AG_Krijgsveld/proTissue')
+                             cutoff = 0.5, viz_miss = T)#, save_path = './data/Discovery/AG_Krijgsveld/proTissue')
 dim(proTissue$ori.data)
 ```
 
@@ -217,7 +222,7 @@ proTumorTab <- dplyr::filter(proTissueTab, Condition == 'Tumor')
 proTumor <- doPreprocessing(proTumorTab, feat = 'Protein.Group', smp = 'Sample',
                             val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                             smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = T,
-                            cutoff = 0.5, viz_miss = T, save_path = './data/Discovery/AG_Krijgsveld/proTumor')
+                            cutoff = 0.5, viz_miss = T)#, save_path = './data/Discovery/AG_Krijgsveld/proTumor')
 dim(proTumor$filt.data)
 
 # Show missingness of filtered data
@@ -240,7 +245,7 @@ proNormalTab <- dplyr::filter(proTissueTab, Condition == 'Normal')
 proNormal <- doPreprocessing(proNormalTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                              smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = T,
-                             cutoff = 0.5, viz_miss = T, save_path = './data/Discovery/AG_Krijgsveld/proNormal')
+                             cutoff = 0.5, viz_miss = T)#, save_path = './data/Discovery/AG_Krijgsveld/proNormal')
 dim(proNormal$filt.data)
 
 # Show missingness of filtered data
@@ -253,6 +258,195 @@ proNormal$vsn.data.dist
 # Show feature mean-variance relationship of vsn normalized data
 proNormal$vsn.feat.mean.var
 ```
+
+## Combined data
+Combine Discovery and Method Development cohorts
+
+```{r message=F}
+# Prepare long data containing original data and needed information
+# Discovery
+# Load original data
+proTissueTab_Discovery <- readr::read_tsv('./data/Discovery/AG_Krijgsveld/20230815_MarcS_Discovery_Tissue.pg_matrix.tsv') %>%
+  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %>%
+  tidyr::pivot_longer(cols = -c('Protein.Group', 'Protein.Names', 'Genes'),
+                      names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, '_HUMAN'),
+                Sample = stringr::str_remove_all(Sample, '^.+SC_A_|^.+SC_DIS_A_|4\\.raw$'))
+# Include summarized metadata
+# Manually add an extra sample to summarized metadata
+tmp_summMetadat <- summMetadat
+smp <- summMetadat[summMetadat$Sample == '6EY5JO_TU',]
+smp[1, 1] <- '6EY5JO_II_TU'
+tmp_summMetadat <- rbind(tmp_summMetadat, smp)
+proTissueTab_Discovery <- dplyr::left_join(proTissueTab_Discovery, tmp_summMetadat, by = 'Sample')
+
+# MethodDev
+# Load and tidy up original data and include summarized metadata into it
+proTissueTab_MethodDev <- readr::read_delim('./data/MethodDev/AG_Krijgsveld/20230726_Thorax_Method_Est_tissue.txt') %>%
+  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %>%
+  tidyr::pivot_longer(cols = -c('Protein.Group', 'Protein.Names', 'Genes'),
+                      names_to = 'Aliquot',
+                      values_to = 'Abundance') %>%
+  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, '_HUMAN'),
+                Aliquot = stringr::str_remove_all(Aliquot, '\\.raw$')) %>%
+  dplyr::left_join(summMetadat4methodDev, by = 'Aliquot') %>%
+  dplyr::select(-Aliquot)
+
+# Extract common features for combining data
+featSpace_Discovery <- unique(proTissueTab_Discovery$Protein.Group)
+featSpace_MethodDev <- unique(proTissueTab_MethodDev$Protein.Group)
+cmnFeats <- intersect(featSpace_Discovery, featSpace_MethodDev)
+# Filter common features
+proTissueTab_Discovery <- dplyr::filter(proTissueTab_Discovery, Protein.Group %in% cmnFeats)
+proTissueTab_MethodDev <- dplyr::filter(proTissueTab_MethodDev, Protein.Group %in% cmnFeats)
+# Combine data
+proTissueTab_Combined <- dplyr::bind_rows(proTissueTab_Discovery, proTissueTab_MethodDev)
+
+# Preprocess data
+proTissue_Combined <- doPreprocessing(proTissueTab_Combined, feat = 'Protein.Group', smp = 'Sample',
+                                      val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
+                                      smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = T,
+                                      cutoff = 0.5, viz_miss = T)#, save_path = './data/Discovery/AG_Krijgsveld/combined_proTissue')
+```
+
+Show dimensions of original combined data (126 samples and 7091 common features)
+```{r}
+dim(proTissue_Combined$ori.data)
+```
+
+Show missingness of original combined data
+```{r}
+proTissue_Combined$ori.data.miss +
+  theme(axis.text.x = element_text(size = 7))
+```
+
+Show distribution of original combined data
+```{r}
+# Convert SE object into long data
+longData <- summExp2df(proTissue_Combined$ori.data, row_id = 'Protein.Group', col_id = 'Sample')
+# Order samples based on cohorts so that same cohorts are clustered in plot
+smpLevels <- dplyr::arrange(longData, Cohort) %>%
+  dplyr::filter(!duplicated(Sample)) %>%
+  dplyr::pull(Sample)
+longData <- dplyr::mutate(longData, Sample = factor(Sample, levels = smpLevels))
+ggplot(longData, aes(x=Sample, y=Value, col=Cohort)) +
+  geom_boxplot(outlier.size = 0.8) +
+  scale_color_brewer(palette = 'Set2') +
+  scale_y_log10() +
+  labs(y = 'Abundance') +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+
+**Remove features quantified in less than 1/2 of samples**\
+Show dimensions of filtered data (126 samples and 6126 features)
+```{r}
+dim(proTissue_Combined$filt.data)
+```
+
+Show missingness of filtered data
+```{r}
+proTissue_Combined$filt.data.miss +
+  theme(axis.text.x = element_text(size = 7))
+```
+
+**Normalize filtered data by VSN**\
+Show distribution of vsn normalized data
+```{r}
+# Convert SE object into long data
+longData <- summExp2df(proTissue_Combined$vsn.data, row_id = 'Protein.Group', col_id = 'Sample')
+# Order samples based on cohorts so that same cohorts are clustered in plot
+smpLevels <- dplyr::arrange(longData, Cohort) %>%
+  dplyr::filter(!duplicated(Sample)) %>%
+  dplyr::pull(Sample)
+longData <- dplyr::mutate(longData, Sample = factor(Sample, levels = smpLevels))
+ggplot(longData, aes(x=Sample, y=Value, col=Cohort)) +
+  geom_boxplot(outlier.size = 0.8) +
+  scale_color_brewer(palette = 'Set2') +
+  labs(y = 'Abundance') +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+
+Show feature mean-variance relationship of vsn normalized data
+```{r}
+proTissue_Combined$vsn.feat.mean.var
+```
+
+**Do metadata-assisted quality control**\
+Show significant associations between PCs and sample conditions and data cohorts
+```{r}
+# Do single-omics analysis
+proTissueSOA_Combined <- doSOA(proTissue_Combined$vsn.data, meta_var = c('Condition', 'Cohort'),
+                               pca_method = 'ppca', do_onlyPCA = T)
+proTissueSOA_Combined$pcSigAssoRes
+```
+
+Visualize significant PCs
+```{r}
+pcTab <- proTissueSOA_Combined$pcTab
+ggplot(pcTab, aes(x=`PC1 (34%)`, y=`PC2 (24.9%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = 'Set2') +
+  scale_shape_manual(values = c(0, 16)) +
+  th
+
+# ggplot(pcTab, aes(x=Condition, y=`PC1 (34%)`, col=Condition, fill=Condition)) +
+#   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+#   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+#   scale_color_brewer(palette = 'Dark2') +
+#   scale_fill_brewer(palette = 'Dark2') +
+#   ggpubr::stat_compare_means(method = 't.test', paired = F,
+#                              method.args = list(var.equal = T),
+#                              size = 6, show.legend = F) +
+#   th
+```
+
+**Do batch correction using limma**\
+There is no PC significantly associated with data cohorts after batch correction,
+which supports that batch effects are linear. Batch factor (Cohort) should be included
+in linear model for statistical analysis.
+```{r}
+# Perform batch correction to see if two cohorts can be merged
+# Convert SE object into wide data
+datMat <- SummarizedExperiment::assay(proTissue_Combined$vsn.data)
+# Define design matrix to keep particular effects, e.g., treatments
+smpAnnoTab <- as_tibble(colData(proTissue_Combined$vsn.data), rownames = 'Sample')
+design <- model.matrix(~ smpAnnoTab$Condition + smpAnnoTab$Recurrence)
+# Do batch correction
+datMat_BC <- limma::removeBatchEffect(datMat, batch = smpAnnoTab$Cohort, design = design)
+proTissueSE_BC <- proTissue_Combined$vsn.data
+assay(proTissueSE_BC) <- datMat_BC
+# Save batch corrected data
+# saveRDS(proTissueSE_BC, './data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+
+# Do single-omics analysis
+proTissueSOA_BC <- doSOA(proTissueSE_BC, meta_var = c('Condition', 'Cohort'),
+                         pca_method = 'ppca', do_onlyPCA = T)
+proTissueSOA_BC$pcSigAssoRes
+```
+
+Visualize PCs
+```{r}
+pcTab <- proTissueSOA_BC$pcTab %>%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% c('I0HVOL_TU', '7EAOX7_TU',
+                                                       'MJMTYR_TU', 'XFKHGP_TU',
+                                                       'XFKHGP_NG', 'MJMTYR_NG',
+                                                       'I0HVOL_NG', '7EAOX7_NG') ~ Sample))
+ggplot(pcTab, aes(x=`PC1 (38%)`, y=`PC2 (9.2%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = 'Set2') +
+  scale_shape_manual(values = c(0, 16)) +
+  th
+
+ggplot(pcTab, aes(x=Condition, y=`PC1 (38%)`, col=Condition, fill=Condition, label = Label)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  geom_text_repel(show.legend = F, size = 5) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  th
+```
+=> Tumor purity: I0HVOL_TU - 87% / 7EAOX7_TU - 70% / MJMTYR_TU - 40% / XFKHGP_TU - 100%\
+(Mean of sample tumor cell contents is 74%, ranging from 40% to 100%.)
 
 
 
@@ -319,7 +513,7 @@ ggplot(tmp_proPlasmaTab, aes(x=Date, y=Patient, color=Label)) +
 proPlasma <- doPreprocessing(proPlasmaTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                              smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
-                             viz_miss = T, bins = 20, save_path = './data/Discovery/AG_Krijgsveld/proPlasma')
+                             viz_miss = T, bins = 20)#, save_path = './data/Discovery/AG_Krijgsveld/proPlasma')
 # Show dimensions of original data (289 samples and 969 features)
 dim(proPlasma$ori.data)
 # Show missingness of original data
@@ -356,7 +550,7 @@ proBaseTab <- dplyr::filter(proPlasmaTab, Condition == 'Baseline')
 proBase <- doPreprocessing(proBaseTab, feat = 'Protein.Group', smp = 'Sample',
                            val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                            smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
-                           viz_miss = T, bins = 20, save_path = './data/Discovery/AG_Krijgsveld/proBase')
+                           viz_miss = T, bins = 20)#, save_path = './data/Discovery/AG_Krijgsveld/proBase')
 dim(proBase$ori.data)
 ```
 

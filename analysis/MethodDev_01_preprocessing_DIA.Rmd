@@ -141,7 +141,7 @@ Show dimensions of original data (40 samples and 7537 features)
 new_proTissue <- doPreprocessing(new_proTissueTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                              smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = T,
-                             cutoff = 0.5, viz_miss = T, save_path = './data/MethodDev/AG_Krijgsveld/new_proTissue')
+                             cutoff = 0.5, viz_miss = T)#, save_path = './data/MethodDev/AG_Krijgsveld/new_proTissue')
 dim(new_proTissue$ori.data)
 ```
 
@@ -270,7 +270,7 @@ Show dimensions of original data (40 samples and 1097 features)
 new_proPlasma <- doPreprocessing(new_proPlasmaTab, feat = 'Protein.Group', smp = 'Sample',
                                  val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                                  smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
-                                 viz_miss = T, bins = 30, save_path = './data/MethodDev/AG_Krijgsveld/new_proPlasma')
+                                 viz_miss = T, bins = 30)#, save_path = './data/MethodDev/AG_Krijgsveld/new_proPlasma')
 dim(new_proPlasma$ori.data)
 ```
 
@@ -327,7 +327,7 @@ Show dimensions of original data (34 samples and 505 features)
 proPlasma <- doPreprocessing(proPlasmaTab, feat = 'Protein.Group', smp = 'Sample',
                              val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                              smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
-                             viz_miss = T, bins = 30, save_path = './data/MethodDev/AG_Krijgsveld/proPlasma')
+                             viz_miss = T, bins = 30)#, save_path = './data/MethodDev/AG_Krijgsveld/proPlasma')
 dim(proPlasma$ori.data)
 ```
 
@@ -406,8 +406,8 @@ Show dimensions of original data (78 samples and 9659 features)
 proTissue_Klin <- doPreprocessing(proTissueTab_Klin, feat = 'PG.ProteinGroups',
                                   smp = 'Sample', val = 'Abundance', featAnno = 'PG.Genes',
                                   smpAnno = c(smpAnno, 'TumorPurity', 'Batch'),
-                                  do_featFilt = T, cutoff = 0.5, viz_miss = T,
-                                  save_path = './data/MethodDev/AG_Klingmueller/proTissue')
+                                  do_featFilt = T, cutoff = 0.5, viz_miss = T)
+                                  # save_path = './data/MethodDev/AG_Klingmueller/proTissue')
 dim(proTissue_Klin$ori.data)
 ```
 
@@ -474,35 +474,63 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (31.1%)`, col=Condition, fill=Condition, l
 => Tumor purity: I0HVOL_TU - 87% (Mean of sample tumor cell contents is 93%, ranging from 73% to 100%.)
 
 ```{r}
+ggplot(pcTab, aes(x=`PC1 (31.1%)`, y=`PC2 (11.3%)`, col=Batch, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = 'Set2') +
+  scale_shape_manual(values = c(0, 16)) +
+  th
+
 ggplot(pcTab, aes(x=Batch, y=`PC8 (3.5%)`, col=Batch, fill=Batch)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  scale_color_brewer(palette = 'Set2') +
+  scale_fill_brewer(palette = 'Set2') +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F) +
+                             size = 6, show.legend = F) +
   th
 
 ggplot(pcTab, aes(x=Batch, y=`PC12 (2.6%)`, col=Batch, fill=Batch)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  scale_color_brewer(palette = 'Set2') +
+  scale_fill_brewer(palette = 'Set2') +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F) +
-  th
-
-ggplot(pcTab, aes(x=Batch, y=`PC2 (11.3%)`, col=Batch, fill=Batch)) +
-  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
+                             size = 6, show.legend = F) +
   th
 
 ggplot(pcTab, aes(x=Batch, y=`PC5 (4.5%)`, col=Batch, fill=Batch)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  scale_color_brewer(palette = 'Set2') +
+  scale_fill_brewer(palette = 'Set2') +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F) +
+                             size = 6, show.legend = F) +
   th
+```
+
+**Do batch correction using limma**\
+There is no PC significantly associated with batches after batch correction, which
+supports that batch effects are linear. Batch factor (Batch or Cohort) could be
+included in linear model for statistical analysis.
+```{r}
+# Perform batch correction to see if two batches can be combined even better
+# Convert SE object into wide data
+datMat <- SummarizedExperiment::assay(proTissue_Klin$vsn.data)
+# Define design matrix to keep particular effects, e.g., treatments
+smpAnnoTab <- as_tibble(colData(proTissue_Klin$vsn.data), rownames = 'Sample')
+design <- model.matrix(~ smpAnnoTab$Condition + smpAnnoTab$Recurrence)
+# Do batch correction
+datMat_BC <- limma::removeBatchEffect(datMat, batch = smpAnnoTab$Batch, design = design)
+proTissueSE_BC <- proTissue_Klin$vsn.data
+assay(proTissueSE_BC) <- datMat_BC
+# Save batch corrected data
+# saveRDS(proTissueSE_BC, './data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds')
+
+# Do single-omics analysis
+proTissueSOA_BC <- doSOA(proTissueSE_BC, meta_var = c('Condition', 'Batch'),
+                         pca_method = 'ppca', do_onlyPCA = T)
+proTissueSOA_BC$pcSigAssoRes
 ```
