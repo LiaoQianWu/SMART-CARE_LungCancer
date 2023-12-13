@@ -198,10 +198,11 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
 }
 
 
-doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, num_sigFeats = 6, pca_method = 'pca',
-                                  num_PCs = 20, num_PCfeats = NULL, use_limma = F,
-                                  use_proDA = F, alpha = 0.05, pca_metaVar = 'all',
-                                  feat_anno = NULL, feat_conv = F, plot_title = NULL, ...) {
+doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
+                                  num_sigFeats = 6, pca_method = 'pca', num_PCs = 20,
+                                  num_PCfeats = NULL, use_limma = F, use_proDA = F,
+                                  alpha = 0.05, pca_metaVar = 'all', feat_anno = NULL,
+                                  feat_conv = F, plot_title = NULL, ...) {
   #' Do single-omics analysis of preprocessed data stored in SE container. Analyses
   #' in this function mainly consist of two parts: Main SOA and association tests
   #' between PCs and sample metadata variables. Main SOA focuses only on question
@@ -218,6 +219,9 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, num_sigFeats = 6, pca_m
   #' conducting t-test or ANOVA; numerical variable (covariate) is used to compute
   #' correlation coefficient. Note that only one sample metadata variable can be
   #' specified at a time
+  #' soa_unwantVar: A character or a vector of characters specifying the metadata
+  #' variables that will be accounted for by linear models (regressing out). Default
+  #' is NULL. Note that this is usable only for limma and proDA for now
   #' num_sigFeats: A numeric value specifying the number of top significant features
   #' to visualize through boxplots. Default is 6 and this parameter can be set to
   #' NULL if distribution of top significant features is not of interest
@@ -310,13 +314,13 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, num_sigFeats = 6, pca_m
                         pca_method = pca_method, num_PCs = num_PCs)$pcSigAssoRes
   } else {
     datVarSour <- doSOA(summ_exp, meta_var = pca_metaVar, do_onlyPCA = T, alpha = alpha,
-                          pca_method = pca_method, num_PCs = num_PCs)$pcSigAssoRes
+                        pca_method = pca_method, num_PCs = num_PCs)$pcSigAssoRes
   }
   
   # Perform main SOA
   soaRes <- doSOA(summ_exp, meta_var = soa_metaVar, pca_method = pca_method,
                   num_PCs = num_PCs, num_PCfeats = num_PCfeats, alpha = alpha,
-                  use_limma = use_limma, use_proDA = use_proDA)
+                  use_limma = use_limma, use_proDA = use_proDA, unwantVar = soa_unwantVar)
   # Retrieve needed information (check return of 'doSOA' in misc.R for more details)
   # Data matrix and sample metadata for making plots
   datMat <- soaRes$data

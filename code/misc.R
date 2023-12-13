@@ -156,8 +156,8 @@ doPCA <- function(data, pca_method = 'pca', num_PCs = 20) {
 }
 
 
-testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
-                            use_limma = F, use_proDA = F) {
+testAssociation <- function(data, metadata, cmn_col, use_limma = F, use_proDA = F,
+                            targetVar = NULL, unwantVar = NULL, cor_method = 'pearson') {
   #' Iterate association tests between dependent and independent variables whose
   #' information is stored in data and metadata tables, respectively. Data table
   #' should contain numerical values of samples (e.g., protein abundances or PCs)
@@ -165,7 +165,7 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
   #' Depending on types of independent variables, varied tests are performed. That
   #' is, if independent variable is numerical, correlation is computed; if independent
   #' variable is categorical, t-test or ANOVA is used. Three types of t-test are
-  #' provided: Regular Student's t-test by lm (default), moderated t-test by limma,
+  #' provided: Ordinary Student's t-test by lm (default), moderated t-test by limma,
   #' and t-test by proDA.
   #'
   #' Parameters
@@ -173,12 +173,18 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
   #' metadata: A data frame containing sample metadata in the column
   #' cmn_col: A character specifying the common column (e.g., sample names) between
   #' data and metadata tables for combining them to match the information
-  #' cor_method: A character specifying the correlation method to use, which should
-  #' be one of 'pearson' (default), 'spearman', or 'kendall'
   #' use_limma: A logical variable indicating whether to use limma to conduct moderated
   #' t-test. Default is FALSE
   #' use_proDA: A logical variable indicating whether to use proDA to account for
   #' missing values for obtaining more reliable t-test results. Default is FALSE
+  #' targetVar: A character or a vector of characters specifying the metadata variables
+  #' whose associations will be tested. If NULL (default), all variables in metadata
+  #' will be tested
+  #' unwantVar: A character or a vector of characters specifying the metadata variables
+  #' that will be accounted for by linear models (regressing out). Default is NULL.
+  #' Note that this is usable only for limma and proDA for now
+  #' cor_method: A character specifying the correlation method to use, which should
+  #' be one of 'pearson' (default), 'spearman', or 'kendall'
   #' 
   #' Return
   #' resTab: A data frame collecting all association test results
@@ -187,26 +193,40 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
   if (!(is(data, 'data.frame') & is(metadata, 'data.frame'))) {
     stop("Both input tables should be class 'data.frame', 'tbl', or 'tbl_df'.")
   }
-  if (!(cor_method %in% c('pearson', 'spearman', 'kendall'))) {
-    stop("Argument for 'cor_method' should be one of 'pearson', 'spearman', or 'kendall'.")
-  }
   if (!is.character(cmn_col)) {
     stop("Argument for 'cmn_col' should be class 'character'.")
+  }
+  if (!(cor_method %in% c('pearson', 'spearman', 'kendall'))) {
+    stop("Argument for 'cor_method' should be one of 'pearson', 'spearman', or 'kendall'.")
   }
   if (!(is.logical(use_limma) & is.logical(use_proDA))) {
     stop("Argument for 'use_limma' and 'use_proDA' should be class 'logical'.")
   }
+  if (!is.null(targetVar) | !is.null(unwantVar)) {
+    if (!all(c(targetVar, unwantVar) %in% colnames(metadata))) {
+      stop("Arguments for 'targetVar' and 'unwantVar' should be included in metadata.")
+    }
+  }
   # Check completeness of metadata and data variable type (for myself aware of everything)
   completeMetadata <- complete.cases(metadata)
   if (!all(completeMetadata)) {
-    stop("Not all sample's metadata is complete.")
+    message("Message: Not all sample's metadata is complete.")
   }
   varTypeData <- apply(data[,-which(colnames(data) == cmn_col)], 2, is.numeric)
   if (!all(varTypeData)) {
     stop("Not all data variables are numeric.")
   }
   
+  # Keep all metadata for conducting regressing out
+  if (!is.null(unwantVar)) {
+    allMetadata <- tibble::column_to_rownames(metadata, cmn_col)
+    allMetadata <- allMetadata[data[[cmn_col]],]
+  }
   # Combine data and metadata by a common column to ensure matched information
+  # Extract metadata variables of interest if 'targetVar' is specified
+  if (!is.null(targetVar)) {
+    metadata <- dplyr::select(metadata, all_of(cmn_col), all_of(targetVar))
+  }
   combinedTab <- dplyr::left_join(data, metadata, by = cmn_col) %>%
     tibble::column_to_rownames(cmn_col)
   # Conduct all possible association tests
@@ -272,15 +292,22 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
     datMat <- combinedTab[, 1:numVar1, drop = F] %>%
       t()
     resTab <- lapply(seq_len(numVar2), function(i) {
-      metadatVar <- combinedTab[[numVar1+i]]
-      if ((is.character(metadatVar) | is.factor(metadatVar)) &
-          length(unique(metadatVar)) == 2) {
-        design <- model.matrix(~ metadatVar)
+      metadatVar <- colnames(combinedTab)[numVar1+i]
+      metadatVarVec <- combinedTab[[metadatVar]]
+      if ((is.character(metadatVarVec) | is.factor(metadatVarVec)) &
+          length(unique(metadatVarVec)) == 2) {
+        if (is.null(unwantVar)) {
+          design <- model.matrix(~ metadatVarVec)
+        } else {
+          formu <- paste0('~', paste0(c(metadatVar, unwantVar), collapse = '+')) %>%
+            as.formula()
+          design <- model.matrix(formu, data = allMetadata)
+        }
         fit <- limma::lmFit(datMat, design = design)
         fit <- limma::eBayes(fit)
         tStatRes <- limma::topTable(fit, coef = 2, number = Inf)
         data.frame(Var1 = rownames(tStatRes),
-                   Var2 = colnames(combinedTab)[numVar1+i],
+                   Var2 = metadatVar,
                    pVal = tStatRes$P.Value, Stat = tStatRes$t,
                    Test = 'T-test (limma)')
       }
@@ -288,20 +315,24 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
       dplyr::bind_rows(resTab)
   }
   
-  # Use proDA to account for missing values for more reliable t-test  
+  # Use proDA to account for missing values for more reliable t-test
   if (use_proDA) {
     # Prepare data matrix for fitting linear probabilistic dropout model
     datMat <- combinedTab[, 1:numVar1, drop = F] %>%
       t()
     resTab <- lapply(seq_len(numVar2), function(i) {
-      metadatVar <- combinedTab[[numVar1+i]]
-      if ((is.character(metadatVar) | is.factor(metadatVar)) &
-          length(unique(metadatVar)) == 2) {
-        fit <- proDA(datMat, design = ~ metadatVar)
-        # if (confounder) {
-        #   # confounder is a vector of sample metadata
-        #   fit <- proDA(datMat, design = ~ metadatVar + confounder)
-        # }
+      metadatVar <- colnames(combinedTab)[numVar1+i]
+      metadatVarVec <- combinedTab[[metadatVar]]
+      if ((is.character(metadatVarVec) | is.factor(metadatVarVec)) &
+          length(unique(metadatVarVec)) == 2) {
+        if (is.null(unwantVar)) {
+          design <- model.matrix(~ metadatVarVec)
+        } else {
+          formu <- paste0('~', paste0(c(metadatVar, unwantVar), collapse = '+')) %>%
+            as.formula()
+          design <- model.matrix(formu, data = allMetadata)
+        }
+        fit <- proDA(datMat, design = design)
         diffTerm <- proDA::result_names(fit)[2]
         tStatRes <- proDA::test_diff(fit, contrast = diffTerm)
         data.frame(Var1 = tStatRes$name,
@@ -320,12 +351,14 @@ testAssociation <- function(data, metadata, cmn_col, cor_method = 'pearson',
                           pValAdj = as.numeric(formatC(pValAdj, format = 'g', digits = 3))) %>%
     dplyr::relocate(pValAdj, .after = pVal) %>%
     dplyr::arrange(pVal)
+  
   return(resTab)
 }
 
 
 doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 0.05,
-                  num_PCfeats = NULL, do_onlyPCA = F, use_limma = F, use_proDA = F, ...) {
+                  num_PCfeats = NULL, do_onlyPCA = F, use_limma = F, use_proDA = F,
+                  unwantVar = NULL, ...) {
   # To-do: Expand function to e.g., MultiAssayExperiment object
   
   #' Perform single-omics analysis on preprocessed data stored in SE container to
@@ -360,6 +393,9 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   #' use_proDA: A logical variable indicating whether to use proDA to account for
   #' missing values for obtaining more reliable t-test results for univariate association
   #' tests. Default is FALSE
+  #' unwantVar: A character or a vector of characters specifying the metadata variables
+  #' that will be accounted for by linear models (regressing out). Default is NULL.
+  #' Note that this is usable only for limma and proDA for now
   #' ...: Further arguments to be passed to 'testAssociation', e.g., correlation
   #' method 'cor_method'
   #' 
@@ -386,6 +422,11 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   }
   if (!is(meta_var, 'character') | !all(meta_var %in% colnames(colData(summ_exp)))) {
     stop("Argument for 'meta_var' should be class 'character' and included in sample metadata.")
+  }
+  if (!is.null(unwantVar)) {
+    if (!is(unwantVar, 'character') | !all(unwantVar %in% colnames(colData(summ_exp)))) {
+      stop("Argument for 'unwantVar' should be class 'character' and included in sample metadata.")
+    }
   }
   if (!(pca_method %in% c('pca', 'ppca', 'bpca'))) {
     stop("Argument for 'pca_method' should be one of 'pca', 'ppca', or 'bpca'.")
@@ -424,7 +465,8 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   colnames(pcTab) <- c('Sample', newPCs)
   metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(meta_var)))
   pcSigAssoRes <- testAssociation(pcTab, metaTab, cmn_col = 'Sample', use_limma = F,
-                                  use_proDA = F, cor_method = 'pearson') %>%
+                                  use_proDA = F, targetVar = NULL, unwantVar = NULL,
+                                  cor_method = 'pearson') %>%
     dplyr::filter(pVal <= alpha)
   # Create complete PC table containing sample representations and metadata
   pcTab <- dplyr::left_join(pcTab, smpMetadat, by = 'Sample')
@@ -452,9 +494,9 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   # Conduct univariate association test between features and factors
   if (do_onlyPCA == F) {
     featTab <- as_tibble(t(datMat), rownames = 'Sample')
-    metaTab <- dplyr::select(smpMetadat, c('Sample', all_of(meta_var)))
-    featAssoRes <- testAssociation(featTab, metaTab, cmn_col = 'Sample',
-                                   use_limma = use_limma, use_proDA = use_proDA, ...)
+    featAssoRes <- testAssociation(featTab, smpMetadat, cmn_col = 'Sample',
+                                   use_limma = use_limma, use_proDA = use_proDA,
+                                   targetVar = meta_var, unwantVar = unwantVar, ...)
     # Extract features that can significantly separate groups of samples
     featSigAssoRes <- dplyr::filter(featAssoRes, pVal <= alpha)
   } else {
