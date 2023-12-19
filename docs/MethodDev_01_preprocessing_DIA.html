@@ -393,7 +393,7 @@ aria-hidden="true"></span> </a>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2023-12-06
+<strong>Last updated:</strong> 2023-12-19
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -550,15 +550,15 @@ relative
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree7f8311b18786948e24e79c7cdbe7bc7780db99c6targetblank7f8311ba">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree5f0dbc15e8c68cb72b6853571ed52bb1dac79926targetblank5f0dbc1a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/7f8311b18786948e24e79c7cdbe7bc7780db99c6" target="_blank">7f8311b</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/5f0dbc15e8c68cb72b6853571ed52bb1dac79926" target="_blank">5f0dbc1</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree7f8311b18786948e24e79c7cdbe7bc7780db99c6targetblank7f8311ba"
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree5f0dbc15e8c68cb72b6853571ed52bb1dac79926targetblank5f0dbc1a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -568,7 +568,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/7f8311b18786948e24e79c7cdbe7bc7780db99c6" target="_blank">7f8311b</a>.
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/5f0dbc15e8c68cb72b6853571ed52bb1dac79926" target="_blank">5f0dbc1</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -592,6 +592,7 @@ Ignored files:
     Ignored:    output/.DS_Store
 
 Untracked files:
+    Untracked:  analysis/CrossCohort_investigation_EXP.Rmd
     Untracked:  analysis/feature_selection.Rmd
     Untracked:  code/archive/
     Untracked:  code/dataset_list.R
@@ -649,6 +650,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4e9331f246f3cf1a92c7e2dbd73963ddc36d8d02/analysis/MethodDev_01_preprocessing_DIA.Rmd" target="_blank">4e9331f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-12
+</td>
+<td>
+Combine discovery and method development data and do batch correction
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/LiaoQianWu/SMART-CARE_LungCancer/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/MethodDev_01_preprocessing_DIA.html" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -810,15 +845,89 @@ new_proTissueTab &lt;- readr::read_delim(&#39;./data/MethodDev/AG_Krijgsveld/202
 new_proTissue &lt;- doPreprocessing(new_proTissueTab, feat = &#39;Protein.Group&#39;, smp = &#39;Sample&#39;,
                              val = &#39;Abundance&#39;, featAnno = c(&#39;Protein.Names&#39;, &#39;Genes&#39;),
                              smpAnno = c(smpAnno, &#39;TumorPurity&#39;), do_featFilt = T,
-                             cutoff = 0.5, viz_miss = T, save_path = &#39;./data/MethodDev/AG_Krijgsveld/new_proTissue&#39;)
+                             cutoff = 0.5, viz_miss = T)#, save_path = &#39;./data/MethodDev/AG_Krijgsveld/new_proTissue&#39;)
 dim(new_proTissue$ori.data)</code></pre>
 <pre><code>[1] 7537   40</code></pre>
 <p>Show missingness of original data</p>
 <pre class="r"><code>new_proTissue$ori.data.miss</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-3-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-3-1">
+Past versions of unnamed-chunk-3-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-3-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-3-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Show distribution of original data</p>
 <pre class="r"><code>new_proTissue$ori.data.dist</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-4-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-4-1">
+Past versions of unnamed-chunk-4-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-4-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-4-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Remove features quantified in less than 1/2 of
 samples</strong><br />
 Show dimensions of filtered data (40 samples and 6614 features)</p>
@@ -827,13 +936,124 @@ Show dimensions of filtered data (40 samples and 6614 features)</p>
 <p>Show missingness of filtered data</p>
 <pre class="r"><code>new_proTissue$filt.data.miss</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-6-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-1">
+Past versions of unnamed-chunk-6-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-6-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Normalize filtered data by VSN</strong><br />
 Show distribution of vsn normalized data</p>
 <pre class="r"><code>new_proTissue$vsn.data.dist</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-1">
+Past versions of unnamed-chunk-7-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-7-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-7-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Show feature mean-variance relationship of vsn normalized data</p>
 <pre class="r"><code>new_proTissue$vsn.feat.mean.var</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-1">
+Past versions of unnamed-chunk-8-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-8-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Do metadata-assisted quality control</strong><br />
 PC1 significantly separates Tumor and Normal samples, which implies fine
 data quality.</p>
@@ -849,6 +1069,43 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (24.2%)`, col=Condition, fill=Condition)) 
   labs(x = &#39;Sample condition&#39;) +
   th</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-9-1">
+Past versions of unnamed-chunk-9-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-9-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-9-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="old" class="section level2">
 <h2>Old</h2>
@@ -890,6 +1147,43 @@ ggplot(pcTab, aes(x=Condition, y=`PC19 (1.6%)`, col=Condition, fill=Condition)) 
   labs(x = &#39;Sample condition&#39;) +
   th</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-12-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-12-1">
+Past versions of unnamed-chunk-12-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-12-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-12-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>ggplot(pcTab, aes(x=Condition, y=`PC6 (5.2%)`, col=Condition, fill=Condition)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
@@ -898,6 +1192,43 @@ ggplot(pcTab, aes(x=Condition, y=`PC19 (1.6%)`, col=Condition, fill=Condition)) 
   labs(x = &#39;Sample condition&#39;) +
   th</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-12-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-12-2">
+Past versions of unnamed-chunk-12-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-12-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-12-2.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div id="plasma-proteomics-ag-krijgsveld" class="section level1">
@@ -918,15 +1249,89 @@ new_proPlasmaTab &lt;- readr::read_delim(&#39;./data/MethodDev/AG_Krijgsveld/202
 new_proPlasma &lt;- doPreprocessing(new_proPlasmaTab, feat = &#39;Protein.Group&#39;, smp = &#39;Sample&#39;,
                                  val = &#39;Abundance&#39;, featAnno = c(&#39;Protein.Names&#39;, &#39;Genes&#39;),
                                  smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
-                                 viz_miss = T, bins = 30, save_path = &#39;./data/MethodDev/AG_Krijgsveld/new_proPlasma&#39;)
+                                 viz_miss = T, bins = 30)#, save_path = &#39;./data/MethodDev/AG_Krijgsveld/new_proPlasma&#39;)
 dim(new_proPlasma$ori.data)</code></pre>
 <pre><code>[1] 1097   40</code></pre>
 <p>Show missingness of original data</p>
 <pre class="r"><code>new_proPlasma$ori.data.miss</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-15-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-15-1">
+Past versions of unnamed-chunk-15-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-15-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-15-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Show distribution of original data</p>
 <pre class="r"><code>new_proPlasma$ori.data.dist</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-16-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-16-1">
+Past versions of unnamed-chunk-16-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-16-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-16-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Remove features quantified in less than 1/2 of
 samples</strong><br />
 Show dimensions of filtered data (40 samples and 640 features)</p>
@@ -935,13 +1340,124 @@ Show dimensions of filtered data (40 samples and 640 features)</p>
 <p>Show missingness of filtered data</p>
 <pre class="r"><code>new_proPlasma$filt.data.miss</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-18-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-18-1">
+Past versions of unnamed-chunk-18-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-18-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-18-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Normalize filtered data by VSN</strong><br />
 Show distribution of vsn normalized data</p>
 <pre class="r"><code>new_proPlasma$vsn.data.dist</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-19-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-19-1">
+Past versions of unnamed-chunk-19-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-19-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-19-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Show feature mean-variance relationship of vsn normalized data</p>
 <pre class="r"><code>new_proPlasma$vsn.feat.mean.var</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-20-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-20-1">
+Past versions of unnamed-chunk-20-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-20-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-20-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="old-1" class="section level2">
 <h2>Old</h2>
@@ -961,15 +1477,89 @@ proPlasmaTab &lt;- readr::read_tsv(&#39;./data/MethodDev/AG_Krijgsveld/20230104_
 proPlasma &lt;- doPreprocessing(proPlasmaTab, feat = &#39;Protein.Group&#39;, smp = &#39;Sample&#39;,
                              val = &#39;Abundance&#39;, featAnno = c(&#39;Protein.Names&#39;, &#39;Genes&#39;),
                              smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5,
-                             viz_miss = T, bins = 30, save_path = &#39;./data/MethodDev/AG_Krijgsveld/proPlasma&#39;)
+                             viz_miss = T, bins = 30)#, save_path = &#39;./data/MethodDev/AG_Krijgsveld/proPlasma&#39;)
 dim(proPlasma$ori.data)</code></pre>
 <pre><code>[1] 505  34</code></pre>
 <p>Show missingness of original data</p>
 <pre class="r"><code>proPlasma$ori.data.miss</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-23-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-23-1">
+Past versions of unnamed-chunk-23-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-23-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-23-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Show distribution of original data</p>
 <pre class="r"><code>proPlasma$ori.data.dist</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-24-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-24-1">
+Past versions of unnamed-chunk-24-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-24-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-24-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Remove features quantified in less than 1/2 of
 samples</strong><br />
 Show dimensions of filtered data (34 samples and 446 features)</p>
@@ -978,13 +1568,124 @@ Show dimensions of filtered data (34 samples and 446 features)</p>
 <p>Show missingness of filtered data</p>
 <pre class="r"><code>proPlasma$filt.data.miss</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-26-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-26-1">
+Past versions of unnamed-chunk-26-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-26-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-26-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Normalize filtered data by VSN</strong><br />
 Show distribution of vsn normalized data</p>
 <pre class="r"><code>proPlasma$vsn.data.dist</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-27-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-27-1">
+Past versions of unnamed-chunk-27-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-27-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-27-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Show feature mean-variance relationship of vsn normalized data</p>
 <pre class="r"><code>proPlasma$vsn.feat.mean.var</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-28-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-28-1">
+Past versions of unnamed-chunk-28-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-28-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-28-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div id="tissue-proteomics-ag-klingmüller" class="section level1">
@@ -1024,18 +1725,92 @@ proTissueTab_Klin &lt;- dplyr::left_join(proTissueTab_Klin, idAnnoTab, by = &#39
 proTissue_Klin &lt;- doPreprocessing(proTissueTab_Klin, feat = &#39;PG.ProteinGroups&#39;,
                                   smp = &#39;Sample&#39;, val = &#39;Abundance&#39;, featAnno = &#39;PG.Genes&#39;,
                                   smpAnno = c(smpAnno, &#39;TumorPurity&#39;, &#39;Batch&#39;),
-                                  do_featFilt = T, cutoff = 0.5, viz_miss = T,
-                                  save_path = &#39;./data/MethodDev/AG_Klingmueller/proTissue&#39;)
+                                  do_featFilt = T, cutoff = 0.5, viz_miss = T)
+                                  # save_path = &#39;./data/MethodDev/AG_Klingmueller/proTissue&#39;)
 dim(proTissue_Klin$ori.data)</code></pre>
 <pre><code>[1] 9659   78</code></pre>
 <p>Show missingness of original data</p>
 <pre class="r"><code>proTissue_Klin$ori.data.miss +
   theme(axis.text.x = element_text(size = 10))</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-31-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-31-1">
+Past versions of unnamed-chunk-31-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-31-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-31-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Show distribution of original data</p>
 <pre class="r"><code>proTissue_Klin$ori.data.dist +
   theme(axis.text.x = element_text(size = 10))</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-32-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-32-1">
+Past versions of unnamed-chunk-32-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-32-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-32-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Remove features quantified in less than 1/2 of
 samples</strong><br />
 Show dimensions of filtered data (78 samples and 8250 features)</p>
@@ -1045,14 +1820,125 @@ Show dimensions of filtered data (78 samples and 8250 features)</p>
 <pre class="r"><code>proTissue_Klin$filt.data.miss +
   theme(axis.text.x = element_text(size = 10))</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-34-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-34-1">
+Past versions of unnamed-chunk-34-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-34-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-34-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Normalize filtered data by VSN</strong><br />
 Show distribution of vsn normalized data</p>
 <pre class="r"><code>proTissue_Klin$vsn.data.dist +
   theme(axis.text.x = element_text(size = 10))</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-35-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-35-1">
+Past versions of unnamed-chunk-35-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-35-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-35-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Show feature mean-variance relationship of vsn normalized data</p>
 <pre class="r"><code>proTissue_Klin$vsn.feat.mean.var</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-36-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-36-1">
+Past versions of unnamed-chunk-36-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-36-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-36-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Do metadata-assisted quality control</strong><br />
 Visualize significant PCs associated with sample conditions and batches
 (1 is Method Development cohort and 2 is Discovery cohort)</p>
@@ -1082,41 +1968,254 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (31.1%)`, col=Condition, fill=Condition, l
   scale_fill_brewer(palette = &#39;Dark2&#39;) +
   labs(x = &#39;Sample condition&#39;) +
   th</code></pre>
-<p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-37-1.png" width="960" style="display: block; margin: auto;" />
-=&gt; Tumor purity: I0HVOL_TU - 87% (Mean of sample tumor cell contents
-is 93%, ranging from 73% to 100%.)</p>
+<p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-37-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-37-1">
+Past versions of unnamed-chunk-37-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-37-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-37-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>=&gt; Tumor purity: I0HVOL_TU - 87% (Mean of sample tumor cell
+contents is 93%, ranging from 73% to 100%.)</p>
+<pre class="r"><code>ggplot(pcTab, aes(x=`PC1 (31.1%)`, y=`PC2 (11.3%)`, col=Batch, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+<p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-38-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-38-1">
+Past versions of unnamed-chunk-38-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-38-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-38-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>ggplot(pcTab, aes(x=Batch, y=`PC8 (3.5%)`, col=Batch, fill=Batch)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_fill_brewer(palette = &#39;Set2&#39;) +
   ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F) +
+                             size = 6, show.legend = F) +
   th</code></pre>
-<p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-38-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-38-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-38-2">
+Past versions of unnamed-chunk-38-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-38-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-38-2.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>ggplot(pcTab, aes(x=Batch, y=`PC12 (2.6%)`, col=Batch, fill=Batch)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_fill_brewer(palette = &#39;Set2&#39;) +
   ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F) +
-  th</code></pre>
-<p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-38-2.png" width="960" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>ggplot(pcTab, aes(x=Batch, y=`PC2 (11.3%)`, col=Batch, fill=Batch)) +
-  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
-  ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
-                             method.args = list(var.equal = T),
-                             show.legend = F) +
+                             size = 6, show.legend = F) +
   th</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-38-3.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-38-3">
+Past versions of unnamed-chunk-38-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-38-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-38-3.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>ggplot(pcTab, aes(x=Batch, y=`PC5 (4.5%)`, col=Batch, fill=Batch)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_fill_brewer(palette = &#39;Set2&#39;) +
   ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
                              method.args = list(var.equal = T),
-                             show.legend = F) +
+                             size = 6, show.legend = F) +
   th</code></pre>
 <p><img src="figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-38-4.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-38-4">
+Past versions of unnamed-chunk-38-4.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-38-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/MethodDev_01_preprocessing_DIA.Rmd/unnamed-chunk-38-4.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>Do batch correction using limma</strong><br />
+There is no PC significantly associated with batches after batch
+correction, which supports that batch effects are linear. Batch factor
+(Batch or Cohort) could be included in linear model for statistical
+analysis.</p>
+<pre class="r"><code># Perform batch correction to see if two batches can be combined even better
+# Convert SE object into wide data
+datMat &lt;- SummarizedExperiment::assay(proTissue_Klin$vsn.data)
+# Define design matrix to keep particular effects, e.g., treatments
+smpAnnoTab &lt;- as_tibble(colData(proTissue_Klin$vsn.data), rownames = &#39;Sample&#39;)
+design &lt;- model.matrix(~ smpAnnoTab$Condition + smpAnnoTab$Recurrence)
+# Do batch correction
+datMat_BC &lt;- limma::removeBatchEffect(datMat, batch = smpAnnoTab$Batch, design = design)
+proTissueSE_BC &lt;- proTissue_Klin$vsn.data
+assay(proTissueSE_BC) &lt;- datMat_BC
+# Save batch corrected data
+# saveRDS(proTissueSE_BC, &#39;./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds&#39;)
+
+# Do single-omics analysis
+proTissueSOA_BC &lt;- doSOA(proTissueSE_BC, meta_var = c(&#39;Condition&#39;, &#39;Batch&#39;),
+                         pca_method = &#39;ppca&#39;, do_onlyPCA = T)
+proTissueSOA_BC$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj Stat   Test
+1 PC1 (31.8%) Condition 1.88e-32 7.51e-31 20.3 T-test</code></pre>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
@@ -1137,7 +2236,7 @@ LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlap
 locale:
 [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 
-time zone: Europe/Berlin
+time zone: Europe/Warsaw
 tzcode source: internal
 
 attached base packages:
@@ -1148,8 +2247,8 @@ other attached packages:
  [1] proDA_1.14.0                pcaMethods_1.92.0          
  [3] pheatmap_1.0.12             ggplotify_0.1.2            
  [5] limma_3.56.2                lubridate_1.9.2            
- [7] forcats_1.0.0               stringr_1.5.0              
- [9] dplyr_1.1.3                 purrr_1.0.2                
+ [7] forcats_1.0.0               stringr_1.5.1              
+ [9] dplyr_1.1.4                 purrr_1.0.2                
 [11] tidyr_1.3.0                 tibble_3.2.1               
 [13] tidyverse_2.0.0             SummarizedExperiment_1.30.2
 [15] GenomicRanges_1.52.0        GenomeInfoDb_1.36.1        
@@ -1162,9 +2261,9 @@ other attached packages:
 [29] workflowr_1.7.0            
 
 loaded via a namespace (and not attached):
- [1] bitops_1.0-7            rlang_1.1.1             magrittr_2.0.3         
+ [1] bitops_1.0-7            rlang_1.1.2             magrittr_2.0.3         
  [4] git2r_0.32.0            compiler_4.3.0          getPass_0.2-2          
- [7] callr_3.7.3             vctrs_0.6.4             pkgconfig_2.0.3        
+ [7] callr_3.7.3             vctrs_0.6.5             pkgconfig_2.0.3        
 [10] crayon_1.5.2            fastmap_1.1.1           backports_1.4.1        
 [13] XVector_0.40.0          labeling_0.4.3          utf8_1.2.4             
 [16] promises_1.2.0.1        rmarkdown_2.23          tzdb_0.4.0             
@@ -1172,24 +2271,24 @@ loaded via a namespace (and not attached):
 [22] xfun_0.39               zlibbioc_1.46.0         cachem_1.0.8           
 [25] jsonlite_1.8.7          highr_0.10              later_1.3.1            
 [28] DelayedArray_0.26.6     broom_1.0.5             parallel_4.3.0         
-[31] R6_2.5.1                bslib_0.5.0             stringi_1.7.12         
+[31] R6_2.5.1                bslib_0.5.0             stringi_1.8.2          
 [34] RColorBrewer_1.1-3      car_3.1-2               jquerylib_0.1.4        
 [37] cellranger_1.1.0        Rcpp_1.0.11             knitr_1.43             
 [40] httpuv_1.6.11           Matrix_1.6-0            timechange_0.2.0       
 [43] tidyselect_1.2.0        abind_1.4-5             rstudioapi_0.15.0      
 [46] yaml_2.3.7              affy_1.78.1             processx_3.8.2         
-[49] lattice_0.21-8          withr_2.5.1             evaluate_0.21          
+[49] lattice_0.21-8          withr_2.5.2             evaluate_0.21          
 [52] gridGraphics_0.5-1      ggpubr_0.6.0            pillar_1.9.0           
-[55] affyio_1.70.0           BiocManager_1.30.21     carData_3.0-5          
+[55] affyio_1.70.0           BiocManager_1.30.22     carData_3.0-5          
 [58] whisker_0.4.1           generics_0.1.3          vroom_1.6.3            
 [61] rprojroot_2.0.3         RCurl_1.98-1.12         hms_1.1.3              
-[64] munsell_0.5.0           scales_1.2.1            glue_1.6.2             
+[64] munsell_0.5.0           scales_1.3.0            glue_1.6.2             
 [67] tools_4.3.0             hexbin_1.28.3           ggsignif_0.6.4         
 [70] fs_1.6.2                grid_4.3.0              colorspace_2.1-0       
 [73] GenomeInfoDbData_1.2.10 cli_3.6.1               fansi_1.0.5            
 [76] S4Arrays_1.0.4          gtable_0.3.4            rstatix_0.7.2          
 [79] yulab.utils_0.0.6       sass_0.4.7              digest_0.6.33          
-[82] farver_2.1.1            htmltools_0.5.5         lifecycle_1.0.3        
+[82] farver_2.1.1            htmltools_0.5.5         lifecycle_1.0.4        
 [85] httr_1.4.6              bit64_4.0.5            </code></pre>
 </div>
 </div>
