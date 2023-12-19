@@ -8,8 +8,14 @@ output:
     code_folding: hide
 ---
 
-<font size='4'> Description: Investigate reproducibility of data and results between
-Method Development and Discovery lung cancer patient cohorts. </font>
+<font size='4'> Description: We currently got Method Development and Discovery Tissue
+Proteomics from AG Krijgsveld and AG Klingmüller. This script is to investigate
+data quality and result reproducibility between different cohorts and different
+working groups. Comparisons between cohorts can exclude differences in working
+groups, but different patient cohorts may introduce a lot more noise, and comparisons
+between working groups can exclude huge variation in patients. Results imply that
+biological variation (individual patients and tumor heterogeneity) is larger than
+technical differences. </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
@@ -35,7 +41,7 @@ th <- theme_bw(base_size = 15) +
 
 ```{r load user-defined functions}
 doFeatAssoTest <- function(data, meta_var, subset = NULL, prot_gene_tbl = NULL,
-                           method = 'proDA') {
+                           method = 'proDA', unwantVar = NULL) {
   #' Conduct univariate association test (t-test for now) between each feature and
   #' sample metadata variable of interest
   #' 
@@ -52,6 +58,8 @@ doFeatAssoTest <- function(data, meta_var, subset = NULL, prot_gene_tbl = NULL,
   #' the first protein and gene should be kept if there are more than one
   #' method: A character specifying the method used to conduct t-test, which should
   #' be one of 'proDA' (default) and 'limma'
+  #' unwantVar: A character or a vector of characters specifying the metadata variables
+  #' that will be accounted for by linear models (regressing out). Default is NULL
   #' 
   #' Return
   #' assoTestRes: A table of feature significance test and statistical results
@@ -70,15 +78,22 @@ doFeatAssoTest <- function(data, meta_var, subset = NULL, prot_gene_tbl = NULL,
   smpAnno <- tibble::as_tibble(colData(data), rownames = 'Sample')
   
   # Perform analysis
+  # Prepare model design matrix
+  if (is.null(unwantVar)) {
+      design <- model.matrix(~ smpAnno[[meta_var]])
+    } else {
+      formu <- paste0('~', paste0(c(meta_var, unwantVar), collapse = '+')) %>%
+        as.formula()
+      design <- model.matrix(formu, data = smpAnno)
+    }
   if (method == 'proDA') {
     # Fit linear probabilistic dropout model to normalized data
-    fit <- proDA(datMat, design = ~ smpAnno[[meta_var]])
+    fit <- proDA(datMat, design = design)
     diffTerm <- proDA::result_names(fit)[2]
     assoTestRes <- proDA::test_diff(fit, contrast = diffTerm, sort_by = 'pval') %>%
       dplyr::select(name, pval, adj_pval, diff) %>%
       dplyr::rename(Feature = name, pVal = pval, pValAdj = adj_pval, logFC = diff)
   } else if (method == 'limma') {
-    design <- model.matrix(~ smpAnno[[meta_var]])
     fit <- limma::lmFit(datMat, design = design)
     fit <- limma::eBayes(fit)
     assoTestRes <- limma::topTable(fit, coef = 2, number = Inf) %>%
@@ -101,30 +116,20 @@ doFeatAssoTest <- function(data, meta_var, subset = NULL, prot_gene_tbl = NULL,
   return(assoTestRes)
 }
 
-# data1 <- proTissue_Discovery
-# data2 <- proTissue_MethodDev
-# name1 <- 'Discovery'
-# name2 <- 'MethodDev'
-# meta_var <- 'Recurrence'
-# subset <- c('Condition', 'Tumor')
-# method <- 'proDA'
-# prot_gene_tbl <- featInfo
-# alpha <- 0.05
-# num_topSigFeats <- 6
-# plot_pVal <- T
-# plot_topSigFeats <- T
-# plot_logFC <- T
+
 summarizeFeatAssoRes <- function(data1, data2, name1, name2, meta_var, subset = NULL,
-                                 prot_gene_tbl = NULL, method = 'proDA', alpha = 0.05,
-                                 num_topSigFeats = 6, plot_pVal = T, plot_topSigFeats = T,
-                                 plot_logFC = T) {
+                                 prot_gene_tbl = NULL, method = 'proDA',
+                                 unwantVar1 = NULL, unwantVar2 = NULL,
+                                 alpha = 0.05, num_topSigFeats = 6, plot_pVal = T,
+                                 plot_topSigFeats = T, plot_logFC = T) {
   #' Conduct univariate analysis (t-test for now) between features and sample metadata
   #' variable of interest, and combine and tidy up significance test and statistical
   #' results (p-values, top significant features, and log fold changes) into tables for making plots
   #' 
   #' Parameters
   #' data1, data2: SummarizedExperiment objects that contain the data matrices and metadata
-  #' name1, name2: Characters indicating the dataset names in the plot legend
+  #' name1, name2: A character indicating the names of datasets (data1 and data2)
+  #' in the plot legend
   #' meta_var: A character specifying the sample metadata variable that has two
   #' levels for grouping samples to conduct t-test
   #' subset: A vector of length 2 containing characters specifying the sample metadata
@@ -136,6 +141,9 @@ summarizeFeatAssoRes <- function(data1, data2, name1, name2, meta_var, subset = 
   #' only the first protein and gene should be kept if there are more than one
   #' method: A character specifying the method used to conduct t-test, which should
   #' be one of 'proDA' (default) and 'limma'
+  #' unwantVar1, unwantVar2: A character or a vector of characters specifying the
+  #' metadata variables (data1 and data2) that will be accounted for by linear models
+  #' (regressing out). Default is NULL
   #' alpha: A numeric value specifying the significance level for summarizing p-value
   #' information. Default is 0.05
   #' num_topSigFeats: A numeric value specifying the number of top significant features
@@ -167,10 +175,12 @@ summarizeFeatAssoRes <- function(data1, data2, name1, name2, meta_var, subset = 
   # Compute associations between features and sample metadata variable of interest
   # and keep only results of common features
   assoTestRes1 <- doFeatAssoTest(data1, meta_var = meta_var, subset = subset,
-                                 prot_gene_tbl = prot_gene_tbl, method = method)
+                                 prot_gene_tbl = prot_gene_tbl, method = method,
+                                 unwantVar = unwantVar1)
   assoTestRes_dat1 <- dplyr::filter(assoTestRes1, Feature %in% commonFeats)
   assoTestRes2 <- doFeatAssoTest(data2, meta_var = meta_var, subset = subset,
-                                 prot_gene_tbl = prot_gene_tbl, method = method)
+                                 prot_gene_tbl = prot_gene_tbl, method = method,
+                                 unwantVar = unwantVar2)
   assoTestRes_dat2 <- dplyr::filter(assoTestRes2, Feature %in% commonFeats)
   
   # Summarize resulting p-Values
@@ -328,11 +338,58 @@ summarizeFeatAssoRes <- function(data1, data2, name1, name2, meta_var, subset = 
               tbl_pVal = combinedAssoTestRes_pVal, tbl_topSigFeats = combinedTopSigFeatTab,
               tbl_logFC = combinedAssoTestRes_logFC))
 }
+
+
+calcFeatCorr <- function(data1, data2, show_nFeats = F) {
+  #' Systematically compute feature correlations between two PROTEOMICS (for now) datasets
+  #' 
+  #' Parameters
+  #' data1, data2: SummarizedExperiment objects that contain data matrices
+  #' 
+  #' Return
+  #' corrRes: A table of correlations of overlapped features between two datasets
+  
+  # Extract data matrix
+  dat1 <- SummarizedExperiment::assay(data1)
+  dat2 <- SummarizedExperiment::assay(data2)
+  
+  # Make two matrices share same sample and feature spaces and in same row and column order
+  # Keep only common samples
+  commonSmps <- intersect(colnames(dat1), colnames(dat2))
+  dat1 <- dat1[, commonSmps]
+  dat2 <- dat2[, commonSmps]
+  # Keep only common features
+  # Select first protein as representative if there are more than one
+  rownames(dat1) <- stringr::str_remove(rownames(dat1), ';.*')
+  rownames(dat2) <- stringr::str_remove(rownames(dat2), ';.*')
+  commonFeats <- intersect(rownames(dat1), rownames(dat2))
+  dat1 <- dat1[commonFeats,]
+  dat2 <- dat2[commonFeats,]
+  if (show_nFeats) {
+    cat('Features in data1: ', nrow(data1), '\n', 'Features in data2: ', nrow(data2), '\n',
+        'Features in common: ', length(commonFeats), sep = '')
+  }
+  
+  # Compute feature correlations between two proteomics datasets
+  # Do sanity check
+  if (identical(rownames(dat1), rownames(dat2)) &
+      identical(colnames(dat1), colnames(dat2))) {
+    corrs <- sapply(seq_len(nrow(dat1)), function(i) {
+      corr <- cor.test(dat1[i,], dat2[i,], method = 'pearson', use = "pairwise.complete.obs")
+      corr$estimate
+    })
+    corrRes <- data.frame(Feature = rownames(dat1), Correlation = corrs) %>%
+      dplyr::arrange(Correlation)
+  }
+  
+  return(corrRes)
+}
 ```
 
 # Tissue DIA Proteomics
 Metadata-assisted quality assessment: Check association of tissue type-related feature
-significance between Discovery and Method Development datasets
+significance between Discovery and Method Development datasets or between Krij.'s
+and Klin.'s datasets
 
 ## AG Krijgsveld
 
@@ -373,6 +430,9 @@ percent <- round(sum(featAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
                    sum(featAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
 cat(paste0('=> ', percent, '% of significant results are consistent'))
 ```
+=> Trend is towards Discovery data, which means same features got lower p-values
+in Discovery data compared to Method Development one. Yet, it probably does not
+mean Discovery data is better, but just got larger sample size.
 
 **log(FC)**
 ```{r}
@@ -393,6 +453,7 @@ percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
                    nrow(featAssoTabs$tbl_logFC), 3) * 100
 cat(paste0('=> ', percent, '% of results are consistent'))
 ```
+=> Factor of sample size is excluded.
 
 ## AG Klingmüller
 
@@ -455,12 +516,20 @@ percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
 cat(paste0('=> ', percent, '% of results are consistent'))
 ```
 
-```{r include=F, eval=F}
 ## Method Development
+Compare data from same patient cohorts (only common samples used) between different
+working groups to see if better results can be obtained due to large variation among patients
+
+**p-values (significance level = 0.05)**
+```{r}
 # Load normalized data
 proTissue_Krij <- readRDS('./data/MethodDev/AG_Krijgsveld/new_proTissueVsn.rds')
 proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'MethodDev']
+# Keep only common samples shared between Discovery and Method Development data
+cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmp]
+proTissue_Klin <- proTissue_Klin[, cmnSmp]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%
@@ -486,7 +555,10 @@ ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=
 percent <- round(sum(featAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
                    sum(featAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
 cat(paste0('=> ', percent, '% of significant results are consistent'))
+```
 
+**log(FC)**
+```{r}
 # Plot log(FC)
 ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
   geom_point(size = 2) +
@@ -499,12 +571,33 @@ ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
 percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
                    nrow(featAssoTabs$tbl_logFC), 3) * 100
 cat(paste0('=> ', percent, '% of results are consistent'))
+```
+
+**Feature correlations**
+```{r}
+# Compute correlations of common features between two datasets
+corrRes <- calcFeatCorr(proTissue_Krij, proTissue_Klin, show_nFeats = F)
+ggplot(corrRes, aes(x=Correlation)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(breaks = c(seq(-0.5, 1, 0.25))) +
+  labs(y = 'Frequency', title = 'Feature correlations: Tissue DIA Proteomics (MethodDev)') +
+  th
+```
 
 ## Discovery
+Compare data from same patient cohorts (only common samples used) between different
+working groups to see if better results can be obtained due to large variation among patients
+
+**p-values (significance level = 0.05)**
+```{r}
 # Load normalized data
 proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/proTissueVsn.rds')
 proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'Discovery']
+# Keep only common samples shared between Discovery and Method Development data
+cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmp]
+proTissue_Klin <- proTissue_Klin[, cmnSmp]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%
@@ -530,7 +623,10 @@ ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=
 percent <- round(sum(featAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
                    sum(featAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
 cat(paste0('=> ', percent, '% of significant results are consistent'))
+```
 
+**log(FC)**
+```{r}
 # Plot log(FC)
 ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
   geom_point(size = 2) +
@@ -545,11 +641,81 @@ percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
 cat(paste0('=> ', percent, '% of results are consistent'))
 ```
 
+**Feature correlations**
+```{r}
+# Compute correlations of common features between two datasets
+corrRes <- calcFeatCorr(proTissue_Krij, proTissue_Klin, show_nFeats = F)
+ggplot(corrRes, aes(x=Correlation)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(breaks = c(seq(-0.5, 1, 0.25))) +
+  labs(y = 'Frequency', title = 'Feature correlations: Tissue DIA Proteomics (MethodDev)') +
+  th
+```
+
+## Combined data
+Combined Discovery and Method Development data (only common samples used)
+
+**p-values (significance level = 0.05)**
+```{r}
+# Load normalized data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsn.rds')
+proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
+# Keep only common samples shared between Discovery and Method Development data
+cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmp]
+proTissue_Klin <- proTissue_Klin[, cmnSmp]
+# Prepare protein-gene table for providing gene names
+featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+
+# Prepare summarized tables of comparison between Tumor and Normal tissue samples
+condiFeatAssoTabs_Combined <- summarizeFeatAssoRes(proTissue_Krij, proTissue_Klin,
+                                                   'Krij.', 'Klin.', meta_var = 'Condition',
+                                                   subset = NULL, method = 'proDA',
+                                                   unwantVar1 = 'Cohort', unwantVar2 = 'Cohort',
+                                                   alpha = 0.05, prot_gene_tbl = featInfo)
+featAssoTabs <- condiFeatAssoTabs_Combined
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  labs(x = '-log10(pVal) of Krij.', y = '-log10(pVal) of Klin.',
+       title = 'Tumor vs Normal: Tissue DIA Proteomics (Combined data)') +
+  th
+
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(featAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+cat(paste0('=> ', percent, '% of significant results are consistent'))
+```
+
+**log(FC)**
+```{r}
+# Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of Krij.', y = 'log(FC) of Klin.',
+       title = 'Tumor vs Normal: Tissue DIA Proteomics (Combined data)') +
+  th
+
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0('=> ', percent, '% of results are consistent'))
+```
+
+
+
 
 # Normal Tissue Proteomics
 Check association of recurrence-related feature significance between Discovery and
-Method Development datasets from same working group, so that working group differences
-can be excluded
+Method Development datasets or between Krij.'s and Klin.'s datasets
 
 ## AG Krijgsveld
 
@@ -832,13 +998,197 @@ featAssoRes_Discovery %>%
   DT::datatable()
 ```
 
+## Method Development
+Compare data from same patient cohorts (only common samples used) between different
+working groups to see if better results can be obtained due to large variation among patients
+
+**p-values (significance level = 0.05)**
+```{r}
+# Load normalized data
+proTissue_Krij <- readRDS('./data/MethodDev/AG_Krijgsveld/new_proTissueVsn.rds')
+proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
+proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'MethodDev']
+# Keep only common samples shared between Discovery and Method Development data
+cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmp]
+proTissue_Klin <- proTissue_Klin[, cmnSmp]
+# Prepare protein-gene table for providing gene names
+featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+
+# Prepare summarized tables of comparison between Recurrence and Non-recurrence patient groups
+recurNormalFeatAssoTabs_MethodDev <- summarizeFeatAssoRes(proTissue_Krij, proTissue_Klin,
+                                                          'Krij.', 'Klin.',
+                                                          meta_var = 'Recurrence',
+                                                          subset = c('Condition', 'Normal'),
+                                                          method = 'proDA',
+                                                          prot_gene_tbl = featInfo,
+                                                          alpha = 0.05)
+featAssoTabs <- recurNormalFeatAssoTabs_MethodDev
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  labs(x = '-log10(pVal) of Krij.', y = '-log10(pVal) of Klin.',
+       title = 'Recurrence: Normal Tissue DIA Proteomics (MethodDev)') +
+  th
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(featAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+cat(paste0('=> ', percent, '% of significant results are consistent'))
+```
+
+**log(FC)**
+```{r}
+# Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of Krij.', y = 'log(FC) of Klin.',
+       title = 'Recurrence: Normal Tissue DIA Proteomics (MethodDev)') +
+  th
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0('=> ', percent, '% of results are consistent'))
+```
+
+## Discovery
+Compare data from same patient cohorts (only common samples used) between different
+working groups to see if better results can be obtained due to large variation among patients
+
+**p-values (significance level = 0.05)**
+```{r}
+# Load normalized data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/proTissueVsn.rds')
+proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
+proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'Discovery']
+# Keep only common samples shared between Discovery and Method Development data
+cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmp]
+proTissue_Klin <- proTissue_Klin[, cmnSmp]
+# Prepare protein-gene table for providing gene names
+featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+
+# Prepare summarized tables of comparison between Recurrence and Non-recurrence patient groups
+recurNormalFeatAssoTabs_Discovery <- summarizeFeatAssoRes(proTissue_Krij, proTissue_Klin,
+                                                          'Krij.', 'Klin.',
+                                                          meta_var = 'Recurrence',
+                                                          subset = c('Condition', 'Normal'),
+                                                          method = 'proDA',
+                                                          prot_gene_tbl = featInfo,
+                                                          alpha = 0.05)
+featAssoTabs <- recurNormalFeatAssoTabs_Discovery
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  labs(x = '-log10(pVal) of Krij.', y = '-log10(pVal) of Klin.',
+       title = 'Recurrence: Normal Tissue DIA Proteomics (Discovery)') +
+  th
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(featAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+cat(paste0('=> ', percent, '% of significant results are consistent'))
+```
+
+**log(FC)**
+```{r}
+# Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of Krij.', y = 'log(FC) of Klin.',
+       title = 'Recurrence: Normal Tissue DIA Proteomics (Discovery)') +
+  th
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0('=> ', percent, '% of results are consistent'))
+```
+
+## Combined data
+Combined Discovery and Method Development data (only common samples used)
+
+**p-values (significance level = 0.05)**
+```{r}
+# Load normalized data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsn.rds')
+proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
+# Keep only common samples shared between Discovery and Method Development data
+cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmp]
+proTissue_Klin <- proTissue_Klin[, cmnSmp]
+# Prepare protein-gene table for providing gene names
+featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+
+# Prepare summarized tables of comparison between Recurrence and Non-recurrence patient groups
+recurNormalFeatAssoTabs_Combined <- summarizeFeatAssoRes(proTissue_Krij, proTissue_Klin,
+                                                         'Krij.', 'Klin.',
+                                                         meta_var = 'Recurrence',
+                                                         method = 'proDA',
+                                                         unwantVar1 = 'Cohort',
+                                                         unwantVar2 = 'Cohort',
+                                                         subset = c('Condition', 'Normal'),
+                                                         prot_gene_tbl = featInfo,
+                                                         alpha = 0.05)
+featAssoTabs <- recurNormalFeatAssoTabs_Combined
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2),
+                                  col=Significance, label=Label)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.5) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  geom_text_repel(size = 4, show.legend = F) +
+  labs(x = '-log10(pVal) of Krij.', y = '-log10(pVal) of Klin.',
+       title = 'Recurrence: Normal Tissue DIA Proteomics (Combined data)') +
+  th
+
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(featAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+cat(paste0('=> ', percent, '% of significant results are consistent'))
+# With all measured samples, around 8%
+```
+
+**log(FC)**
+```{r}
+# Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.5) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of Krij.', y = 'log(FC) of Klin.',
+       title = 'Recurrence: Normal Tissue DIA Proteomics (Combined data)') +
+  th
+
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0('=> ', percent, '% of results are consistent'))
+```
+
 
 
 
 # Tumor Tissue Proteomics
 Check association of recurrence-related feature significance between Discovery and
-Method Development datasets from same working group, so that working group differences
-can be excluded
+Method Development datasets or between Krij.'s and Klin.'s datasets
 
 ## AG Krijgsveld
 
@@ -1053,4 +1403,189 @@ ggvenn(list(Discovery_Krij. = sigFeats_Discovery_Krij, Discovery_Klin. = sigFeat
        fill_color = c('darkred', 'darkorange', 'darkgreen'), fill_alpha = 0.6,
        set_name_color = c('darkred', 'darkorange', 'darkgreen'), set_name_size = 9,
        text_size = 5, stroke_size = 1.5)
+```
+
+## Method Development
+Compare data from same patient cohorts (only common samples used) between different
+working groups to see if better results can be obtained due to large variation among patients
+
+**p-values (significance level = 0.05)**
+```{r}
+# Load normalized data
+proTissue_Krij <- readRDS('./data/MethodDev/AG_Krijgsveld/new_proTissueVsn.rds')
+proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
+proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'MethodDev']
+# Keep only common samples shared between Discovery and Method Development data
+cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmp]
+proTissue_Klin <- proTissue_Klin[, cmnSmp]
+# Prepare protein-gene table for providing gene names
+featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+
+# Prepare summarized tables of comparison between Recurrence and Non-recurrence patient groups
+recurTumorFeatAssoTabs_MethodDev <- summarizeFeatAssoRes(proTissue_Krij, proTissue_Klin,
+                                                         'Krij.', 'Klin.',
+                                                         meta_var = 'Recurrence',
+                                                         subset = c('Condition', 'Tumor'),
+                                                         method = 'proDA',
+                                                         prot_gene_tbl = featInfo,
+                                                         alpha = 0.05)
+featAssoTabs <- recurTumorFeatAssoTabs_MethodDev
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  labs(x = '-log10(pVal) of Krij.', y = '-log10(pVal) of Klin.',
+       title = 'Recurrence: Tumor Tissue DIA Proteomics (MethodDev)') +
+  th
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(featAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+cat(paste0('=> ', percent, '% of significant results are consistent'))
+```
+
+**log(FC)**
+```{r}
+# Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of Krij.', y = 'log(FC) of Klin.',
+       title = 'Recurrence: Tumor Tissue DIA Proteomics (MethodDev)') +
+  th
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0('=> ', percent, '% of results are consistent'))
+```
+
+## Discovery
+Compare data from same patient cohorts (only common samples used) between different
+working groups to see if better results can be obtained due to large variation among patients
+
+**p-values (significance level = 0.05)**
+```{r}
+# Load normalized data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/proTissueVsn.rds')
+proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
+proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'Discovery']
+# Keep only common samples shared between Discovery and Method Development data
+cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmp]
+proTissue_Klin <- proTissue_Klin[, cmnSmp]
+# Prepare protein-gene table for providing gene names
+featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+
+# Prepare summarized tables of comparison between Recurrence and Non-recurrence patient groups
+recurTumorFeatAssoTabs_Discovery <- summarizeFeatAssoRes(proTissue_Krij, proTissue_Klin,
+                                                         'Krij.', 'Klin.',
+                                                         meta_var = 'Recurrence',
+                                                         subset = c('Condition', 'Tumor'),
+                                                         method = 'proDA',
+                                                         prot_gene_tbl = featInfo,
+                                                         alpha = 0.05)
+featAssoTabs <- recurTumorFeatAssoTabs_Discovery
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  labs(x = '-log10(pVal) of Krij.', y = '-log10(pVal) of Klin.',
+       title = 'Recurrence: Tumor Tissue DIA Proteomics (Discovery)') +
+  th
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(featAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+cat(paste0('=> ', percent, '% of significant results are consistent'))
+```
+
+**log(FC)**
+```{r}
+# Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of Krij.', y = 'log(FC) of Klin.',
+       title = 'Recurrence: Tumor Tissue DIA Proteomics (Discovery)') +
+  th
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0('=> ', percent, '% of results are consistent'))
+```
+
+## Combined data
+Combined Discovery and Method Development data (only common samples used)
+
+**p-values (significance level = 0.05)**
+```{r}
+# Load normalized data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsn.rds')
+proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
+# Keep only common samples shared between Discovery and Method Development data
+cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmp]
+proTissue_Klin <- proTissue_Klin[, cmnSmp]
+# Prepare protein-gene table for providing gene names
+featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = PG.Genes) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+
+# Prepare summarized tables of comparison between Recurrence and Non-recurrence patient groups
+recurTumorFeatAssoTabs_Combined <- summarizeFeatAssoRes(proTissue_Krij, proTissue_Klin,
+                                                        'Krij.', 'Klin.',
+                                                        meta_var = 'Recurrence',
+                                                        method = 'proDA',
+                                                        unwantVar1 = 'Cohort',
+                                                        unwantVar2 = 'Cohort',
+                                                        subset = c('Condition', 'Tumor'),
+                                                        prot_gene_tbl = featInfo,
+                                                        alpha = 0.05)
+featAssoTabs <- recurTumorFeatAssoTabs_Combined
+
+# Plot p-values
+ggplot(featAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2),
+                                  col=Significance, label=Label)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.5) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  geom_text_repel(size = 4, show.legend = F) +
+  labs(x = '-log10(pVal) of Krij.', y = '-log10(pVal) of Klin.',
+       title = 'Recurrence: Tumor Tissue DIA Proteomics (Combined data)') +
+  th
+
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(featAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+cat(paste0('=> ', percent, '% of significant results are consistent'))
+# With all measured samples, around 3%
+```
+
+**log(FC)**
+```{r}
+# Plot log(FC)
+ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.5) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of Krij.', y = 'log(FC) of Klin.',
+       title = 'Recurrence: Tumor Tissue DIA Proteomics (Combined data)') +
+  th
+
+# Show percentage of consistent results
+percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
+                   nrow(featAssoTabs$tbl_logFC), 3) * 100
+cat(paste0('=> ', percent, '% of results are consistent'))
 ```
