@@ -193,8 +193,8 @@ testAssociation <- function(data, metadata, cmn_col, use_limma = F, use_proDA = 
   if (!(is(data, 'data.frame') & is(metadata, 'data.frame'))) {
     stop("Both input tables should be class 'data.frame', 'tbl', or 'tbl_df'.")
   }
-  if (!is.character(cmn_col)) {
-    stop("Argument for 'cmn_col' should be class 'character'.")
+  if (!is.character(cmn_col) | length(cmn_col) != 1) {
+    stop("Argument for 'cmn_col' should be class 'character' and length-1.")
   }
   if (!(cor_method %in% c('pearson', 'spearman', 'kendall'))) {
     stop("Argument for 'cor_method' should be one of 'pearson', 'spearman', or 'kendall'.")
@@ -236,6 +236,12 @@ testAssociation <- function(data, metadata, cmn_col, use_limma = F, use_proDA = 
     lapply(seq_len(numVar2), function(j) {
       var1 <- combinedTab[[i]]
       var2 <- combinedTab[[numVar1+j]]
+      # Remove samples with missing metadata
+      missVal <- which(is.na(var2))
+      if (length(missVal) != 0) {
+        var1 <- var1[-missVal]
+        var2 <- var2[-missVal]
+      }
       # Perform corresponding tests depending on types of independent variables
       singleRes <- try(
         if (is.numeric(var2)) {
@@ -289,7 +295,7 @@ testAssociation <- function(data, metadata, cmn_col, use_limma = F, use_proDA = 
   # Use limma to conduct moderated t-test
   if (use_limma) {
     # Prepare data matrix for fitting linear model
-    datMat <- combinedTab[, 1:numVar1, drop = F] %>%
+    datMat <- combinedTab[, seq_len(numVar1), drop = F] %>%
       t()
     resTab <- lapply(seq_len(numVar2), function(i) {
       metadatVar <- colnames(combinedTab)[numVar1+i]
@@ -318,7 +324,7 @@ testAssociation <- function(data, metadata, cmn_col, use_limma = F, use_proDA = 
   # Use proDA to account for missing values for more reliable t-test
   if (use_proDA) {
     # Prepare data matrix for fitting linear probabilistic dropout model
-    datMat <- combinedTab[, 1:numVar1, drop = F] %>%
+    datMat <- combinedTab[, seq_len(numVar1), drop = F] %>%
       t()
     resTab <- lapply(seq_len(numVar2), function(i) {
       metadatVar <- colnames(combinedTab)[numVar1+i]
