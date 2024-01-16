@@ -716,7 +716,7 @@ subsetTrainData <- function(x, y, split_method = 'random split', trainSet_ratio 
 
 
 runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
-                  trainSet_ratio = 0.8, ntree = 10000, plot_ROC = F) {
+                  trainSet_ratio = 0.8, ntree = 10000, plot_ROC = F, save_RF = F) {
   # This function is currently for binary classification problem. For multi-class
   # classification, data split and bootstrap in random forest has to be reviewed
   # and refined!!!!
@@ -738,6 +738,7 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
   #' ntree: A numeric value specifying the number of trees to grow, which should not
   #' be set to too low to ensure that every input row gets predicted at least a few times
   #' plot_ROC: A logical variable indicating whether ROC curve is plotted
+  #' save_RF: A logical variable indicating whether trined RF is saved
   #' 
   #' Return
   #' A list containing the following components:
@@ -748,6 +749,7 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
   #' Decrease Accuracy and Gini
   #' params: A list containing arguments of parameters 'split_method', 'trainSet_ratio',
   #' and 'ntree'
+  #' rfRes: A object of class randomForest
   
   # Sanity check
   if (!(nrow(x) == length(y))) {
@@ -801,12 +803,12 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
       mtryList <- c(mtryList, mtry)
       # Run random forest
       rfRes <- randomForest::randomForest(x = x_train, y = y_train, mtry = mtry, ntree = ntree,
-                                          # xtest = x_test, ytest = y_test,
+                                          xtest = x_test, ytest = y_test,
                                           importance = T, proximity = T, keep.forest = T)
     } else {
       mtryList <- c(mtryList, NA)
       rfRes <- randomForest::randomForest(x = x_train, y = y_train, ntree = ntree,
-                                          # xtest = x_test, ytest = y_test,
+                                          xtest = x_test, ytest = y_test,
                                           importance = T, proximity = T, keep.forest = T)
     }
       
@@ -833,7 +835,12 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
       matMDG[, i] <- rfRes$importance[, 'MeanDecreaseGini']
   }
   
-  return(list(mtry = mtryList, auc = aucList, MDA = matMDA, MDG = matMDG, params = paramList))
+  if (!save_RF) {
+    rfRes <- NULL
+  }
+  
+  return(list(mtry = mtryList, auc = aucList, MDA = matMDA, MDG = matMDG, params = paramList,
+              rfRes = rfRes))
 }
 
 
