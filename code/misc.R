@@ -625,7 +625,7 @@ testAsso <- function(tabX, tabY, cmn_col, cor_method = 'pearson', var_equal = T)
 }
 
 
-prepRankedFeatList <- function(sigRes, featAnno = NULL, to_gene = F) {
+prepRankedFeatList <- function(statRes, featAnno = NULL, to_gene = F) {
   #' This function is to conduct more reliable enrichment analysis, which tidy up
   #' significance testing results. Remove extra inferred proteins and annotated
   #' genes of same features (remove whatever after ';') and check whether there
@@ -634,22 +634,24 @@ prepRankedFeatList <- function(sigRes, featAnno = NULL, to_gene = F) {
   #' list is ranked.
   #' 
   #' Parameters
-  #' sigRes: A table containing significance testing results, where the row names
-  #' are features and the first column contains statistics with whatever column name
+  #' statRes: A table containing significance testing results, where the row names
+  #' are features and the first column contains statistics with whatever column name.
+  #' Note that it does not matter if excess inferred features are removed
   #' featAnno: A data frame holding original features (i.e., proteins) as the row
   #' names and corresponding feature annotations (i.e., gene) in the first column
-  #' with whatever column name
-  #' to_gene: A logical value indicating whether the row names of 'sigRes' are mapped
+  #' with whatever column name. Note that it does not matter if excess inferred
+  #' features are removed, and the feature space must not be the same as that of 'statRes'
+  #' to_gene: A logical value indicating whether the row names of 'statRes' are mapped
   #' from proteins to genes
   #' 
   #' Return
   #' rankedList: A named vector in which features are ranked
   
   # Keep first inferred protein if there are many
-  rownames(sigRes) <- stringr::str_remove(rownames(sigRes), ';.+')
+  rownames(statRes) <- stringr::str_remove(rownames(statRes), ';.+')
   # Sanity check
-  if (any(duplicated(rownames(sigRes)))) {
-    stop("There are duplicated features in 'sigRes' when whatever after ';' is removed.")
+  if (any(duplicated(rownames(statRes)))) {
+    stop("There are duplicated features in 'statRes' when whatever after ';' is removed.")
   }
   
   # Change protein names to gene names. Those proteins with duplicated annotated
@@ -662,28 +664,30 @@ prepRankedFeatList <- function(sigRes, featAnno = NULL, to_gene = F) {
     # of statistic)
     genes <- featAnno[[1]]
     dupGenes <- unique(genes[duplicated(genes)])
-    rmFeatList <- c()
+    rmFeatIdxList <- numeric(0)
     for (g in dupGenes) {
       rmFeats <- rownames(featAnno)[genes %in% g]
-      rmFeatIdx <- which(rownames(sigRes) %in% rmFeats)
-      rmFeatIdx <- rmFeatIdx[-which.max(abs(sigRes[rmFeatIdx,]))]
-      rmFeatList <- c(rmFeatList, rmFeatIdx)
+      rmFeatIdx <- which(rownames(statRes) %in% rmFeats)
+      rmFeatIdx <- rmFeatIdx[-which.max(abs(statRes[rmFeatIdx,]))]
+      rmFeatIdxList <- c(rmFeatIdxList, rmFeatIdx)
     }
     # Remove proteins with no annotated gene
     rmFeats <- rownames(featAnno)[is.na(genes)]
-    rmFeatIdx <- which(rownames(sigRes) %in% rmFeats)
-    rmFeatList <- unique(c(rmFeatList, rmFeatIdx))
+    rmFeatIdx <- which(rownames(statRes) %in% rmFeats)
+    rmFeatIdxList <- unique(c(rmFeatIdxList, rmFeatIdx))
     # Filter out unwanted proteins
-    sigRes <- sigRes[-rmFeatList,, drop = F]
+    if (length(rmFeatIdxList) != 0) {
+      statRes <- statRes[-rmFeatIdxList,, drop = F]
+    }
     # Change protein names to gene names
     pro2gene <- featAnno[[1]]
     names(pro2gene) <- rownames(featAnno)
-    rownames(sigRes) <- pro2gene[rownames(sigRes)]
+    rownames(statRes) <- pro2gene[rownames(statRes)]
   }
   
   # Rank feature
-  rankedList <- sigRes[order(sigRes[[1]], decreasing = T),]
-  names(rankedList) <- rownames(sigRes)[order(sigRes[[1]], decreasing = T)]
+  rankedList <- statRes[order(statRes[[1]], decreasing = T),]
+  names(rankedList) <- rownames(statRes)[order(statRes[[1]], decreasing = T)]
   
   return(rankedList)
 }
