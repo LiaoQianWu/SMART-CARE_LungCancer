@@ -26,6 +26,13 @@ Load libraries
 ```{r load libraries, message=F}
 library(ggrepel)
 library(ggvenn)
+library('AnnotationDbi')
+library('org.Hs.eg.db')
+# This annotation object is accessed using AnnotationDbi:select()
+hs <- org.Hs.eg.db
+library('msigdbr')
+library('clusterProfiler')
+library('enrichplot')
 library(SummarizedExperiment)
 library(tidyverse)
 # Load user-defined functions
@@ -527,9 +534,9 @@ proTissue_Krij <- readRDS('./data/MethodDev/AG_Krijgsveld/new_proTissueVsn.rds')
 proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'MethodDev']
 # Keep only common samples shared between Discovery and Method Development data
-cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
-proTissue_Krij <- proTissue_Krij[, cmnSmp]
-proTissue_Klin <- proTissue_Klin[, cmnSmp]
+cmnSmps <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmps]
+proTissue_Klin <- proTissue_Klin[, cmnSmps]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%
@@ -595,9 +602,9 @@ proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/proTissueVsn.rds')
 proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'Discovery']
 # Keep only common samples shared between Discovery and Method Development data
-cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
-proTissue_Krij <- proTissue_Krij[, cmnSmp]
-proTissue_Klin <- proTissue_Klin[, cmnSmp]
+cmnSmps <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmps]
+proTissue_Klin <- proTissue_Klin[, cmnSmps]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%
@@ -648,7 +655,7 @@ corrRes <- calcFeatCorr(proTissue_Krij, proTissue_Klin, show_nFeats = F)
 ggplot(corrRes, aes(x=Correlation)) +
   geom_histogram(binwidth = 0.1) +
   scale_x_continuous(breaks = c(seq(-0.5, 1, 0.25))) +
-  labs(y = 'Frequency', title = 'Feature correlations: Tissue DIA Proteomics (MethodDev)') +
+  labs(y = 'Frequency', title = 'Feature correlations: Tissue DIA Proteomics (Discovery)') +
   th
 ```
 
@@ -658,12 +665,12 @@ Combined Discovery and Method Development data (only common samples used)
 **p-values (significance level = 0.05)**
 ```{r}
 # Load normalized data
-proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsn.rds')
-proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds')
 # Keep only common samples shared between Discovery and Method Development data
-cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
-proTissue_Krij <- proTissue_Krij[, cmnSmp]
-proTissue_Klin <- proTissue_Klin[, cmnSmp]
+cmnSmps <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmps]
+proTissue_Klin <- proTissue_Klin[, cmnSmps]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%
@@ -708,6 +715,787 @@ ggplot(featAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
 percent <- round(sum(featAssoTabs$tbl_logFC$Direction != 'Inconsistent') /
                    nrow(featAssoTabs$tbl_logFC), 3) * 100
 cat(paste0('=> ', percent, '% of results are consistent'))
+```
+
+**Feature correlations**
+```{r}
+# Compute correlations of common features between two datasets
+cat('Feature sizes: (data1 is Krij. and data 2 is Klin.)\n')
+corrRes <- calcFeatCorr(proTissue_Krij, proTissue_Klin, show_nFeats = T)
+ggplot(corrRes, aes(x=Correlation)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(breaks = c(seq(-0.5, 1, 0.25))) +
+  labs(y = 'Frequency', title = 'Feature correlations: Tissue DIA Proteomics (Combined)') +
+  th
+```
+
+```{r eval=F}
+# Check whether highly correlated features are highly abundant proteins
+# Compute feature means
+meanFeats_Krij <- apply(assay(combined_proTissue_Krij), 1, function(featVec) {
+  mean(featVec, na.rm = T)
+})
+meanFeats_Klin <- apply(assay(combined_proTissue_Klin), 1, function(featVec) {
+  mean(featVec, na.rm = T)
+})
+# Keep only first protein as representative if there are more than one
+names(meanFeats_Krij) <- stringr::str_remove(names(meanFeats_Krij), ';.+')
+names(meanFeats_Klin) <- stringr::str_remove(names(meanFeats_Klin), ';.+')
+# Extract common features
+cmnFeats <- corrRes$Feature
+meanFeats_Krij <- meanFeats_Krij[names(meanFeats_Krij) %in% cmnFeats]
+meanFeats_Klin <- meanFeats_Klin[names(meanFeats_Klin) %in% cmnFeats]
+# Order features based on correlation results
+meanFeats_Krij <- meanFeats_Krij[cmnFeats]
+meanFeats_Klin <- meanFeats_Klin[cmnFeats]
+# Integrate feature means into correlation results
+corrMeanFeats <- corrRes
+corrMeanFeats['Mean (Krij.)'] <- meanFeats_Krij
+corrMeanFeats['Mean (Klin.)'] <- meanFeats_Klin
+ggplot(corrMeanFeats, aes(x=Correlation, y=`Mean (Krij.)`)) +
+  geom_point() +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 5) +
+  th
+ggplot(corrMeanFeats, aes(x=Correlation, y=`Mean (Klin.)`)) +
+  geom_point() +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 5) +
+  th
+# => Not really....
+```
+
+### Enrichment analysis
+
+**QC: t-values of unique or common features in Klin. and Krij. data between Tumor and Normal samples**\
+(1) Unique features captured in Klin. data\
+(2) Unique features captured in Krij. data\
+(3) Common features captured in both Klin. and Krij. data\
+=> Use GO:CC, GO:BP, and MSigBD:C8 as reference gene sets to check data uniqueness and similarity
+
+<font size='4'> **Unique features captured in Klin. or Krij. data** </font>
+```{r}
+# Load preprocessed data
+combined_proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+combined_proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds')
+# Keep only first protein as representative if there are more than one
+rownames(combined_proTissue_Krij) <- stringr::str_remove(rownames(combined_proTissue_Krij), ';.+')
+rownames(combined_proTissue_Klin) <- stringr::str_remove(rownames(combined_proTissue_Klin), ';.+')
+# Subset data, where features are captured in either Klin. or Krij. data or in both datasets
+feats_Krij <- rownames(combined_proTissue_Krij)
+feats_Klin <- rownames(combined_proTissue_Klin)
+combined_proTissue_uniq_Klin <- combined_proTissue_Klin[!feats_Klin %in% feats_Krij,]
+combined_proTissue_uniq_Krij <- combined_proTissue_Krij[!feats_Krij %in% feats_Klin,]
+combined_proTissue_cmn_Klin <- combined_proTissue_Klin[feats_Klin %in% feats_Krij]
+combined_proTissue_cmn_Krij <- combined_proTissue_Krij[feats_Krij %in% feats_Klin]
+#### UNIQUE FEATURES ####
+# Do association tests between unique features and sample conditions
+sigRes_uniq_Klin <- doSOA(combined_proTissue_uniq_Klin, meta_var = 'Condition', use_proDA = T)
+sigRes_uniq_Krij <- doSOA(combined_proTissue_uniq_Krij, meta_var = 'Condition', use_proDA = T)
+# Prepare ranked gene list
+statRes_Klin <- sigRes_uniq_Klin$featAssoRes %>%
+  dplyr::select(Var1, Stat) %>%
+  tibble::column_to_rownames('Var1')
+featAnno_Klin <- tibble::as_tibble(rowData(combined_proTissue_uniq_Klin), rownames = 'Protein') %>%
+  dplyr::rename(Gene = PG.Genes) %>%
+  tibble::column_to_rownames('Protein')
+rankedGeneList_Klin <- prepRankedFeatList(statRes = statRes_Klin, featAnno = featAnno_Klin, to_gene = T)
+
+statRes_Krij <- sigRes_uniq_Krij$featAssoRes %>%
+  dplyr::select(Var1, Stat) %>%
+  tibble::column_to_rownames('Var1')
+featAnno_Krij <- tibble::as_tibble(rowData(combined_proTissue_uniq_Krij), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  tibble::column_to_rownames('Protein')
+rankedGeneList_Krij <- prepRankedFeatList(statRes = statRes_Krij, featAnno = featAnno_Krij, to_gene = T)
+```
+
+---- GO:Cellular Component ----
+```{r}
+# GO:CC
+# Retrieve annotated gene sets
+msigTabC5CC <- msigdbr(species = 'Homo sapiens', category = 'C5', subcategory = 'GO:CC') %>%
+  dplyr::select(gs_name, human_gene_symbol)
+# Run GSEA
+gseaResC5CC_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabC5CC,
+                                          minGSSize = 10, maxGSSize = 500,
+                                          pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                          by = 'fgsea', eps = 0)
+gseaResC5CC_Krij <- clusterProfiler::GSEA(geneList = rankedGeneList_Krij, TERM2GENE = msigTabC5CC,
+                                          minGSSize = 10, maxGSSize = 500,
+                                          pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                          by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results (enrichment map)
+gseaResC5CC <- enrichplot::pairwise_termsim(gseaResC5CC_Klin)
+clusterProfiler::emapplot(gseaResC5CC, showCategory = 18, node_label = 'category', repel = T,
+                          cex.params = list(category_node = 1.2, category_label = 0.8),
+                          highlight.params = list()) +
+  labs(title = 'GO:CC - Unique features in Klin. data') +
+  theme(title = element_text(face = 'bold', size = 14))
+# 77 overrepresented when cutoff for adjusted p-value is 0.05
+
+gseaResC5CC <- enrichplot::pairwise_termsim(gseaResC5CC_Krij)
+clusterProfiler::emapplot(gseaResC5CC) +
+  labs(title = 'GO:CC - Unique features in Krij. data') +
+  theme(title = element_text(face = 'bold', size = 14))
+# 4
+```
+
+---- GO:Biological Process ----
+```{r}
+# GO:BP
+# Retrieve annotated gene sets
+msigTabC5BP <- msigdbr(species = 'Homo sapiens', category = 'C5', subcategory = 'BP') %>%
+  dplyr::select(gs_name, human_gene_symbol)
+# Run GSEA
+gseaResC5BP_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabC5BP,
+                                          minGSSize = 10, maxGSSize = 500,
+                                          pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                          by = 'fgsea', eps = 0)
+gseaResC5BP_Krij <- clusterProfiler::GSEA(geneList = rankedGeneList_Krij, TERM2GENE = msigTabC5BP,
+                                          minGSSize = 10, maxGSSize = 500,
+                                          pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                          by = 'fgsea', eps = 0)
+
+gseaRes4Plot <- gseaResC5BP_Klin@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 20) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'GO:BP - Unique features in Klin. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+# 193
+```
+=> No overrepresented pathways in Krij. data
+<br/>
+<br/>
+
+<font size='4'> **Common features captured in both Klin. and Krij. data** </font>\
+Sample space is also identical!
+
+---- GO:Cellular Component ----\
+Overlaps of overrepresented cellular components between datasets
+```{r}
+#### COMMON FEATURES ####
+# Keep only common samples for investigating data similarity at pathway level
+smps_Klin <- colnames(combined_proTissue_cmn_Klin)
+smps_Krij <- colnames(combined_proTissue_cmn_Krij)
+cmnSmps <- intersect(smps_Klin, smps_Krij)
+combined_proTissue_cmn_Klin <- combined_proTissue_cmn_Klin[, smps_Klin %in% cmnSmps]
+combined_proTissue_cmn_Krij <- combined_proTissue_cmn_Krij[, smps_Krij %in% cmnSmps]
+# Do association tests between common features and sample conditions
+sigRes_cmn_Klin <- doSOA(combined_proTissue_cmn_Klin, meta_var = 'Condition', use_proDA = T)
+sigRes_cmn_Krij <- doSOA(combined_proTissue_cmn_Krij, meta_var = 'Condition', use_proDA = T)
+# Prepare ranked gene list
+statRes_Klin <- sigRes_cmn_Klin$featAssoRes %>%
+  dplyr::select(Var1, Stat) %>%
+  tibble::column_to_rownames('Var1')
+featAnno_Klin <- tibble::as_tibble(rowData(combined_proTissue_cmn_Klin), rownames = 'Protein') %>%
+  dplyr::rename(Gene = PG.Genes) %>%
+  tibble::column_to_rownames('Protein')
+rankedGeneList_Klin <- prepRankedFeatList(statRes = statRes_Klin, featAnno = featAnno_Klin, to_gene = T)
+
+statRes_Krij <- sigRes_cmn_Krij$featAssoRes %>%
+  dplyr::select(Var1, Stat) %>%
+  tibble::column_to_rownames('Var1')
+featAnno_Krij <- tibble::as_tibble(rowData(combined_proTissue_cmn_Krij), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  tibble::column_to_rownames('Protein')
+rankedGeneList_Krij <- prepRankedFeatList(statRes = statRes_Krij, featAnno = featAnno_Krij, to_gene = T)
+
+# GO:CC
+# Retrieve annotated gene sets
+msigTabC5CC <- msigdbr(species = 'Homo sapiens', category = 'C5', subcategory = 'GO:CC') %>%
+  dplyr::select(gs_name, human_gene_symbol)
+# Run GSEA
+gseaResC5CC_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabC5CC,
+                                          minGSSize = 10, maxGSSize = 500,
+                                          pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                          by = 'fgsea', eps = 0)
+gseaResC5CC_Krij <- clusterProfiler::GSEA(geneList = rankedGeneList_Krij, TERM2GENE = msigTabC5CC,
+                                          minGSSize = 10, maxGSSize = 500,
+                                          pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                          by = 'fgsea', eps = 0)
+# Visualize overlaps of overrepresented pathways between datasets
+ggvenn(list(Combined_Klin. = gseaResC5CC_Klin@result$Description,
+            Combined_Krij. = gseaResC5CC_Krij@result$Description),
+       fill_color = c('firebrick1', 'dodgerblue1'), fill_alpha = 0.6,
+       set_name_color = c('firebrick1', 'dodgerblue1'), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)
+```
+
+```{r, eval=F, include=F}
+# Plot enrichment analysis results (enrichment map)
+gseaResC5CC <- enrichplot::pairwise_termsim(gseaResC5CC_Klin)
+clusterProfiler::emapplot(gseaResC5CC)
+
+gseaResC5CC <- enrichplot::pairwise_termsim(gseaResC5CC_Krij)
+clusterProfiler::emapplot(gseaResC5CC)
+```
+
+---- MSigDB:Cell Type ----\
+Overlaps of overrepresented cell types between datasets
+```{r}
+# Cell type gene sets
+# Retrieve annotated gene sets
+msigTabC8 <- msigdbr(species = 'Homo sapiens', category = 'C8', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+# Run GSEA
+gseaResC8_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabC8,
+                                        minGSSize = 10, maxGSSize = 500,
+                                        pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                        by = 'fgsea', eps = 0)
+gseaResC8_Krij <- clusterProfiler::GSEA(geneList = rankedGeneList_Krij, TERM2GENE = msigTabC8,
+                                        minGSSize = 10, maxGSSize = 500,
+                                        pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                        by = 'fgsea', eps = 0)
+# Visualize overlaps of overrepresented pathways between datasets
+ggvenn(list(Combined_Klin. = gseaResC8_Klin@result$Description,
+            Combined_Krij. = gseaResC8_Krij@result$Description),
+       fill_color = c('firebrick1', 'dodgerblue1'), fill_alpha = 0.6,
+       set_name_color = c('firebrick1', 'dodgerblue1'), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)
+```
+
+Klin. where overrepresented cell types are also observed in Krij.
+```{r}
+gseaRes4Plot <- gseaResC8_Klin@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  # Extract overrepresented pathways captured also in Krij. data
+  dplyr::filter(Description %in% gseaResC8_Krij@result$Description) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 20) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'MSigDB:C8 - Common features in Klin. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+```
+
+Krij. where overrepresented cell types are also observed in Klin.
+```{r}
+gseaRes4Plot <- gseaResC8_Krij@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  # Extract overrepresented pathways captured also in Klin. data
+  dplyr::filter(Description %in% gseaResC8_Klin@result$Description) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 20) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'MSigDB:C8 - Common features in Krij. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+```
+
+**t-values of Normal proteins in Krij. and Klin. data between Recurrence and Nonrecurrence patient groups**\
+All features are used!
+
+---- MSigDB:Curated gene sets ----\
+Overlaps of overrepresented pathways between datasets
+```{r}
+# Load preprocessed data
+combined_proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+combined_proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds')
+# Subset certain sample condition
+combined_proNormal_Klin <- combined_proTissue_Klin[, colData(combined_proTissue_Klin)$Condition == 'Normal']
+combined_proNormal_Krij <- combined_proTissue_Krij[, colData(combined_proTissue_Krij)$Condition == 'Normal']
+# Do association tests between unique features and patient recurrence
+sigRes_Klin <- doSOA(combined_proNormal_Klin, meta_var = 'Recurrence', use_proDA = T)
+sigRes_Krij <- doSOA(combined_proNormal_Krij, meta_var = 'Recurrence', use_proDA = T)
+# Prepare ranked gene list
+statRes_Klin <- sigRes_Klin$featAssoRes %>%
+  dplyr::select(Var1, Stat) %>%
+  tibble::column_to_rownames('Var1')
+featAnno_Klin <- tibble::as_tibble(rowData(combined_proNormal_Klin), rownames = 'Protein') %>%
+  dplyr::rename(Gene = PG.Genes) %>%
+  tibble::column_to_rownames('Protein')
+rankedGeneList_Klin <- prepRankedFeatList(statRes = statRes_Klin, featAnno = featAnno_Klin, to_gene = T)
+
+statRes_Krij <- sigRes_Krij$featAssoRes %>%
+  dplyr::select(Var1, Stat) %>%
+  tibble::column_to_rownames('Var1')
+featAnno_Krij <- tibble::as_tibble(rowData(combined_proNormal_Krij), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  tibble::column_to_rownames('Protein')
+rankedGeneList_Krij <- prepRankedFeatList(statRes = statRes_Krij, featAnno = featAnno_Krij, to_gene = T)
+
+# Curated gene sets
+# Retrieve annotated gene sets
+msigTabC2 <- msigdbr(species = 'Homo sapiens', category = 'C2', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResC2_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabC2,
+                                        minGSSize = 10, maxGSSize = 500,
+                                        pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                        by = 'fgsea', eps = 0)
+gseaResC2_Krij <- clusterProfiler::GSEA(geneList = rankedGeneList_Krij, TERM2GENE = msigTabC2,
+                                        minGSSize = 10, maxGSSize = 500,
+                                        pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                        by = 'fgsea', eps = 0)
+
+# Visualize overlaps of overrepresented pathways between datasets
+orPathways_Krij <- gseaResC2_Krij@result$Description
+orPathways_Klin <- gseaResC2_Klin@result$Description
+ggvenn(list(Combined_Krij. = orPathways_Krij,
+            Combined_Klin. = orPathways_Klin),
+       fill_color = c('firebrick1', 'dodgerblue1'), fill_alpha = 0.6,
+       set_name_color = c('firebrick1', 'dodgerblue1'), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)
+```
+
+Krij. where represented pathways are also observed in Klin.
+```{r}
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResC2_Krij@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  # Extract overrepresented pathways captured also in Klin. data
+  dplyr::filter(Description %in% orPathways_Klin) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                # Description = stringr::str_remove(Description, '^REACTOME_'),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'MSigDB:C2 - Normal proteins in Krij. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+```
+
+Klin. where represented pathways are also observed in Krij.
+```{r}
+gseaRes4Plot <- gseaResC2_Klin@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  # Extract overrepresented pathways captured also in Krij. data
+  dplyr::filter(Description %in% orPathways_Krij) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                # Description = stringr::str_remove(Description, '^REACTOME_'),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'MSigDB:C2 - Normal proteins in Klin. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+```
+
+Relationships between overrepresented pathways and genes of interest (captured in MethodDev, Discovery, and Combined Krij.)
+```{r}
+# Load SOA results
+Combined_proNormalRes_Krij <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Krij.rds')
+Combined_proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin.rds')
+MethodDev_proNormalRes_Krij <- readRDS('./data/Discovery/potential_proteins/MethodDev_proNormalRes_Krij.rds')
+Discovery_proNormalRes_Krij <- readRDS('./data/Discovery/potential_proteins/Discovery_proNormalRes_Krij.rds')
+# Retrieve significant features from SOA results
+Combined_proNormalSigFeats_Krij <- Combined_proNormalRes_Krij$sig.feat.tab$Var1 %>%
+  stringr::str_remove_all(';.+')
+MethodDev_proNormalSigFeats_Krij <- MethodDev_proNormalRes_Krij$sig.feat.tab$Var1 %>%
+  stringr::str_remove_all(';.+')
+Discovery_proNormalSigFeats_Krij <- Discovery_proNormalRes_Krij$sig.feat.tab$Var1 %>%
+  stringr::str_remove_all(';.+')
+Combined_proNormalSigFeats_Klin <- Combined_proNormalRes_Klin$sig.feat.tab$Var1 %>%
+  stringr::str_remove_all(';.+')
+
+# Extract common significant features across datasets
+# (MethodDev and Discovery Normal Tissue Proteomics shares few significant features)
+cmnProNormalSigFeats_Krij <- intersect(Combined_proNormalSigFeats_Krij, MethodDev_proNormalSigFeats_Krij)
+cmnProNormalSigFeats_Krij <- intersect(cmnProNormalSigFeats_Krij, Discovery_proNormalSigFeats_Krij)
+# intersect(cmnProNormalSigFeats_Krij, Combined_proNormalSigFeats_Klin)
+# Change proteins to genes
+cmnProNormalSigGenes_Krij <- tibble::as_tibble(rowData(combined_proNormal_Krij), rownames = 'Feature') %>%
+  dplyr::filter(Feature %in% cmnProNormalSigFeats_Krij) %>%
+  dplyr::pull(Genes)
+
+# Extract common overrepresented pathways between two datasets
+cmnORPathways <- intersect(orPathways_Krij, orPathways_Klin)
+cmnORGeneSets <- gseaResC2_Krij@geneSets[names(gseaResC2_Krij@geneSets) %in% cmnORPathways]
+# Remove overrepresented pathways that do not include any feature of interest
+keptGeneSets <- sapply(seq_len(length(cmnORGeneSets)), function(i) {
+  any(cmnProNormalSigGenes_Krij %in% cmnORGeneSets[[i]])
+})
+cmnORGeneSets <- cmnORGeneSets[keptGeneSets]
+# Create binary matrix indicating presence of features of interest in overrepresented pathways
+orGeneBinary <- matrix(nrow = length(cmnORGeneSets), ncol = length(cmnProNormalSigGenes_Krij),
+                        dimnames = list(names(cmnORGeneSets), cmnProNormalSigGenes_Krij))
+for (i in seq_len(nrow(orGeneBinary))) {
+  for (j in seq_len(ncol(orGeneBinary))) {
+    if (colnames(orGeneBinary)[j] %in% cmnORGeneSets[[rownames(orGeneBinary)[i]]]) {
+      orGeneBinary[i, j] <- T
+    } else {
+      orGeneBinary[i, j] <- F
+    }
+  }
+}
+# Remove features of interest not included in any represented pathway
+keptGenes <- apply(orGeneBinary, 2, any)
+orGeneBinary <- orGeneBinary[, keptGenes]
+
+# Plot heatmap
+pw <- 'REACTOME_ACTIVATION_OF_THE_MRNA_UPON_BINDING_OF_THE_CAP_BINDING_COMPLEX_AND_EIFS_AND_SUBSEQUENT_BINDING_TO_43S'
+orGeneHeatmap <- tibble::as_tibble(orGeneBinary, rownames = 'Pathway') %>%
+  tidyr::pivot_longer(cols = -'Pathway', names_to = 'Gene', values_to = 'tStat') %>%
+  dplyr::mutate(tStat = dplyr::case_when(tStat ~ rankedGeneList_Krij[Gene],
+                                         !tStat ~ 0),
+                Pathway = dplyr::case_when(Pathway == pw ~ 'REACTOME_ACTIVATION_OF_THE_MRNA_AND_BINDING_TO_43S',
+                                           Pathway != pw ~ Pathway))
+
+ggplot(orGeneHeatmap, aes(x=Gene, y=Pathway, fill=tStat)) +
+  geom_tile() +
+  scale_fill_gradient2(high = 'darkred', low = 'darkblue', mid = 'white', midpoint = 0) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+---- MSigDB:Oncogenic gene sets ----\
+Overlaps of overrepresented pathways between datasets
+```{r}
+# Oncogenic gene sets
+# Retrieve annotated gene sets
+msigTabC6 <- msigdbr(species = 'Homo sapiens', category = 'C6', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResC6_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabC6,
+                                        minGSSize = 10, maxGSSize = 500,
+                                        pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                        by = 'fgsea', eps = 0)
+gseaResC6_Krij <- clusterProfiler::GSEA(geneList = rankedGeneList_Krij, TERM2GENE = msigTabC6,
+                                        minGSSize = 10, maxGSSize = 500,
+                                        pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                        by = 'fgsea', eps = 0)
+
+# Visualize overlaps of overrepresented pathways between datasets
+orPathways_Krij <- gseaResC6_Krij@result$Description
+orPathways_Klin <- gseaResC6_Klin@result$Description
+ggvenn(list(Combined_Krij. = orPathways_Krij,
+            Combined_Klin. = orPathways_Klin),
+       fill_color = c('firebrick1', 'dodgerblue1'), fill_alpha = 0.6,
+       set_name_color = c('firebrick1', 'dodgerblue1'), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResC6_Klin@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'MSigDB:C6 - Normal proteins in Klin. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+```
+=> Only overrepresented pathway in Krij. is 'BMI1_DN.V1_UP'.
+
+<font size='4'> **Unique features in Krij. or Klin. data** </font>\
+---- MSigDB:Curated gene sets ----
+```{r}
+# Keep only first protein as representative if there are more than one
+rownames(combined_proNormal_Krij) <- stringr::str_remove(rownames(combined_proNormal_Krij), ';.+')
+rownames(combined_proNormal_Klin) <- stringr::str_remove(rownames(combined_proNormal_Klin), ';.+')
+# Prepare protein-gene map table
+featAnno_Krij <- tibble::as_tibble(rowData(combined_proNormal_Krij), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  tibble::column_to_rownames('Protein')
+featAnno_Klin <- tibble::as_tibble(rowData(combined_proNormal_Klin), rownames = 'Protein') %>%
+  dplyr::rename(Gene = PG.Genes) %>%
+  tibble::column_to_rownames('Protein')
+# Extract unique features in Krij. and Klin. data
+feats_Krij <- rownames(combined_proNormal_Krij)
+uniqFeats_Krij <- feats_Krij[!feats_Krij %in% feats_Klin]
+uniqFeats_Krij <- featAnno_Krij[uniqFeats_Krij,]
+rankedGeneList_Krij <- rankedGeneList_Krij[names(rankedGeneList_Krij) %in% uniqFeats_Krij]
+
+feats_Klin <- rownames(combined_proNormal_Klin)
+uniqFeats_Klin <- feats_Klin[!feats_Klin %in% feats_Krij]
+uniqFeats_Klin <- featAnno_Klin[uniqFeats_Klin,]
+rankedGeneList_Klin <- rankedGeneList_Klin[names(rankedGeneList_Klin) %in% uniqFeats_Klin]
+
+# Curated gene sets
+# Retrieve annotated gene sets
+msigTabC2 <- msigdbr(species = 'Homo sapiens', category = 'C2', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResC2_Krij <- clusterProfiler::GSEA(geneList = rankedGeneList_Krij, TERM2GENE = msigTabC2,
+                                        minGSSize = 10, maxGSSize = 500,
+                                        pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                        by = 'fgsea', eps = 0)
+gseaResC2_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabC2,
+                                        minGSSize = 10, maxGSSize = 500,
+                                        pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                        by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResC2_Klin@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                # Description = stringr::str_remove(Description, '^REACTOME_'),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'MSigDB:C2 - Unique normal proteins in Klin. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+```
+=> No overrepresented pathways in Krij. data
+
+---- GO:Biological Process ----
+```{r}
+# GO:BP
+# Retrieve annotated gene sets
+msigTabC5BP <- msigdbr(species = 'Homo sapiens', category = 'C5', subcategory = 'BP') %>%
+  dplyr::select(gs_name, human_gene_symbol)
+# Run GSEA
+gseaResC5BP_Krij <- clusterProfiler::GSEA(geneList = rankedGeneList_Krij, TERM2GENE = msigTabC5BP,
+                                          minGSSize = 10, maxGSSize = 500,
+                                          pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                          by = 'fgsea', eps = 0)
+gseaResC5BP_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabC5BP,
+                                          minGSSize = 10, maxGSSize = 500,
+                                          pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                          by = 'fgsea', eps = 0)
+
+gseaRes4Plot <- gseaResC5BP_Krij@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'GO:BP - Unique normal proteins in Krij. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+
+
+gseaRes4Plot <- gseaResC5BP_Klin@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'GO:BP - Unique normal proteins in Klin. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+```
+<br/>
+<br/>
+
+**Correlation coefficients of common features between two datasets**
+```{r}
+# Load preprocessed data
+combined_proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+combined_proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds')
+# Compute correlations of common features between two datasets
+corrRes <- calcFeatCorr(combined_proTissue_Krij, combined_proTissue_Klin)
+# Prepare ranked gene list
+statRes <- tibble::column_to_rownames(corrRes, 'Feature')
+featAnno <- tibble::as_tibble(rowData(combined_proTissue_Krij), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  tibble::column_to_rownames('Protein')
+rankedGeneList <- prepRankedFeatList(statRes = statRes, featAnno = featAnno, to_gene = T)
+
+# Cell type sets
+# View supported species and collections in MSigDB
+# msigdbr_species()
+# msigdbr_collections()
+# Retrieve annotated gene sets
+msigTabC8 <- msigdbr(species = 'Homo sapiens', category = 'C8', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResC8 <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabC8,
+                                   minGSSize = 10, maxGSSize = 500,
+                                   pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                   by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResC8@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 20) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Relationship = ifelse(test = NES > 0, yes = 'Positive', no = 'Negative')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Relationship)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Positive = 'red', Negative = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'MSigDB:C8 - Relationships of features between Krij. and Klin. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+
+# Hallmark gene sets
+# Retrieve annotated gene sets
+msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResH <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabH,
+                                  minGSSize = 10, maxGSSize = 500,
+                                  pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                  by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResH@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Relationship = ifelse(test = NES > 0, yes = 'Positive', no = 'Negative')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Relationship)) +
+  geom_bar(stat = 'identity', width = 0.6, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Positive = 'red', Negative = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway',
+       title = 'MSigDB:H - Relationships of features between Krij. and Klin. data') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
 ```
 
 
@@ -1009,9 +1797,9 @@ proTissue_Krij <- readRDS('./data/MethodDev/AG_Krijgsveld/new_proTissueVsn.rds')
 proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'MethodDev']
 # Keep only common samples shared between Discovery and Method Development data
-cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
-proTissue_Krij <- proTissue_Krij[, cmnSmp]
-proTissue_Klin <- proTissue_Klin[, cmnSmp]
+cmnSmps <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmps]
+proTissue_Klin <- proTissue_Klin[, cmnSmps]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%
@@ -1069,9 +1857,9 @@ proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/proTissueVsn.rds')
 proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'Discovery']
 # Keep only common samples shared between Discovery and Method Development data
-cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
-proTissue_Krij <- proTissue_Krij[, cmnSmp]
-proTissue_Klin <- proTissue_Klin[, cmnSmp]
+cmnSmps <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmps]
+proTissue_Klin <- proTissue_Klin[, cmnSmps]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%
@@ -1127,9 +1915,9 @@ Combined Discovery and Method Development data (only common samples used)
 proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsn.rds')
 proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 # Keep only common samples shared between Discovery and Method Development data
-cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
-proTissue_Krij <- proTissue_Krij[, cmnSmp]
-proTissue_Klin <- proTissue_Klin[, cmnSmp]
+cmnSmps <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmps]
+proTissue_Klin <- proTissue_Klin[, cmnSmps]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%
@@ -1416,9 +2204,9 @@ proTissue_Krij <- readRDS('./data/MethodDev/AG_Krijgsveld/new_proTissueVsn.rds')
 proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'MethodDev']
 # Keep only common samples shared between Discovery and Method Development data
-cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
-proTissue_Krij <- proTissue_Krij[, cmnSmp]
-proTissue_Klin <- proTissue_Klin[, cmnSmp]
+cmnSmps <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmps]
+proTissue_Klin <- proTissue_Klin[, cmnSmps]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%
@@ -1476,9 +2264,9 @@ proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/proTissueVsn.rds')
 proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 proTissue_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Cohort == 'Discovery']
 # Keep only common samples shared between Discovery and Method Development data
-cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
-proTissue_Krij <- proTissue_Krij[, cmnSmp]
-proTissue_Klin <- proTissue_Klin[, cmnSmp]
+cmnSmps <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmps]
+proTissue_Klin <- proTissue_Klin[, cmnSmps]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%
@@ -1534,9 +2322,9 @@ Combined Discovery and Method Development data (only common samples used)
 proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsn.rds')
 proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 # Keep only common samples shared between Discovery and Method Development data
-cmnSmp <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
-proTissue_Krij <- proTissue_Krij[, cmnSmp]
-proTissue_Klin <- proTissue_Klin[, cmnSmp]
+cmnSmps <- intersect(colnames(proTissue_Krij), colnames(proTissue_Klin))
+proTissue_Krij <- proTissue_Krij[, cmnSmps]
+proTissue_Klin <- proTissue_Klin[, cmnSmps]
 # Prepare protein-gene table for providing gene names
 featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
   dplyr::rename(Genes = PG.Genes) %>%

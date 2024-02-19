@@ -207,7 +207,8 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (31.5%)`, col=Condition, fill=Condition, l
   th #+ theme(axis.title = element_text(size = 28),
              # axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
              # legend.title = element_text(size = 26), legend.text = element_text(size = 24))
-# ggsave('./output/group_meeting/quality_control_proTissue_Krij.png', device = 'png', dpi = 400, height = 8, width = 10)
+# ggsave('./output/Discovery/group_meeting/quality_control_proTissue_Krij.png',
+#        device = 'png', dpi = 400, height = 8, width = 10)
 ```
 => Tumor purity: I0HVOL_TU - 87% / 7EAOX7_TU - 70% / MJMTYR_TU - 40% / XFKHGP_TU - 100%\
 (Mean of sample tumor cell contents is 74%, ranging from 40% to 100%.)
@@ -387,7 +388,11 @@ ggplot(pcTab, aes(x=`PC1 (34%)`, y=`PC2 (24.9%)`, col=Cohort, shape=Condition)) 
   geom_point(size = 4) +
   scale_color_brewer(palette = 'Set2') +
   scale_shape_manual(values = c(0, 16)) +
-  th
+  th #+ theme(axis.title = element_text(size = 28),
+#              axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
+#              legend.title = element_text(size = 26), legend.text = element_text(size = 24))
+# ggsave('./output/Discovery/group_meeting/combined_quality_control_proTissue_Krij.png',
+#        device = 'png', dpi = 400, height = 8, width = 10)
 
 # ggplot(pcTab, aes(x=Condition, y=`PC1 (34%)`, col=Condition, fill=Condition)) +
 #   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
@@ -435,7 +440,11 @@ ggplot(pcTab, aes(x=`PC1 (38%)`, y=`PC2 (9.2%)`, col=Cohort, shape=Condition)) +
   geom_point(size = 4) +
   scale_color_brewer(palette = 'Set2') +
   scale_shape_manual(values = c(0, 16)) +
-  th
+  th #+ theme(axis.title = element_text(size = 28),
+#              axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
+#              legend.title = element_text(size = 26), legend.text = element_text(size = 24))
+# ggsave('./output/Discovery/group_meeting/combined_quality_control_proTissue_Krij_BC.png',
+#        device = 'png', dpi = 400, height = 8, width = 10)
 
 ggplot(pcTab, aes(x=Condition, y=`PC1 (38%)`, col=Condition, fill=Condition, label = Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +

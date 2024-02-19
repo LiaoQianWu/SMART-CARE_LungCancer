@@ -1,0 +1,368 @@
+---
+title: "Identification of potential recurrence-related proteins"
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+---
+
+<font size='4'> Description: </font>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer')
+```
+
+Load libraries
+```{r library loading, message = F}
+library('pcaMethods')
+library('limma')
+library('proDA')
+library('pheatmap')
+library('ggplotify')
+library('ggrepel')
+library('ggvenn')
+library('AnnotationDbi')
+library('org.Hs.eg.db')
+# This annotation object is accessed using AnnotationDbi:select()
+hs <- org.Hs.eg.db
+library('msigdbr')
+library('clusterProfiler')
+library('SummarizedExperiment')
+library('tidyverse')
+# Load user-defined functions
+source('./code/analysis_pipeline.R')
+source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+    theme(axis.title = element_text(face = 'bold'),
+          axis.text = element_text(face = 'bold'),
+          axis.ticks = element_line(linewidth = 0.8),
+          legend.text = element_text(size = 15))
+```
+
+# NTP (AG Krij.)
+Normal Tissue DIA Proteomics from AG Krijgsveld, including MethodDev, Discovery,
+and Combined datasets
+
+## Significant Proteins
+
+Identify significant proteins using t-test
+```{r}
+####################################
+# Combined (MethodDev + Discovery) #
+####################################
+# # Load preprocessed data
+# Combined_proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+# # Prepare feature annotation table
+# featAnnoTab <- tibble::as_tibble(rowData(Combined_proTissue_Krij), rownames = 'Protein') %>%
+#   dplyr::select(Protein, Genes) %>%
+#   dplyr::rename(Gene = Genes) %>%
+#   tibble::column_to_rownames('Protein')
+# 
+# # Subset certain samples
+# Combined_proNormal_Krij <- Combined_proTissue_Krij[, colData(Combined_proTissue_Krij)$Condition %in% 'Normal']
+# # Perform single-omics analysis
+# Combined_proNormalRes_Krij <- doSingleOmicsAnalysis(Combined_proNormal_Krij, soa_metaVar = 'Recurrence',
+#                                                     num_sigFeats = 6, pca_method = 'ppca',
+#                                                     num_PCs = 40, num_PCfeats = 30,
+#                                                     use_limma = F, use_proDA = T,
+#                                                     feat_anno = featAnnoTab, feat_conv = T,
+#                                                     plot_title = NULL, show_rownames = F,
+#                                                     pca_metaVar = c('Recurrence', 'Gender', 'Age',
+#                                                                     'Smoking', 'Stage', 'Adjuvant'))
+# saveRDS(Combined_proNormalRes_Krij, './data/Discovery/potential_proteins/Combined_proNormalRes_Krij.rds')
+# 
+# # AG Klingmüller
+# # Load preprocessed data
+# Combined_proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds')
+# # Prepare feature annotation table
+# featAnnoTab <- tibble::as_tibble(rowData(Combined_proTissue_Klin), rownames = 'Protein') %>%
+#   dplyr::rename(Gene = PG.Genes) %>%
+#   tibble::column_to_rownames('Protein')
+# 
+# # Subset certain samples
+# Combined_proNormal_Klin <- Combined_proTissue_Klin[, colData(Combined_proTissue_Klin)$Condition %in% 'Normal']
+# # Perform single-omics analysis
+# Combined_proNormalRes_Klin <- doSingleOmicsAnalysis(Combined_proNormal_Klin, soa_metaVar = 'Recurrence',
+#                                                     num_sigFeats = 6, pca_method = 'ppca',
+#                                                     num_PCs = 37, num_PCfeats = 30,
+#                                                     use_limma = F, use_proDA = T,
+#                                                     feat_anno = featAnnoTab, feat_conv = T,
+#                                                     plot_title = NULL, show_rownames = F,
+#                                                     pca_metaVar = c('Recurrence', 'Gender', 'Age',
+#                                                                     'Smoking', 'Stage', 'Adjuvant'),
+#                                                     soa_unwantVar = 'Adjuvant')
+# saveRDS(Combined_proNormalRes_Klin, './data/Discovery/potential_proteins/Combined_proNormalRes_Klin.rds')
+# 
+# #############
+# # MethodDev #
+# #############
+# # Load normalized data
+# MethodDev_proTissue_Krij <- readRDS('./data/MethodDev/AG_Krijgsveld/new_proTissueVsn.rds')
+# # Prepare feature annotation table
+# featAnnoTab <- tibble::as_tibble(rowData(MethodDev_proTissue_Krij), rownames = 'Protein') %>%
+#   dplyr::select(Protein, Genes) %>%
+#   dplyr::rename(Gene = Genes) %>%
+#   tibble::column_to_rownames('Protein')
+# 
+# # Subset certain samples
+# MethodDev_proNormal_Krij <- MethodDev_proTissue_Krij[, colData(MethodDev_proTissue_Krij)$Condition %in% 'Normal']
+# # Perform single-omics analysis
+# MethodDev_proNormalRes_Krij <- doSingleOmicsAnalysis(MethodDev_proNormal_Krij, soa_metaVar = 'Recurrence',
+#                                                      num_sigFeats = 6, pca_method = 'ppca',
+#                                                      num_PCs = 18, num_PCfeats = 30,
+#                                                      use_limma = F, use_proDA = T,
+#                                                      feat_anno = featAnnoTab, feat_conv = T,
+#                                                      plot_title = NULL, show_rownames = F,
+#                                                      pca_metaVar = c('Recurrence', 'Gender', 'Age',
+#                                                                      'Smoking', 'Stage', 'Adjuvant'))
+# saveRDS(MethodDev_proNormalRes_Krij, './data/Discovery/potential_proteins/MethodDev_proNormalRes_Krij.rds')
+# 
+# #############
+# # Discovery #
+# #############
+# # Load normalized data
+# Discovery_proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/proTissueVsn.rds')
+# # Prepare feature annotation table
+# featAnnoTab <- tibble::as_tibble(rowData(Discovery_proTissue_Krij), rownames = 'Protein') %>%
+#   dplyr::select(Protein, Genes) %>%
+#   dplyr::rename(Gene = Genes) %>%
+#   tibble::column_to_rownames('Protein')
+# 
+# # Subset certain samples
+# Discovery_proNormal_Krij <- Discovery_proTissue_Krij[, colData(Discovery_proTissue_Krij)$Condition %in% 'Normal']
+# # Perform single-omics analysis
+# Discovery_proNormalRes_Krij <- doSingleOmicsAnalysis(Discovery_proNormal_Krij, soa_metaVar = 'Recurrence',
+#                                                      num_sigFeats = 6, pca_method = 'ppca',
+#                                                      num_PCs = 40, num_PCfeats = 30,
+#                                                      use_limma = F, use_proDA = T,
+#                                                      feat_anno = featAnnoTab, feat_conv = T,
+#                                                      plot_title = NULL, show_rownames = F,
+#                                                      pca_metaVar = c('Recurrence', 'Gender', 'Age',
+#                                                                      'Smoking', 'Stage', 'Adjuvant'))
+# saveRDS(Discovery_proNormalRes_Krij, './data/Discovery/potential_proteins/Discovery_proNormalRes_Krij.rds')
+
+# Load SOA results
+Combined_proNormalRes_Krij <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Krij.rds')
+Combined_proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin.rds')
+MethodDev_proNormalRes_Krij <- readRDS('./data/Discovery/potential_proteins/MethodDev_proNormalRes_Krij.rds')
+Discovery_proNormalRes_Krij <- readRDS('./data/Discovery/potential_proteins/Discovery_proNormalRes_Krij.rds')
+
+# Retrieve significant features from SOA results
+Combined_proNormalSigFeats_Krij <- Combined_proNormalRes_Krij$sig.feat.tab$Var1 %>%
+  stringr::str_remove_all(';.+')
+MethodDev_proNormalSigFeats_Krij <- MethodDev_proNormalRes_Krij$sig.feat.tab$Var1 %>%
+  stringr::str_remove_all(';.+')
+Discovery_proNormalSigFeats_Krij <- Discovery_proNormalRes_Krij$sig.feat.tab$Var1 %>%
+  stringr::str_remove_all(';.+')
+Combined_proNormalSigFeats_Klin <- Combined_proNormalRes_Klin$sig.feat.tab$Var1 %>%
+  stringr::str_remove_all(';.+')
+```
+
+Visualize common significant proteins among datasets
+```{r}
+# Visualize common significant features among datasets
+ggvenn(list(Combined_Krij. = Combined_proNormalSigFeats_Krij,
+            Discovery_Krij. = Discovery_proNormalSigFeats_Krij,
+            MethodDev_Krij. = MethodDev_proNormalSigFeats_Krij),
+       fill_color = c('darkred', 'darkblue', 'darkgreen'), fill_alpha = 0.6,
+       set_name_color = c('darkred', 'darkblue', 'darkgreen'), set_name_size = 9,
+       text_size = 5, stroke_size = 1.5)
+ggsave('./output/Discovery/group_meeting/venn_sigFeats_Krij_combined_methdev_dis.png',
+       device = 'png', dpi = 400, height = 8, width = 11)
+
+# Extract common significant features across datasets
+# (MethodDev and Discovery Normal Tissue Proteomics shares few significant features)
+cmnProNormalSigFeats_Krij <- intersect(Combined_proNormalSigFeats_Krij, MethodDev_proNormalSigFeats_Krij)
+cmnProNormalSigFeats_Krij <- intersect(cmnProNormalSigFeats_Krij, Discovery_proNormalSigFeats_Krij)
+# intersect(cmnProNormalSigFeats_Krij, Combined_proNormalSigFeats_Klin)
+
+# Compare SOA results of combined data from AG Krijgsveld and that of AG Klingmüller
+# ggvenn(list(Combined_Krij. = Combined_proNormalSigFeats_Krij,
+#             Combined_Klin. = Combined_proNormalSigFeats_Klin),
+#        fill_color = c('darkred', 'darkblue'), fill_alpha = 0.6,
+#        set_name_color = c('darkred', 'darkblue'), set_name_size = 9,
+#        text_size = 5, stroke_size = 1.5)
+
+Combined_proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+# Prepare data matrix and metadata including both Tumor and Normal samples
+datMat <- assay(Combined_proTissue_Krij)
+smpAnnoTab <- colData(Combined_proTissue_Krij) %>%
+  tibble::as_tibble(rownames = 'Sample')
+# Prepare significant feature table
+featSigAssoTab <- Combined_proNormalRes_Krij$sig.feat.tab
+cmnFeatSigAssoTab <- featSigAssoTab[featSigAssoTab$Var1 %in% cmnProNormalSigFeats_Krij,]
+
+num_sigFeats <- 6
+gpLevel = c('Yes_Normal', 'No_Normal', 'Yes_Tumor', 'No_Tumor')
+condiCol = c('firebrick', 'grey50') #c(Normal, Tumor)
+# Extract top significant features and prepare needed information
+topSigFeats <- cmnFeatSigAssoTab[1:num_sigFeats,] %>%
+  dplyr::select(Var1, Gene) %>%
+  dplyr::mutate(newVar1 = paste0(Var1, ' (', Gene, ')'),
+                newVar1 = factor(newVar1, levels = unique(newVar1)))
+topSigFeatDat <- tibble::as_tibble(datMat[topSigFeats$Var1,], rownames = 'Var1') %>%
+  tidyr::pivot_longer(cols = -'Var1', names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::left_join(topSigFeats, by = 'Var1') %>%
+  dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
+  dplyr::mutate(Recur_Condi = paste0(Recurrence, '_', Condition),
+                Recur_Condi = factor(Recur_Condi, levels = gpLevel))
+ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                             comparisons = list(c('Yes_Normal', 'No_Normal'), c('Yes_Tumor', 'No_Tumor')),
+                             label = 'p.signif', tip.length = 0.015, bracket.size = 0.7, size = 4) +
+  labs(x = 'Recurrence') +
+  scale_color_manual(values = condiCol) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(newVar1), scales = 'free') +
+  th +
+  # theme(strip.text = element_text(size = 13, face = 'bold'),
+  #            axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  theme(strip.text = element_text(size = 14, face = 'bold'),
+        axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1, size = 20),
+        axis.title = element_text(size = 26),
+        legend.title = element_text(size = 24), legend.text = element_text(size = 22))
+ggsave('./output/Discovery/group_meeting/combined_common_topSigFeats_proNormal_Krij.png',
+       device = 'png', dpi = 400, height = 12, width = 14)
+```
+
+## Enrichment analysis
+Combined data
+
+```{r}
+# Prepare ranked gene list
+Combined_proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+Combined_proNormalRes_Krij <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Krij.rds')
+sigRes <- Combined_proNormalRes_Krij$SOA.res$featAssoRes %>%
+  dplyr::select(Var1, Stat) %>%
+  tibble::column_to_rownames('Var1')
+featAnnoTab <- tibble::as_tibble(rowData(Combined_proTissue_Krij), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  tibble::column_to_rownames('Protein')
+
+rankedGeneList <- prepRankedFeatList(statRes = sigRes, featAnno = featAnnoTab, to_gene = T)
+```
+
+```{r}
+# Curated gene sets
+# View supported species and collections in MSigDB
+# msigdbr_species()
+# msigdbr_collections()
+# Retrieve annotated gene sets
+msigTabC2 <- msigdbr(species = 'Homo sapiens', category = 'C2', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResC2 <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabC2,
+                                   minGSSize = 10, maxGSSize = 500,
+                                   pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                   by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResC2@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                # Description = stringr::str_remove(Description, '^REACTOME_'),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12))
+```
+
+```{r}
+# Oncogenic signatures gene sets
+# Retrieve annotated gene sets
+msigTabC6 <- msigdbr(species = 'Homo sapiens', category = 'C6', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+# Retrieve descriptions of gene sets for interpretation
+descripC6 <- msigdbr(species = 'Homo sapiens', category = 'C6', subcategory = NULL) %>%
+  dplyr::select(gs_name, gs_description) %>%
+  dplyr::filter(!duplicated(gs_name))
+
+# Run GSEA
+gseaResC6 <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabC6,
+                                   minGSSize = 10, maxGSSize = 500,
+                                   pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                   by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResC6@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+# ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+#   geom_bar(stat = 'identity', width = 0.6, size = 2) +
+#   scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+#   scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+#   labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+#   theme_minimal() +
+#   theme(axis.title = element_text(size = 16, face = 'bold'),
+#         axis.text.x = element_text(size = 12),
+#         axis.text.y = element_text(size = 10, face = 'bold'),
+#         legend.title = element_text(size = 12),
+#         legend.text = element_text(size = 12))
+```
+=> There is only one overrepresented biological function: BMI1_DN.V1_UP
+
+```{r}
+# Hallmark gene sets
+# Retrieve annotated gene sets
+msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResH <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabH,
+                                  minGSSize = 10, maxGSSize = 500,
+                                  pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                  by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResH@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.6, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12))
+```
