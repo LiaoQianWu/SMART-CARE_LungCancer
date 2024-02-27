@@ -1122,22 +1122,22 @@ proBaseRes_Kri_DIA <- doSOA(proBase_Kri_DIA, meta_var = 'Recurrence', use_proDA 
 proFoloRes_Kri_DIA <- doSOA(proFolo_Kri_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
 
 # New DIA Plasma Proteomics (AG Krijgsveld)
-new_proBaseRes_Kri_DIA <- proBaseRes$SOA.res
-new_proFoloRes_Kri_DIA <- proFoloRes$SOA.res
-# new_proBaseRes_Kri_DIA <- doSOA(new_proBase_Kri_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
-# new_proFoloRes_Kri_DIA <- doSOA(new_proFolo_Kri_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
+# new_proBaseRes_Kri_DIA <- proBaseRes$SOA.res
+# new_proFoloRes_Kri_DIA <- proFoloRes$SOA.res
+new_proBaseRes_Kri_DIA <- doSOA(new_proBase_Kri_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
+new_proFoloRes_Kri_DIA <- doSOA(new_proFolo_Kri_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
 
 # New DIA Tissue Proteomics (AG Krijgsveld)
-new_proTumorRes_Kri_DIA <- proTumorRes$SOA.res
-new_proNormalRes_Kri_DIA <- proNormalRes$SOA.res
-# new_proTumorRes_Kri_DIA <- doSOA(new_proTumor_Kri_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
-# new_proNormalRes_Kri_DIA <- doSOA(new_proNormal_Kri_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
+# new_proTumorRes_Kri_DIA <- proTumorRes$SOA.res
+# new_proNormalRes_Kri_DIA <- proNormalRes$SOA.res
+new_proTumorRes_Kri_DIA <- doSOA(new_proTumor_Kri_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
+new_proNormalRes_Kri_DIA <- doSOA(new_proNormal_Kri_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
 
 # DIA Tissue Proteomics (AG Klingmüller)
-proTumorRes_Klin_DIA <- proTumorRes_Klin$SOA.res
-proNormalRes_Klin_DIA <- proNormalRes_Klin$SOA.res
-# proTumorRes_Klin_DIA <- doSOA(proTumor_Klin_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
-# proNormalRes_Klin_DIA <- doSOA(proNormal_Klin_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
+# proTumorRes_Klin_DIA <- proTumorRes_Klin$SOA.res
+# proNormalRes_Klin_DIA <- proNormalRes_Klin$SOA.res
+proTumorRes_Klin_DIA <- doSOA(proTumor_Klin_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
+proNormalRes_Klin_DIA <- doSOA(proNormal_Klin_DIA, meta_var = 'Recurrence', use_proDA = T, alpha = 0.05)
 ```
 
 ```{r}
@@ -1160,8 +1160,8 @@ lipBaseSigFeats_Hopf <- nrow(lipBaseRes_Hopf$featSigAssoRes) / nrow(lipBaseRes_H
 lipFoloSigFeats_Hopf <- nrow(lipFoloRes_Hopf$featSigAssoRes) / nrow(lipFoloRes_Hopf$data) * 100
 lipTumorSigFeats_Hopf <- nrow(lipTumorRes_Hopf$featSigAssoRes) / nrow(lipTumorRes_Hopf$data) * 100
 lipNormalSigFeats_Hopf <- nrow(lipNormalRes_Hopf$featSigAssoRes) / nrow(lipNormalRes_Hopf$data) * 100
-proBaseSigFeats_Kri_DIA <- nrow(proBaseRes_Kri_DIA$featSigAssoRes) / nrow(proBaseRes_Kri_DIA$data) * 100
-proFoloSigFeats_Kri_DIA <- nrow(proFoloRes_Kri_DIA$featSigAssoRes) / nrow(proFoloRes_Kri_DIA$data) * 100
+# proBaseSigFeats_Kri_DIA <- nrow(proBaseRes_Kri_DIA$featSigAssoRes) / nrow(proBaseRes_Kri_DIA$data) * 100
+# proFoloSigFeats_Kri_DIA <- nrow(proFoloRes_Kri_DIA$featSigAssoRes) / nrow(proFoloRes_Kri_DIA$data) * 100
 new_proBaseSigFeats_Kri_DIA <- nrow(new_proBaseRes_Kri_DIA$featSigAssoRes) /
   nrow(new_proBaseRes_Kri_DIA$data) * 100
 new_proFoloSigFeats_Kri_DIA <- nrow(new_proFoloRes_Kri_DIA$featSigAssoRes) /
@@ -1179,7 +1179,7 @@ proNormalSigFeats_Klin_DIA <- nrow(proNormalRes_Klin_DIA$featSigAssoRes) /
 proportion <- c(metaBaseSigFeats_Hell, metaFoloSigFeats_Hell,
                 metaBaseSigFeats_Hopf, metaFoloSigFeats_Hopf,
                 lipBaseSigFeats_Hopf, lipFoloSigFeats_Hopf,
-                proBaseSigFeats_Kri_DIA, proFoloSigFeats_Kri_DIA,
+                # proBaseSigFeats_Kri_DIA, proFoloSigFeats_Kri_DIA,
                 new_proBaseSigFeats_Kri_DIA, new_proFoloSigFeats_Kri_DIA,
                 proBaseSigFeats_Kri_DDA, proFoloSigFeats_Kri_DDA,
                 metaTumorSigFeats_Hell, metaNormalSigFeats_Hell,
@@ -1191,19 +1191,19 @@ proportion <- c(metaBaseSigFeats_Hell, metaFoloSigFeats_Hell,
 dat <- c('Targeted Metab.', 'Targeted Metab.',
          'Untargeted Metab.', 'Untargeted Metab.',
          'Untargeted Lipid.', 'Untargeted Lipid.',
-         'DIA Pro.', 'DIA Pro.',
-         'New DIA Pro.', 'New DIA Pro.',
+         # 'SDS DIA Pro.', 'SDS DIA Pro.',
+         'New SDS DIA Pro.', 'New SDS DIA Pro.',
          'DDA Pro.', 'DDA Pro.',
          'Targeted Metab.', 'Targeted Metab.',
          'Untargeted Metab.', 'Untargeted Metab.',
          'Untargeted Lipid.', 'Untargeted Lipid.',
-         'DIA Pro.', 'DIA Pro.',
-         'New DIA Pro.', 'New DIA Pro.',
+         'NP-40 DIA Pro.', 'NP-40 DIA Pro.',
+         'New SDS DIA Pro.', 'New SDS DIA Pro.',
          'DDA Pro.', 'DDA Pro.')
-datModal <- c(rep(c('Baseline', 'Follow-up'), 6), rep(c('Tumor', 'Normal'), 6))
-datOf <- c(rep('Plasma', 12), rep('Tissue', 12))
+datModal <- c(rep(c('Baseline', 'Follow-up'), 5), rep(c('Tumor', 'Normal'), 6))
+datOf <- c(rep('Plasma', 10), rep('Tissue', 12))
 numFeat <- c(c(nrow(metaBaseRes_Hell$data), NA), c(nrow(metaBaseRes_Hopf$data), NA),
-             c(NA, nrow(lipFoloRes_Hopf$data)), c(nrow(proBaseRes_Kri_DIA$data), NA),
+             c(NA, nrow(lipFoloRes_Hopf$data)), #c(nrow(proBaseRes_Kri_DIA$data), NA),
              c(NA, nrow(new_proFoloRes_Kri_DIA$data)), c(nrow(proBaseRes_Kri_DDA$data), NA),
              c(nrow(metaTumorRes_Hell$data), NA), c(NA, nrow(metaNormalRes_Hopf$data)),
              c(NA, nrow(lipNormalRes_Hopf$data)), c(NA, nrow(proNormalRes_Klin_DIA$data)),
@@ -1211,7 +1211,7 @@ numFeat <- c(c(nrow(metaBaseRes_Hell$data), NA), c(nrow(metaBaseRes_Hopf$data), 
 sigFeatPropTab <- data.frame(Data = factor(dat, levels = c('Targeted Metab.',
                                                            'Untargeted Metab.',
                                                            'Untargeted Lipid.',
-                                                           'DIA Pro.', 'New DIA Pro.', 'DDA Pro.')),
+                                                           'NP-40 DIA Pro.', 'New SDS DIA Pro.', 'DDA Pro.')),
                              Data_modality = datModal,
                              Data_of = datOf,
                              Proportion = proportion,
@@ -1228,11 +1228,11 @@ ggplot(sigFeatPropTab, aes(x=Data, y=Proportion, fill = Data_modality, label=Fea
   th +
   theme(axis.text.x = element_text(angle = 65, vjust = 1, hjust = 1),
              strip.text = element_text(size = 16, face = 'bold'))
-  # theme(strip.text = element_text(size = 26, face = 'bold'), axis.title = element_text(size = 26),
-  #       axis.text.x = element_text(size = 20, angle = 70, vjust = 1, hjust = 1), axis.text.y = element_text(size = 18),
-  #       legend.title = element_text(size = 24), legend.text = element_text(size = 24),
-  #       panel.grid.minor = element_blank(), panel.grid.major.x = element_blank())
-# ggsave('./output/latest/percentage_sigFeats.png', device = 'png', dpi = 400, height = 8, width = 18)
+# theme(strip.text = element_text(size = 26, face = 'bold'), axis.title = element_text(size = 26),
+#       axis.text.x = element_text(size = 20, angle = 70, vjust = 1, hjust = 1), axis.text.y = element_text(size = 18),
+#       legend.title = element_text(size = 24), legend.text = element_text(size = 24),
+#       panel.grid.minor = element_blank(), panel.grid.major.x = element_blank())
+# ggsave('./output/MethodDev/Latest/percentage_sigFeats2.png', device = 'png', dpi = 400, height = 8, width = 18)
 ```
 1. Plasma Metabolomics/Lipidomics shows higher signal-to-noise ratios than that of
 Tissues. This is a great finding in a real clinical context since Plasma samples

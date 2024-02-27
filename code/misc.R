@@ -647,6 +647,14 @@ prepRankedFeatList <- function(statRes, featAnno = NULL, to_gene = F) {
   #' Return
   #' rankedList: A named vector in which features are ranked
   
+  #### Can provide parameter specifying increasing or decreasing for ordering provided
+  #### stats (e.g., t-values, p-values, or -log10(p))
+  
+  #### Can combine statRes and featAnno tables into a table, so later manipulation
+  #### does not have to be using index, which is very prone to error sometimes.
+  #### Also, avoid working on row names, because R may modify them without telling
+  #### you (e.g., row names containing '-') or some tidyverse function removes row names
+  
   # Keep first inferred protein if there are many
   rownames(statRes) <- stringr::str_remove(rownames(statRes), ';.+')
   # Sanity check
@@ -662,6 +670,10 @@ prepRankedFeatList <- function(statRes, featAnno = NULL, to_gene = F) {
     featAnno[[1]] <- stringr::str_remove(featAnno[[1]], ';.+')
     # Remove proteins with duplicated annotated genes (keep one with highest magnitude
     # of statistic)
+    
+    #### Can order gene list based on stats and remove latter duplicated ones, so
+    #### nuch code can be skipped
+    
     genes <- featAnno[[1]]
     dupGenes <- unique(genes[duplicated(genes)])
     rmFeatIdxList <- numeric(0)

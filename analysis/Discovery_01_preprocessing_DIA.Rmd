@@ -207,7 +207,7 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (31.5%)`, col=Condition, fill=Condition, l
   th #+ theme(axis.title = element_text(size = 28),
              # axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
              # legend.title = element_text(size = 26), legend.text = element_text(size = 24))
-# ggsave('./output/Discovery/group_meeting/quality_control_proTissue_Krij.png',
+# ggsave('./output/Discovery/group_meeting/quality_control_pca_Discovery_proTissue_Krij_condi.png',
 #        device = 'png', dpi = 400, height = 8, width = 10)
 ```
 => Tumor purity: I0HVOL_TU - 87% / 7EAOX7_TU - 70% / MJMTYR_TU - 40% / XFKHGP_TU - 100%\
@@ -391,7 +391,7 @@ ggplot(pcTab, aes(x=`PC1 (34%)`, y=`PC2 (24.9%)`, col=Cohort, shape=Condition)) 
   th #+ theme(axis.title = element_text(size = 28),
 #              axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
 #              legend.title = element_text(size = 26), legend.text = element_text(size = 24))
-# ggsave('./output/Discovery/group_meeting/combined_quality_control_proTissue_Krij.png',
+# ggsave('./output/Discovery/group_meeting/quality_control_beforeBC_combined_proTissue_Krij_condi.png',
 #        device = 'png', dpi = 400, height = 8, width = 10)
 
 # ggplot(pcTab, aes(x=Condition, y=`PC1 (34%)`, col=Condition, fill=Condition)) +
@@ -443,7 +443,7 @@ ggplot(pcTab, aes(x=`PC1 (38%)`, y=`PC2 (9.2%)`, col=Cohort, shape=Condition)) +
   th #+ theme(axis.title = element_text(size = 28),
 #              axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
 #              legend.title = element_text(size = 26), legend.text = element_text(size = 24))
-# ggsave('./output/Discovery/group_meeting/combined_quality_control_proTissue_Krij_BC.png',
+# ggsave('./output/Discovery/group_meeting/quality_control_afterBC_combined_proTissue_Krij_condi.png',
 #        device = 'png', dpi = 400, height = 8, width = 10)
 
 ggplot(pcTab, aes(x=Condition, y=`PC1 (38%)`, col=Condition, fill=Condition, label = Label)) +
