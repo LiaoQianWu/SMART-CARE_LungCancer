@@ -182,9 +182,6 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
 runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds = 100,
                        maxDepth = 6, eta = 0.3, trainSet_ratio = 0.8, plot_ROC = F,
                        save_model = F) {
-  # This function is currently for binary classification problem. For multi-class
-  # classification, data splitting has to be refined!!!!
-  
   #' Perform XGBoost for binary classification problem. Trained model is evaluated
   #' using AUC (Area Under ROC Curve) and feature importance is retrieved
   #' 
@@ -210,7 +207,8 @@ runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds 
   #' params: A list containing arguments of parameters 'booster', 'nrounds', 'maxDepth',
   #' 'eta', and 'trainSet_ratio'
   #' modelRes: A list of trained models
-  #' yTestList: A list of sample labels of test sets for playing around with thresholds
+  #' yPredList: A list of class predictions of test set samples
+  #' yTruthList: A list of ground truth labels of test set samples
   
   # Sanity check
   if (!(nrow(x) == length(y))) {
@@ -239,10 +237,12 @@ runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds 
     paramList <- list(booster = booster, nrounds = nrounds, maxDepth = NA, eta = NA,
                       trainSet_ratio = trainSet_ratio)
   }
-  modelResList <- as.list(rep(NA, iter))
-  names(modelResList) <- as.character(seq_len(iter))
-  yTestList <- as.list(rep(NA, iter))
-  names(yTestList) <- as.character(seq_len(iter))
+  xgbResList <- as.list(rep(NA, iter))
+  names(xgbResList) <- as.character(seq_len(iter))
+  yPredList <- as.list(rep(NA, iter))
+  names(yPredList) <- as.character(seq_len(iter))
+  yTruthList <- as.list(rep(NA, iter))
+  names(yTruthList) <- as.character(seq_len(iter))
   
   # Encode target sample label with 1 and the rest with 0
   y <- ifelse(test = y == targetClass, yes = 1, no = 0)
@@ -296,19 +296,25 @@ runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds 
     y_truth <- getinfo(testDat, 'label')
     if (plot_ROC) {
       par(pty = 's')
-      rocRes <- pROC::roc(response = y_truth, predictor = y_pred, plot = T,
-                          legacy.axes = T, print.auc = T, print.auc.x = 0.4,
-                          xlab = 'False positive rate', ylab = 'True positive rate',
-                          main = 'ROC Curve for Random Forest',
-                          cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4,
-                          direction = '<')
+      rocRes <- try(pROC::roc(response = y_truth, predictor = y_pred, plot = T,
+                              legacy.axes = T, print.auc = T, print.auc.x = 0.4,
+                              xlab = 'False positive rate', ylab = 'True positive rate',
+                              main = 'ROC Curve for Random Forest',
+                              cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4,
+                              direction = '<'),
+                    silent = T)
       par(pty = 'm')
     } else {
-      rocRes <- pROC::roc(response = y_truth, predictor = y_pred, plot = F,
-                          direction = '<')
+      rocRes <- try(pROC::roc(response = y_truth, predictor = y_pred, plot = F,
+                              direction = '<'),
+                    silent = T)
     }
     # Save AUC
-    aucList <- c(aucList, rocRes$auc)
+    if (!is(rocRes, 'try-error')) {
+      aucList <- c(aucList, rocRes$auc)
+    } else {
+      aucList <- c(aucList, NA)
+    }
     
     # Retrieve and save feature importance values from trained model
     if (booster == 'gbtree') {
@@ -324,13 +330,18 @@ runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds 
     
     # Save trained model
     if (save_model) {
-      modelResList[[i]] <- xgboost
+      xgbResList[[i]] <- xgboost
     }
     
-    # Save labels of test set samples
+    # Save predictions and ground truths of test set samples
+    y_pred <- as.numeric(y_pred > 0.5) %>%
+      as.factor()
+    y_test <- as.factor(y_test)
     # Make labels interpretable
+    names(y_pred) <- rownames(x_test)
     names(y_test) <- rownames(x_test)
-    yTestList[[i]] <- y_test
+    yPredList[[i]] <- y_pred
+    yTruthList[[i]] <- y_test
   }
   
   # Summarize feature importance table
@@ -342,7 +353,7 @@ runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds 
   }
   
   return(list(auc_roc = aucList, featImpoTab = featImpoTab, best_nrounds = bestnroundList,
-              params = paramList, modelRes = modelResList, y_test = yTestList))
+              params = paramList, xgbRes = xgbResList, y_pred = yPredList, y_truth = yTruthList))
 }
 
 
@@ -473,4 +484,127 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
   
   return(list(coefficient = matCoeffi, usedLambda = lambdaList, auc = aucList,
               nNonZero = numNonZeroList, params = paramList))
+}
+
+
+calcCI <- function(stats, level = 0.95, bootstrap = F) { #iter = 1000
+  #' Compute upper and lower bounds of confidence interval. This function provides
+  #' two ways of calculating CI: Bootstrapping or CI formula if data is normally
+  #' distributed
+  #' 
+  #' Parameter
+  #' stats: A vector of numeric values presenting data or data statistics
+  #' level: A numeric value specify the one commonly used confidence level, which
+  #' should be one of 0.95 (default), 0.98, 0.99, 0.90, or 0.80
+  #' bootstrap: A logical variable indicating whether to use bootstrapping to calculate
+  #' CI. Default is FALSE
+  #' iter: A numeric value specifying the number of bootstrap iterations
+  #' 
+  #' Return
+  #' A vector containing upper and lower bounds of CI
+  
+  # Sanity check
+  if (!(level %in% c(0.95, 0.98, 0.99, 0.9, 0.8))) {
+    stop("Argument for 'level' should be one of 0.95, 0.98, 0.99, 0.90, or 0.80.")
+  }
+  
+  # Define critical value for calculating CI
+  if (!bootstrap) {
+    criticalVal <- list('0.95' = 1.96, '0.98' = 2.33, '0.99' = 2.58,
+                        '0.9' = 1.65, '0.8' = 1.28)
+    z <- criticalVal[[as.character(level)]]
+  }
+  
+  # Bootstrap sample and compute mean of each replication
+  if (bootstrap) {
+    # meanList <- sapply(seq_len(iter), function(i) {
+    #   mean(sample(stats, size = length(stats), replace = T))
+    # })
+    # Locate lower bound by percentile if data is not normally distributed
+    p <- (1-level) / 2
+    lower <- as.numeric(quantile(stats, p))
+    # Locate upper bound
+    p <- level + (1-level)/2
+    upper <- as.numeric(quantile(stats, p))
+  } else {
+    # Follow CI formula if data is normally distributed
+    lower <- mean(stats) - z * sd(stats)/sqrt(length(stats))
+    upper <- mean(stats) + z * sd(stats)/sqrt(length(stats))
+  }
+  
+  return(c(lower = lower, upper = upper))
+}
+
+summarizePredPower <- function(pred, truth) {
+  #' Summarize performance of trained models, computing average and confidence intervals
+  #' of scores obtained from all models
+  #' 
+  #' pred: A list of class predictions of samples
+  #' truth: A list of ground truth labels of samples
+  
+  # Sanity check
+  if (length(pred) != length(truth)) {
+    stop("pred and truth should be same length.")
+  }
+  
+  # prepare containers for storing scores
+  accu <- c()
+  sens <- c()
+  spec <- c()
+  prec <- c()
+  reca <- c()
+  f1 <- c()
+  # Compute scores from trained models
+  for (i in seq_len(length(pred))) {
+    scores <- caret::confusionMatrix(data = pred[[i]], reference = truth[[i]], positive = '1')
+    accu <- c(accu, scores$overall[['Accuracy']])
+    sens <- c(sens, scores$byClass[['Sensitivity']])
+    spec <- c(spec, scores$byClass[['Specificity']])
+    prec <- c(prec, scores$byClass[['Precision']])
+    reca <- c(reca, scores$byClass[['Recall']])
+    f1 <- c(f1, scores$byClass[['F1']])
+  }
+  auc <- rfRes$rfRes$auc_roc
+  # Convert NA score to 0, which means model got bad performance (e.g., model does
+  # not have any positive prediction, than precision will be NA)
+  prec[is.na(prec)] <- 0
+  f1[is.na(f1)] <- 0
+  if (any(is.na(auc))) {
+    auc <- auc[-is.na(auc)]
+  }
+  
+  # Report summarized scores
+  ci <- calcCI(accu, bootstrap = T)
+  cat('Averaged Accuracy: ', round(median(accu), 3), '\n',
+      '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
+  cat('\n')
+  cat('\n')
+  ci <- calcCI(sens, bootstrap = T)
+  cat('Averaged Sensitivity: ', round(median(sens), 3), '\n',
+      '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
+  cat('\n')
+  cat('\n')
+  ci <- calcCI(spec, bootstrap = T)
+  cat('Averaged Specificity: ', round(median(spec), 3), '\n',
+      '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
+  cat('\n')
+  cat('\n')
+  ci <- calcCI(prec, bootstrap = T)
+  cat('Averaged Precision: ', round(median(prec), 3), '\n',
+      '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
+  cat('\n')
+  cat('\n')
+  ci <- calcCI(reca, bootstrap = T)
+  cat('Averaged Recall: ', round(median(reca), 3), '\n',
+      '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
+  cat('\n')
+  cat('\n')
+  ci <- calcCI(f1, bootstrap = T)
+  cat('Averaged F1 score: ', round(median(f1), 3), '\n',
+      '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
+  cat('\n')
+  cat('\n')
+  ci <- calcCI(auc, bootstrap = T)
+  cat('Averaged AUC-ROC score: ', round(median(auc), 3), '\n',
+      '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
 }
