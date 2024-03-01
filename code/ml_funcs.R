@@ -258,8 +258,8 @@ runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds 
   } else if (booster == 'gblinear') {
     parameters <- list(booster = 'gblinear',
                        objective = 'binary:logistic',
-                       eval_metric = 'logloss',
-                       eval_metric = 'error')
+                       eval_metric = 'error',
+                       eval_metric = 'logloss')
   }
   
   for (i in seq_len(iter)) {
@@ -535,12 +535,13 @@ calcCI <- function(stats, level = 0.95, bootstrap = F) { #iter = 1000
   return(c(lower = lower, upper = upper))
 }
 
-summarizePredPower <- function(pred, truth) {
+summarizePredPower <- function(pred, truth, auc_roc) {
   #' Summarize performance of trained models, computing average and confidence intervals
   #' of scores obtained from all models
   #' 
   #' pred: A list of class predictions of samples
   #' truth: A list of ground truth labels of samples
+  #' auc_roc: A vector of AUC-ROC scores of trained models
   
   # Sanity check
   if (length(pred) != length(truth)) {
@@ -556,21 +557,24 @@ summarizePredPower <- function(pred, truth) {
   f1 <- c()
   # Compute scores from trained models
   for (i in seq_len(length(pred))) {
-    scores <- caret::confusionMatrix(data = pred[[i]], reference = truth[[i]], positive = '1')
-    accu <- c(accu, scores$overall[['Accuracy']])
-    sens <- c(sens, scores$byClass[['Sensitivity']])
-    spec <- c(spec, scores$byClass[['Specificity']])
-    prec <- c(prec, scores$byClass[['Precision']])
-    reca <- c(reca, scores$byClass[['Recall']])
-    f1 <- c(f1, scores$byClass[['F1']])
+    # Check if ground truth labels have two levels
+    if (length(levels(truth[[i]])) == 2) {
+      scores <- caret::confusionMatrix(data = pred[[i]], reference = truth[[i]], positive = '1')
+      accu <- c(accu, scores$overall[['Accuracy']])
+      sens <- c(sens, scores$byClass[['Sensitivity']])
+      spec <- c(spec, scores$byClass[['Specificity']])
+      prec <- c(prec, scores$byClass[['Precision']])
+      reca <- c(reca, scores$byClass[['Recall']])
+      f1 <- c(f1, scores$byClass[['F1']])
+    }
   }
-  auc <- rfRes$rfRes$auc_roc
+  auc <- auc_roc
   # Convert NA score to 0, which means model got bad performance (e.g., model does
   # not have any positive prediction, than precision will be NA)
   prec[is.na(prec)] <- 0
   f1[is.na(f1)] <- 0
   if (any(is.na(auc))) {
-    auc <- auc[-is.na(auc)]
+    auc <- auc[-which(is.na(auc))]
   }
   
   # Report summarized scores
