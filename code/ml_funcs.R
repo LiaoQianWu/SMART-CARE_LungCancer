@@ -74,7 +74,8 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
   #' params: A list containing arguments of parameters 'split_method', 'trainSet_ratio',
   #' and 'ntree'
   #' rfRes: A list of objects of class randomForest
-  #' yTestList: A list of sample labels of test sets for playing around with thresholds
+  #' yPredList: A list of class predictions of test set samples
+  #' yTruthList: A list of ground truth labels of test set samples
   
   # Sanity check
   if (!(nrow(x) == length(y))) {
@@ -101,8 +102,10 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
                     ntree = ntree)
   rfResList <- as.list(rep(NA, iter))
   names(rfResList) <- as.character(seq_len(iter))
-  yTestList <- as.list(rep(NA, iter))
-  names(yTestList) <- as.character(seq_len(iter))
+  yPredList <- as.list(rep(NA, iter))
+  names(yPredList) <- as.character(seq_len(iter))
+  yTruthList <- as.list(rep(NA, iter))
+  names(yTruthList) <- as.character(seq_len(iter))
   
   # Encode target sample label with 1 and the rest with 0
   y <- ifelse(test = y == targetClass, yes = 1, no = 0)
@@ -145,19 +148,25 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
     y_pred <- predict(rfRes, newdata = x_test, type = 'prob')
     if (plot_ROC) {
       par(pty = 's')
-      rocRes <- pROC::roc(response = y_test, predictor = y_pred[, '1'], plot = T,
-                          legacy.axes = T, print.auc = T, print.auc.x = 0.4,
-                          xlab = 'False positive rate', ylab = 'True positive rate',
-                          main = 'ROC Curve for Random Forest',
-                          cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4,
-                          direction = '<')
+      rocRes <- try(pROC::roc(response = y_test, predictor = y_pred[, '1'], plot = T,
+                              legacy.axes = T, print.auc = T, print.auc.x = 0.4,
+                              xlab = 'False positive rate', ylab = 'True positive rate',
+                              main = 'ROC Curve for Random Forest',
+                              cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4,
+                              direction = '<'),
+                    silent = T)
       par(pty = 'm')
     } else {
-      rocRes <- pROC::roc(response = y_test, predictor = y_pred[, '1'], plot = F,
-                          direction = '<')
+      rocRes <- try(pROC::roc(response = y_test, predictor = y_pred[, '1'], plot = F,
+                              direction = '<'),
+                    silent = T)
     }
     # Save AUC
-    aucList <- c(aucList, rocRes$auc)
+    if (!is(rocRes, 'try-error')) {
+      aucList <- c(aucList, rocRes$auc)
+    } else {
+      aucList <- c(aucList, NA)
+    }
     
     # Retrieve and save feature importance values from RF object
     matMDA[, i] <- rfRes$importance[, 'MeanDecreaseAccuracy']
@@ -168,14 +177,18 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
       rfResList[[i]] <- rfRes
     }
     
-    # Save labels of test set samples
+    # Save predictions and ground truths of test set samples
+    y_pred <- as.numeric(y_pred > 0.5) %>%
+      as.factor()
     # Make labels interpretable
+    names(y_pred) <- rownames(x_test)
     names(y_test) <- rownames(x_test)
-    yTestList[[i]] <- y_test
+    yPredList[[i]] <- y_pred
+    yTruthList[[i]] <- y_test
   }
   
   return(list(mtry = mtryList, auc_roc = aucList, MDA = matMDA, MDG = matMDG,
-              params = paramList, rfRes = rfResList, y_test = yTestList))
+              params = paramList, rfRes = rfResList, y_pred = yPredList, y_truth = yTruthList))
 }
 
 
@@ -299,7 +312,7 @@ runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds 
       rocRes <- try(pROC::roc(response = y_truth, predictor = y_pred, plot = T,
                               legacy.axes = T, print.auc = T, print.auc.x = 0.4,
                               xlab = 'False positive rate', ylab = 'True positive rate',
-                              main = 'ROC Curve for Random Forest',
+                              main = 'ROC Curve for XGBoost',
                               cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4,
                               direction = '<'),
                     silent = T)
@@ -358,8 +371,9 @@ runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds 
 
 
 runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 10,
-                      cvMeasure = 'auc', used_lambda = 'lambda.1se', iter = 20,
-                      trainSet_ratio = 0.8, split_method = 'random split', plot_ROC = F) {
+                      cvMeasure = 'auc', used_lambda = 'lambda.1se', iter = 1,
+                      trainSet_ratio = 0.8, split_method = 'random split', plot_ROC = F,
+                      save_model = F) {
   #' Use regularized logistic regression model for binary classification problem
   #' and feature selection. Trained model is evaluated by AUC
   #' 
@@ -382,6 +396,7 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
   #' trainSet_ratio: A numeric value specifying the ratio of the size of the training
   #' set to that of the total dataset
   #' plot_ROC: A logical variable indicating whether ROC curve is plotted
+  #' save_model: A logical variable indicating whether trained model is saved. Default is FALSE
   #' 
   #' Return
   #' A list containing the following components:
@@ -391,6 +406,8 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
   #' auc: A vector of computed AUC from trained models
   #' params: A list containing arguments of parameters 'regularized_method', 'cvFold',
   #' 'used_lambda', 'split_method', and 'trainSet_ratio'
+  #' yPredList: A list of class predictions of test set samples
+  #' yTruthList: A list of ground truth labels of test set samples
   
   # Sanity check
   if (!(nrow(x) == length(y))) {
@@ -420,11 +437,15 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
                        dimnames = list(colnames(x), as.character(seq_len(iter))))
   lambdaList <- c()
   aucList <- c()
+  numNonZeroList <- c()
   paramList <- list(regularized_method = regularized_method, cvFold = cvFold, cvMeasure = cvMeasure,
                     used_lambda = used_lambda, split_method = split_method, trainSet_ratio = trainSet_ratio)
-  
-  ####
-  numNonZeroList <- c()
+  lrResList <- as.list(rep(NA, iter))
+  names(lrResList) <- as.character(seq_len(iter))
+  yPredList <- as.list(rep(NA, iter))
+  names(yPredList) <- as.character(seq_len(iter))
+  yTruthList <- as.list(rep(NA, iter))
+  names(yTruthList) <- as.character(seq_len(iter))
   
   # Encode target sample label with 1 and the other with 0
   # Will be coerced into factor and target class is the last level in alphabetical order
@@ -453,13 +474,13 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
     
     # Train logistic regression model
     lrRes <- glmnet::cv.glmnet(x = x_train, y = y_train, family = 'binomial', type.measure = cvMeasure,
-                               nfolds = cvFold, alpha = alpha, standardize = F, intercept = T)
+                               nfolds = cvFold, alpha = alpha, standardize = F, intercept = T, nlambda = 100)
     # Save selected lambda of trained model
     lambdaList <- c(lambdaList, round(lrRes[[used_lambda]], 4))
-    # Retrieve and save coefficients of fitted model
+    # Retrieve and save coefficients of fitted model (remove first row intercept)
     matCoeffi[, i] <- as.matrix(coef(lrRes, s = lrRes[[used_lambda]]))[-1, 1]
     
-    ####
+    # Save number of non-zero coefficients of fitted model
     coeffi <- as.matrix(coef(lrRes, s = lrRes[[used_lambda]]))[-1, 1]
     numNonZeroList <- c(numNonZeroList, sum(coeffi != 0))
     
@@ -467,23 +488,44 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
     y_pred <- predict(lrRes, s = lrRes[[used_lambda]], newx = x_test, type = 'response')
     if (plot_ROC) {
       par(pty = 's')
-      rocRes <- pROC::roc(response = y_test, predictor = y_pred[, 1], plot = T,
-                          legacy.axes = T, print.auc = T, print.auc.x = 0.4,
-                          xlab = 'False positive rate', ylab = 'True positive rate',
-                          main = 'ROC Curve for Random Forest',
-                          cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4,
-                          direction = '<')
+      rocRes <- try(pROC::roc(response = y_test, predictor = y_pred[, 1], plot = T,
+                              legacy.axes = T, print.auc = T, print.auc.x = 0.4,
+                              xlab = 'False positive rate', ylab = 'True positive rate',
+                              main = 'ROC Curve for Lasso Logistic Regression',
+                              cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4,
+                              direction = '<'),
+                    silent = T)
       par(pty = 'm')
     } else {
-      rocRes <- pROC::roc(response = y_test, predictor = y_pred[, 1], plot = F,
-                          direction = '<')
+      rocRes <- try(pROC::roc(response = y_test, predictor = y_pred[, 1], plot = F,
+                              direction = '<'),
+                    silent = T)
     }
     # Save AUC
-    aucList <- c(aucList, rocRes$auc)
+    if (!is(rocRes, 'try-error')) {
+      aucList <- c(aucList, rocRes$auc)
+    } else {
+      aucList <- c(aucList, NA)
+    }
+    
+    # Save trained model
+    if (save_model) {
+      lrResList[[i]] <- lrRes
+    }
+    
+    # Save predictions and ground truths of test set samples
+    y_pred <- as.numeric(y_pred > 0.5) %>%
+      as.factor()
+    y_test <- as.factor(y_test)
+    # Make labels interpretable
+    names(y_pred) <- rownames(x_test)
+    names(y_test) <- rownames(x_test)
+    yPredList[[i]] <- y_pred
+    yTruthList[[i]] <- y_test
   }
   
-  return(list(coefficient = matCoeffi, usedLambda = lambdaList, auc = aucList,
-              nNonZero = numNonZeroList, params = paramList))
+  return(list(coefficient = matCoeffi, usedLambda = lambdaList, auc_roc = aucList,
+              nNonZero = numNonZeroList, params = paramList, y_pred = yPredList, y_truth = yTruthList))
 }
 
 
