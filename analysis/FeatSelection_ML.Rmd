@@ -22,6 +22,7 @@ Load libraries
 library('spsUtil')
 library('randomForest')
 library('missForest')
+library(xgboost)
 library('caret')
 library('glmnet')
 library('SummarizedExperiment')
@@ -40,10 +41,176 @@ th <- theme_bw(base_size = 15) +
 
 # RF
 
+```{r}
+getRFRes <- function(se) {
+  #' Prepare imputed input data for RF, do initial feature selection, remove highly
+  #' correlated features, and train RF
+  
+  # Prepare input data for RF
+  # Retrieve data matrix from SE object
+  datMat <- t(assay(se)) %>%
+    tibble::as_tibble(rownames = 'Sample')
+  # Retrieve patient recurrence annotations
+  recurAnno <- tibble::as_tibble(colData(se), rownames = 'Sample') %>%
+    dplyr::select(Sample, Recurrence)
+  # Combine all needed information
+  allFeats <- dplyr::left_join(recurAnno, datMat, by = 'Sample') %>%
+    tibble::column_to_rownames('Sample')
+  # Do initial feature selection
+  # Identify recurrence-related statistically significant features
+  soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
+  sigFeats <- dplyr::select(allFeats, c(Recurrence, soaRes$featSigAssoRes$Var1))
+  # Cluster highly correlated features and keep only one representative of each cluster
+  sigFeatClusters <- rmCorrFeats(t(sigFeats[, -1]), cutoff = 0.8)
+  uncorrSigFeats <- dplyr::select(sigFeats, c(Recurrence, rownames(sigFeatClusters$reducedData)))
+  
+  # Run RF
+  # Set random seed for reproducible outcomes
+  set.seed(42)
+  x <- as.matrix(uncorrSigFeats[, -1])
+  y <- uncorrSigFeats[, 1]
+  rfRes <- runRF(x, y, targetClass = 'Yes', iter = 1000, split_method = 'random split', save_RF = T)
+  
+  return(list(rfRes = rfRes, featClusters = sigFeatClusters))
+}
+```
+
+## NTP (AG Klin.)
+Normal Tissue DIA Proteomics from AG Klingmüller
+
+**Average model performance (Uncorrelated significant features, iter = 1000)**
+```{r}
+# Load RF training results
+rfRes <- readRDS('./data/Discovery/rf/rfResSig_proNormal_randSplit_1000_Klin.rds')
+
+# Report summarized scores
+trainedModels <- rfRes$rfRes$rfRes
+# Prepare predictions and ground truths
+pred <- as.list(rep(NA, length(trainedModels)))
+for (i in seq_len(length(trainedModels))) {
+  pred[[i]] <- trainedModels[[i]]$test$predicted
+}
+truth <- rfRes$rfRes$y_test
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**Top important features with highest averaged ranks**
+```{r}
+# Process feature importance scores
+# Rank feature importance scores for all iterations
+rankedFeatImpoTab <- apply(rfRes$rfRes$MDG, 2, function(featImpo) {
+  orderIdx <- order(featImpo, decreasing = T)
+  featImpoRanks <- seq_along(orderIdx)
+  names(featImpoRanks) <- orderIdx
+  featImpo[as.numeric(names(featImpoRanks))] <- featImpoRanks
+  return(featImpo)
+})
+# Compute mean, SD, and CI of each feature across iterations
+medianFeatImpo <- apply(rankedFeatImpoTab, 1, median)
+sdFeatImpo <- apply(rankedFeatImpoTab, 1, sd)
+lowerCIFeatImpo <- apply(rankedFeatImpoTab, 1, function(featImpoRanks) {
+  calcCI(featImpoRanks, bootstrap = T)[1]
+})
+upperCIFeatImpo <- apply(rankedFeatImpoTab, 1, function(featImpoRanks) {
+  calcCI(featImpoRanks, bootstrap = T)[2]
+})
+# Collect all needed information into a table
+Combined_proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds')
+featAnnoTab <- tibble::as_tibble(rowData(Combined_proTissue_Klin), rownames = 'Feature') %>%
+  dplyr::rename(Gene = PG.Genes)
+medianRankedFeatImpoTab <- data.frame(Feature = names(medianFeatImpo),
+                                      ImpoMedian = medianFeatImpo,
+                                      ImpoSD = sdFeatImpo,
+                                      ImpoLowerCI = lowerCIFeatImpo,
+                                      ImpoUpperCI = upperCIFeatImpo) %>%
+  dplyr::arrange(ImpoMedian) %>%
+  dplyr::left_join(featAnnoTab, by = 'Feature') %>%
+  dplyr::mutate(Gene = stringr::str_remove(Gene, ';.+'),
+                Feature = stringr::str_remove(Feature, ';.+'))
+
+# Visualize top important features
+num_impoFeats <- 15
+topFeatImpoTab <- medianRankedFeatImpoTab[seq_len(num_impoFeats),]
+ggplot(topFeatImpoTab, aes(x=ImpoMedian, y=factor(Gene, levels = rev(Gene)))) +
+  geom_errorbar(aes(xmin=ImpoLowerCI, xmax=ImpoUpperCI)) +
+  geom_point(size = 6) +
+  labs(x = 'Averaged Rank of Gene Importance', y = 'Gene') +
+  th +
+  theme(axis.title = element_text(size = 28),
+        axis.text = element_text(size = 16))
+# ggsave('./output/Discovery/group_meeting/rf_topImpo_combined_proNormal_Klin.png',
+#        device = 'png', dpi = 400, height = 8, width = 10)
+```
+
+## TTP (AG Klin.)
+Tumor Tissue DIA Proteomics from AG Klingmüller
+
+**Average model performance (Uncorrelated significant features, iter = 1000)**
+```{r}
+# Load RF training results
+rfRes <- readRDS('./data/Discovery/rf/rfResSig_proTumor_randSplit_1000_Klin.rds')
+
+# Report summarized scores
+trainedModels <- rfRes$rfRes$rfRes
+# Prepare predictions and ground truths
+pred <- as.list(rep(NA, length(trainedModels)))
+for (i in seq_len(length(trainedModels))) {
+  pred[[i]] <- trainedModels[[i]]$test$predicted
+}
+truth <- rfRes$rfRes$y_test
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**Top important features with highest averaged ranks**
+```{r}
+# Process feature importance scores
+# Rank feature importance scores for all iterations
+rankedFeatImpoTab <- apply(rfRes$rfRes$MDG, 2, function(featImpo) {
+  orderIdx <- order(featImpo, decreasing = T)
+  featImpoRanks <- seq_along(orderIdx)
+  names(featImpoRanks) <- orderIdx
+  featImpo[as.numeric(names(featImpoRanks))] <- featImpoRanks
+  return(featImpo)
+})
+# Compute mean, SD, and CI of each feature across iterations
+meanFeatImpo <- apply(rankedFeatImpoTab, 1, mean)
+sdFeatImpo <- apply(rankedFeatImpoTab, 1, sd)
+lowerCIFeatImpo <- apply(rankedFeatImpoTab, 1, function(featImpoRanks) {
+  calcCI(featImpoRanks, bootstrap = T)[1]
+})
+upperCIFeatImpo <- apply(rankedFeatImpoTab, 1, function(featImpoRanks) {
+  calcCI(featImpoRanks, bootstrap = T)[2]
+})
+# Collect all needed information into a table
+Combined_proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds')
+featAnnoTab <- tibble::as_tibble(rowData(Combined_proTissue_Klin), rownames = 'Feature') %>%
+  dplyr::rename(Gene = PG.Genes)
+meanRankedFeatImpoTab <- data.frame(Feature = names(meanFeatImpo),
+                                    ImpoMean = meanFeatImpo,
+                                    ImpoSD = sdFeatImpo,
+                                    ImpoLowerCI = lowerCIFeatImpo,
+                                    ImpoUpperCI = upperCIFeatImpo) %>%
+  dplyr::arrange(ImpoMean) %>%
+  dplyr::left_join(featAnnoTab, by = 'Feature') %>%
+  dplyr::mutate(Gene = stringr::str_remove(Gene, ';.+'),
+                Feature = stringr::str_remove(Feature, ';.+'))
+
+# Visualize top important features
+num_impoFeats <- 15
+topFeatImpoTab <- meanRankedFeatImpoTab[seq_len(num_impoFeats),]
+ggplot(topFeatImpoTab, aes(x=ImpoMean, y=factor(Gene, levels = rev(Gene)))) +
+  geom_errorbar(aes(xmin=ImpoLowerCI, xmax=ImpoUpperCI)) +
+  geom_point(size = 6) +
+  labs(x = 'Averaged Rank of Feature Importance', y = 'Feature') +
+  th
+```
+
 ## NTP (AG Krij.)
 Normal Tissue DIA Proteomics from AG Krijgsveld
 
-```{r message=F, eval=F}
+```{r message=F, eval=F, include=F}
 # Prepare input data, which includes imputation, initial feature selection, correlated
 # feature removal, and RF training. Take Normal Tissue DIA Proteomics as example
 
@@ -107,12 +274,17 @@ caret::confusionMatrix(data = predictedVals, reference = expectedVals, positive 
 ```{r}
 # Load RF training results
 rfResSig <- readRDS('./data/Discovery/rf/rfResSig_proNormal_randSplit_1000_Krij.rds')
-# Display mean AUC score
-auc <- rfResSig$rfRes$auc_roc
-# Compute 95% confidence interval of AUC scores
-ci <- calcCI(auc, bootstrap = T)
-cat('Mean AUC-ROC score: ', round(mean(auc), 3), '\n',
-    '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
+
+# Report summarized scores
+trainedModels <- rfRes$rfRes$rfRes
+# Prepare predictions and ground truths
+pred <- as.list(rep(NA, length(trainedModels)))
+for (i in seq_len(length(trainedModels))) {
+  pred[[i]] <- trainedModels[[i]]$test$predicted
+}
+truth <- rfRes$rfRes$y_test
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
 ```
 
 **Top important features with highest averaged ranks**
@@ -162,7 +334,7 @@ ggplot(topFeatImpoTab, aes(x=ImpoMean, y=factor(Gene, levels = rev(Gene)))) +
 #        device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
-```{r eval=F}
+```{r eval=F, include=F}
 # Visualize abundances of top important features
 # Prepare data matrix and metadata including both Tumor and Normal samples
 Combined_proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
@@ -206,12 +378,17 @@ Tumor Tissue DIA Proteomics from AG Krijgsveld
 ```{r}
 # Load RF training results
 rfRes <- readRDS('./data/Discovery/rf/rfResSig_proTumor_randSplit_1000_Krij.rds')
-# Display mean AUC score
-auc <- rfRes$rfRes$auc
-# Compute 95% confidence interval of AUC scores
-ci <- calcCI(auc, bootstrap = T)
-cat('Mean AUC-ROC score: ', round(mean(auc), 3), '\n',
-    '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
+
+# Report summarized scores
+trainedModels <- rfRes$rfRes$rfRes
+# Prepare predictions and ground truths
+pred <- as.list(rep(NA, length(trainedModels)))
+for (i in seq_len(length(trainedModels))) {
+  pred[[i]] <- trainedModels[[i]]$test$predicted
+}
+truth <- rfRes$rfRes$y_test
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
 ```
 
 **Top important features with highest averaged ranks**
@@ -259,120 +436,225 @@ ggplot(topFeatImpoTab, aes(x=ImpoMean, y=factor(Gene, levels = rev(Gene)))) +
   th
 ```
 
+# XGBoost
+
+```{r}
+iterXGBoost <- function(se, booster = 'gbtree') {
+  #' Prepare imputed input data for XGBoost, do initial feature selection, remove
+  #' highly correlated features, and train XGBoost
+  
+  # Do initial feature selection
+  # Identify recurrence-related statistically significant features
+  soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
+  x <- t(assay(se))
+  x <- x[, colnames(x) %in% soaRes$featSigAssoRes$Var1]
+  # Cluster highly correlated features and keep only one representative of each cluster
+  featClusters <- rmCorrFeats(t(x), cutoff = 0.8)
+  x <- t(featClusters$reducedData)
+  y <- colData(se)$Recurrence
+  
+  # Train XGBoost with tree or linear booster
+  set.seed(42)
+  if (booster == 'gbtree') {
+    xgbRes <- runXGBoost(x, y, targetClass = 'Yes', iter = 1000, booster = 'gbtree',
+                         nrounds = 100, maxDepth = 6, eta = 0.3, trainSet_ratio = 0.6,
+                         plot_ROC = F, save_model = T)
+  } else if (booster == 'gblinear') {
+    xgbRes <- runXGBoost(x, y, targetClass = 'Yes', iter = 1000, booster = 'gblinear',
+                         nrounds = 100, trainSet_ratio = 0.6, plot_ROC = F, save_model = T)
+  }
+  
+  return(list(xgbRes = xgbRes, featClusters = featClusters))
+}
+```
+
+```{r message=F, eval=F, include=F}
+## NTP (AG Krij.)
+# Normal Tissue DIA Proteomics from AG Krijgsveld
+
+# XGBoost supports missing values by default. Branch directions for missing values
+# are learned during training. Note that 'gblinear' booster treats missing values
+# as zeros.
+
+# Load imputed data
+proNormal_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/impuByMF/combined_proNormalVsnImpu.rds')
+proNormal <- proNormal_Krij
+# Do initial feature selection
+# Identify recurrence-related statistically significant features
+soaRes <- doSOA(proNormal, meta_var = 'Recurrence', use_limma = T)
+x <- t(assay(proNormal))
+x <- x[, colnames(x) %in% soaRes$featSigAssoRes$Var1]
+# Cluster highly correlated features and keep only one representative of each cluster
+featClusters <- rmCorrFeats(t(x), cutoff = 0.8)
+x <- t(featClusters$reducedData)
+y <- colData(proNormal)$Recurrence
+y <- ifelse(test = y == 'Yes', yes = 1, no = 0)
+
+# Determine best number of iteration using cross-validation
+# allDat <- xgb.DMatrix(data = x, label = y)
+# bestIter <- xgb.cv(data = allDat, params = paramsTree, nrounds = 20, nfold = 5, verbose = T)
+# ggplot(bestIter$evaluation_log, aes(x=iter, y=train_logloss_mean)) +
+#   geom_line(linewidth = 1) +
+#   geom_line(aes(y=test_logloss_mean), color = 'firebrick', linewidth = 1) +
+#   labs(x = 'Iteration', y = 'Loss') +
+#   th
+#### => Learning curves look weird...
+
+# Split data into training, validation, and test sets
+# Set random seed for reproducible outcomes
+set.seed(42)
+# trainIdx <- subsetTrainData(x, y, split_method = 'bootstrap', trainSet_ratio = 0.8)
+trainIdx <- caret::createDataPartition(y, times = 1, p = 0.6, list = T)
+x_train <- x[trainIdx[[1]],, drop = F]
+y_train <- y[trainIdx[[1]]]
+restIdx <- seq_along(y)[!seq_along(y) %in% trainIdx[[1]]]
+ySub <- y[restIdx]
+validIdx <- caret::createDataPartition(ySub, times = 1, p = 0.5, list = T)
+x_valid <- x[restIdx[validIdx[[1]]],, drop = F]
+y_valid <- y[restIdx[validIdx[[1]]]]
+x_test <- x[restIdx[-validIdx[[1]]],, drop = F]
+y_test <- y[restIdx[-validIdx[[1]]]]
+# Collect split data into xgb.DMatrix objects
+trainDat <- xgb.DMatrix(data = x_train, label = y_train)
+validDat <- xgb.DMatrix(data = x_valid, label = y_valid)
+testDat <- xgb.DMatrix(data = x_test, label = y_test)
+
+# Train XGBoost with tree booster
+# Prepare parameters for training XGBoost
+paramsTree <- list(booster = 'gbtree',
+                   objective = 'binary:logistic',
+                   eval_metric = 'error',
+                   eval_metric = 'logloss',
+                   max_depth = 6,
+                   eta = 0.3)
+# Determine best number of iteration
+watchlist <- list(train = trainDat, valid = validDat)
+treeBoost <- xgb.train(data = trainDat, params = paramsTree, nrounds = 50,
+                       watchlist = watchlist, verbose = 1, early_stopping_rounds = 4)
+ggplot(treeBoost$evaluation_log, aes(x=iter, y=train_logloss)) +
+  geom_line(linewidth = 1) +
+  geom_line(aes(y=valid_logloss), color = 'firebrick', linewidth = 1) +
+  labs(x = 'Iteration', y = 'Loss') +
+  th
+# Retrain XGBoost with combined data including training and validation
+# combinedTrainIdx <- c(trainIdx[[1]], restIdx[validIdx[[1]]])
+# combinedTrainDat <- xgb.DMatrix(data = x[combinedTrainIdx,, drop = F],
+#                                 label = y[combinedTrainIdx])
+# treeBoost <- xgb.train(data = combinedTrainDat, params = paramsTree, nrounds = 3, verbose = 1)
+
+# Predict unseen data using trained XGBoost
+# Play around with thresholds
+cutoff <- 0.5
+truth <- getinfo(testDat, 'label') %>%
+  factor()
+pred <- as.numeric(predict(treeBoost, testDat) > cutoff) %>%
+  factor()
+caret::confusionMatrix(data = pred, reference = truth, positive = '1')
+
+# Visualize results of trained XGBoost
+# Structure of trees
+# xgb.plot.tree(model = treeBoost)
+# Feature importance
+impoTab <- xgb.importance(model = treeBoost)
+xgb.ggplot.importance(importance_matrix = impoTab) +
+  th
+# ggsave('./output/Discovery/group_meeting/combined_xgboost_featImpo_proNormal_Krij.png',
+#        device = 'png', dpi = 400, height = 8, width = 10)
+```
+
 ## NTP (AG Klin.)
 Normal Tissue DIA Proteomics from AG Klingmüller
 
-**Average model performance (Uncorrelated significant features, iter = 1000)**
+**Tree booster**
 ```{r}
-# Load RF training results
-rfRes <- readRDS('./data/Discovery/rf/rfResSig_proNormal_randSplit_1000_Klin.rds')
-# Display mean AUC score
-auc <- rfRes$rfRes$auc
-# Compute 95% confidence interval of AUC scores
-ci <- calcCI(auc, bootstrap = T)
-cat('Mean AUC-ROC score: ', round(mean(auc), 3), '\n',
-    '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
+# Load imputed data
+# proNormal_Klin <- readRDS('./data/Discovery/AG_Klingmueller/impuByMF/proNormalVsnImpu.rds')
+# treeBoostRes <- iterXGBoost(proNormal_Klin, booster = 'gbtree')
+# saveRDS(treeBoostRes, './data/Discovery/xgboost/tree_xgbResSig_proNormal_randSplit_logloss_1000_Klin.rds')
+treeBoostRes <- readRDS('./data/Discovery/xgboost/tree_xgbResSig_proNormal_randSplit_logloss_1000_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- treeBoostRes$xgbRes$y_pred
+truth <- treeBoostRes$xgbRes$y_truth
+auc_roc <- treeBoostRes$xgbRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+
+# Take only models with good performance?
+bestModels <- which(treeBoostRes$xgbRes$auc_roc == 1)
 ```
 
-**Top important features with highest averaged ranks**
+**Linear booster**
 ```{r}
-# Process feature importance scores
-# Rank feature importance scores for all iterations
-rankedFeatImpoTab <- apply(rfRes$rfRes$MDG, 2, function(featImpo) {
-  orderIdx <- order(featImpo, decreasing = T)
-  featImpoRanks <- seq_along(orderIdx)
-  names(featImpoRanks) <- orderIdx
-  featImpo[as.numeric(names(featImpoRanks))] <- featImpoRanks
-  return(featImpo)
-})
-# Compute mean, SD, and CI of each feature across iterations
-meanFeatImpo <- apply(rankedFeatImpoTab, 1, mean)
-sdFeatImpo <- apply(rankedFeatImpoTab, 1, sd)
-lowerCIFeatImpo <- apply(rankedFeatImpoTab, 1, function(featImpoRanks) {
-  calcCI(featImpoRanks, bootstrap = T)[1]
-})
-upperCIFeatImpo <- apply(rankedFeatImpoTab, 1, function(featImpoRanks) {
-  calcCI(featImpoRanks, bootstrap = T)[2]
-})
-# Collect all needed information into a table
-Combined_proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds')
-featAnnoTab <- tibble::as_tibble(rowData(Combined_proTissue_Klin), rownames = 'Feature') %>%
-  dplyr::rename(Gene = PG.Genes)
-meanRankedFeatImpoTab <- data.frame(Feature = names(meanFeatImpo),
-                                    ImpoMean = meanFeatImpo,
-                                    ImpoSD = sdFeatImpo,
-                                    ImpoLowerCI = lowerCIFeatImpo,
-                                    ImpoUpperCI = upperCIFeatImpo) %>%
-  dplyr::arrange(ImpoMean) %>%
-  dplyr::left_join(featAnnoTab, by = 'Feature') %>%
-  dplyr::mutate(Gene = stringr::str_remove(Gene, ';.+'),
-                Feature = stringr::str_remove(Feature, ';.+'))
+# Load imputed data
+# proNormal_Klin <- readRDS('./data/Discovery/AG_Klingmueller/impuByMF/proNormalVsnImpu.rds')
+# linearBoostRes <- iterXGBoost(proNormal_Klin, booster = 'gblinear')
+# saveRDS(linearBoostRes, './data/Discovery/xgboost/linear_xgbResSig_proNormal_randSplit_logloss_1000_Klin.rds')
+linearBoostRes <- readRDS('./data/Discovery/xgboost/linear_xgbResSig_proNormal_randSplit_error_1000_Klin.rds')
 
-# Visualize top important features
-num_impoFeats <- 15
-topFeatImpoTab <- meanRankedFeatImpoTab[seq_len(num_impoFeats),]
-ggplot(topFeatImpoTab, aes(x=ImpoMean, y=factor(Feature, levels = rev(Feature)))) +
-  geom_errorbar(aes(xmin=ImpoLowerCI, xmax=ImpoUpperCI)) +
-  geom_point(size = 6) +
-  labs(x = 'Averaged Rank of Feature Importance', y = 'Feature') +
-  th
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- linearBoostRes$xgbRes$y_pred
+truth <- linearBoostRes$xgbRes$y_truth
+auc_roc <- linearBoostRes$xgbRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+
+# impoTab <- xgb.importance(model = linearBoost$modelRes[[1]])
+# xgb.ggplot.importance(importance_matrix = impoTab,  top_n = 20) +
+#   th
 ```
 
-## TTP (AG Klin.)
-Tumor Tissue DIA Proteomics from AG Klingmüller
+# Lasso logistic regression
 
-**Average model performance (Uncorrelated significant features, iter = 1000)**
 ```{r}
-# Load RF training results
-rfRes <- readRDS('./data/Discovery/rf/rfResSig_proTumor_randSplit_1000_Klin.rds')
-# Display mean AUC score
-auc <- rfRes$rfRes$auc
-# Compute 95% confidence interval of AUC scores
-ci <- calcCI(auc, bootstrap = T)
-cat('Mean AUC-ROC score: ', round(mean(auc), 3), '\n',
-    '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
+iterLogisR <- function(se, iter = 1000, cvFold = 10, cvMeasure = 'auc') {
+  #' Prepare imputed input data, do initial feature selection, remove highly correlated
+  #' features, and train lasso logistic regression model
+  
+  # Do initial feature selection
+  # Identify recurrence-related statistically significant features
+  soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
+  x <- t(assay(se))
+  x <- x[, colnames(x) %in% soaRes$featSigAssoRes$Var1]
+  # Cluster highly correlated features and keep only one representative of each cluster
+  featClusters <- rmCorrFeats(t(x), cutoff = 0.8)
+  x <- t(featClusters$reducedData)
+  y <- colData(se)$Recurrence
+  
+  # Train lasso logistic regression model
+  set.seed(42)
+  lrRes <- runLogisR(x, y, targetClass = 'Yes', iter = iter, regularized_method = 'lasso',
+                     cvFold = cvFold, cvMeasure = cvMeasure, used_lambda = 'lambda.min',
+                     trainSet_ratio = 0.8, split_method = 'random split',
+                     plot_ROC = F, save_model = T)
+  
+  return(list(lrRes = lrRes, featClusters = featClusters))
+}
 ```
 
-**Top important features with highest averaged ranks**
-```{r}
-# Process feature importance scores
-# Rank feature importance scores for all iterations
-rankedFeatImpoTab <- apply(rfRes$rfRes$MDG, 2, function(featImpo) {
-  orderIdx <- order(featImpo, decreasing = T)
-  featImpoRanks <- seq_along(orderIdx)
-  names(featImpoRanks) <- orderIdx
-  featImpo[as.numeric(names(featImpoRanks))] <- featImpoRanks
-  return(featImpo)
-})
-# Compute mean, SD, and CI of each feature across iterations
-meanFeatImpo <- apply(rankedFeatImpoTab, 1, mean)
-sdFeatImpo <- apply(rankedFeatImpoTab, 1, sd)
-lowerCIFeatImpo <- apply(rankedFeatImpoTab, 1, function(featImpoRanks) {
-  calcCI(featImpoRanks, bootstrap = T)[1]
-})
-upperCIFeatImpo <- apply(rankedFeatImpoTab, 1, function(featImpoRanks) {
-  calcCI(featImpoRanks, bootstrap = T)[2]
-})
-# Collect all needed information into a table
-Combined_proTissue_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds')
-featAnnoTab <- tibble::as_tibble(rowData(Combined_proTissue_Klin), rownames = 'Feature') %>%
-  dplyr::rename(Gene = PG.Genes)
-meanRankedFeatImpoTab <- data.frame(Feature = names(meanFeatImpo),
-                                    ImpoMean = meanFeatImpo,
-                                    ImpoSD = sdFeatImpo,
-                                    ImpoLowerCI = lowerCIFeatImpo,
-                                    ImpoUpperCI = upperCIFeatImpo) %>%
-  dplyr::arrange(ImpoMean) %>%
-  dplyr::left_join(featAnnoTab, by = 'Feature') %>%
-  dplyr::mutate(Gene = stringr::str_remove(Gene, ';.+'),
-                Feature = stringr::str_remove(Feature, ';.+'))
+## NTP (AG Klin.)
+Normal Tissue DIA Proteomics from AG Klingmüller
 
-# Visualize top important features
-num_impoFeats <- 15
-topFeatImpoTab <- meanRankedFeatImpoTab[seq_len(num_impoFeats),]
-ggplot(topFeatImpoTab, aes(x=ImpoMean, y=factor(Gene, levels = rev(Gene)))) +
-  geom_errorbar(aes(xmin=ImpoLowerCI, xmax=ImpoUpperCI)) +
-  geom_point(size = 6) +
-  labs(x = 'Averaged Rank of Feature Importance', y = 'Feature') +
-  th
+**Models with no any non-zero beta are removed.**
+```{r warning=T}
+# Load imputed data
+# proNormal_Klin <- readRDS('./data/Discovery/AG_Klingmueller/impuByMF/proNormalVsnImpu.rds')
+# lrRes <- iterLogisR(proNormal_Klin, iter = 1000, cvFold = 5, cvMeasure = 'deviance')
+# saveRDS(lrRes, './data/Discovery/logisR/lrResSig_proNormal_randSplit_1000_5fold_deviance_lmin_Klin.rds')
+lrRes <- readRDS('./data/Discovery/logisR/lrResSig_proNormal_randSplit_1000_5fold_deviance_lmin_Klin.rds')
+
+uselessModels <- which(lrRes$lrRes$nNonZero == 0) #higher lambda results in simpler model
+# for (i in uselessModels) {
+#   pred <- lrRes$lrRes$y_pred[[i]]
+#   truth <- lrRes$lrRes$y_truth[[i]]
+#   scores <- caret::confusionMatrix(data = pred, reference = truth, positive = '1')
+#   cat(scores$overall[['Accuracy']], '\n')
+# } # Models that got only intercept make random predictions, 0.5 accuracy and AUC-ROC
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- lrRes$lrRes$y_pred[-uselessModels]
+truth <- lrRes$lrRes$y_truth[-uselessModels]
+auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+suppressWarnings(summarizePredPower(pred, truth, auc_roc)) #warning due to sometimes only pos or neg predictions
 ```

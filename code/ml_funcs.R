@@ -525,7 +525,8 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
   }
   
   return(list(coefficient = matCoeffi, usedLambda = lambdaList, auc_roc = aucList,
-              nNonZero = numNonZeroList, params = paramList, y_pred = yPredList, y_truth = yTruthList))
+              nNonZero = numNonZeroList, params = paramList, lrRes = lrResList,
+              y_pred = yPredList, y_truth = yTruthList))
 }
 
 

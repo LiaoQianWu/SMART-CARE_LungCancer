@@ -25,7 +25,7 @@ Samples:\
 Condition -> Tumor:Normal = 1:1
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F, message = F)
 knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer')
 ```
 
@@ -37,6 +37,13 @@ library('proDA')
 library('pheatmap')
 library('ggplotify')
 library('ggrepel')
+library('ggvenn')
+library('AnnotationDbi')
+library('org.Hs.eg.db')
+# This annotation object is accessed using AnnotationDbi:select()
+hs <- org.Hs.eg.db
+library('msigdbr')
+library('clusterProfiler')
 library('SummarizedExperiment')
 library('tidyverse')
 # Load user-defined functions
@@ -172,7 +179,7 @@ ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurr
                              label = 'p.signif', tip.length = 0.015, bracket.size = 0.7, size = 4) +
   labs(x = 'Recurrence') +
   scale_color_manual(values = condiCol) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values = c('#00BFC4', '#F8766D')) +
   facet_wrap(vars(newVar1), scales = 'free') +
   th + theme(strip.text = element_text(size = 13, face = 'bold'),
              axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
@@ -202,12 +209,13 @@ proTumorRes_Krij$pc.top.feat.tab$PC11
 # Subset certain samples
 proNormal_Krij <- proTissue_Krij[, which(colData(proTissue_Krij)$Condition == 'Normal')]
 # Perform single-omics analysis
-proNormalRes_Krij <- doSingleOmicsAnalysis(proNormal_Krij, soa_metaVar = 'Recurrence', num_sigFeats = 6,
-                                           pca_method = 'ppca', num_PCs = 40, num_PCfeats = 30,
-                                           use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
-                                           feat_conv = T, plot_title = NULL, show_rownames = F,
-                                           pca_metaVar = c('Recurrence', 'Gender', 'Age',
-                                                           'Smoking', 'Stage', 'Adjuvant'))
+# proNormalRes_Krij <- doSingleOmicsAnalysis(proNormal_Krij, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+#                                            pca_method = 'ppca', num_PCs = 40, num_PCfeats = 30,
+#                                            use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
+#                                            feat_conv = T, plot_title = NULL, show_rownames = F,
+#                                            pca_metaVar = c('Recurrence', 'Gender', 'Age',
+#                                                            'Smoking', 'Stage', 'Adjuvant'))
+proNormalRes_Krij <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Krij.rds')
 ```
 
 Display significant associations between PCs (Var1) and sample metadata variables
@@ -257,7 +265,7 @@ ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurr
                              label = 'p.signif', tip.length = 0.015, bracket.size = 0.7, size = 4) +
   labs(x = 'Recurrence') +
   scale_color_manual(values = condiCol) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values = c('#00BFC4', '#F8766D')) +
   facet_wrap(vars(newVar1), scales = 'free') +
   th +
   theme(strip.text = element_text(size = 13, face = 'bold'),
@@ -270,12 +278,69 @@ ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurr
 
 Assess data power by p-value histogram
 ```{r}
-proNormalRes_Krij$pval.hist
+proNormalRes_Krij$pval.hist +
+  labs(title = 'Krij. Combined Normal Tissue DIA Proteomics') +
+  theme(axis.title = element_text(size = 28),
+        axis.text = element_text(size = 16))
+# ggsave('./output/Discovery/group_meeting/pVals_histogram_combined_proNormal_Krij.png',
+#        device = 'png', dpi = 400, height = 6, width = 11)
 ```
 
 There is no significant association between PCs (Var1) and cancer recurrence (Var2).
 ```{r}
 proNormalRes_Krij$sig.pc.tab
+```
+
+Enrichment analysis\
+Reference: Hallmark gene sets\
+**t-values**
+```{r}
+# Prepare ranked gene list
+sigRes <- proNormalRes_Krij$SOA.res$featAssoRes %>%
+  dplyr::select(Var1, Stat) %>%
+  tibble::column_to_rownames('Var1')
+featAnnoTab <- tibble::as_tibble(rowData(proTissue_Krij), rownames = 'Protein') %>%
+  dplyr::select(Protein, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  tibble::column_to_rownames('Protein')
+
+rankedGeneList <- prepRankedFeatList(statRes = sigRes, featAnno = featAnnoTab, to_gene = T)
+```
+
+```{r}
+# Hallmark gene sets
+# Retrieve annotated gene sets
+msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+
+# Run GSEA
+gseaResH <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabH,
+                                  minGSSize = 10, maxGSSize = 500,
+                                  pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                  by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResH@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 8) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.6, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12))
 ```
 
 
@@ -383,7 +448,7 @@ ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurr
                              label = 'p.signif', tip.length = 0.015, bracket.size = 0.7, size = 4) +
   labs(x = 'Recurrence') +
   scale_color_manual(values = condiCol) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values = c('#00BFC4', '#F8766D')) +
   facet_wrap(vars(newVar1), scales = 'free') +
   th + theme(strip.text = element_text(size = 13, face = 'bold'),
              axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
@@ -415,13 +480,14 @@ results because it is significantly associated with top PCs.
 # Subset certain samples
 proNormal_Klin <- proTissue_Klin[, which(colData(proTissue_Klin)$Condition == 'Normal')]
 # Perform single-omics analysis
-proNormalRes_Klin <- doSingleOmicsAnalysis(proNormal_Klin, soa_metaVar = 'Recurrence', num_sigFeats = 6,
-                                           pca_method = 'ppca', num_PCs = 37, num_PCfeats = 30,
-                                           use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
-                                           feat_conv = T, plot_title = NULL, show_rownames = F,
-                                           pca_metaVar = c('Recurrence', 'Gender', 'Age',
-                                                           'Smoking', 'Stage', 'Adjuvant'),
-                                           soa_unwantVar = 'Adjuvant')
+# proNormalRes_Klin <- doSingleOmicsAnalysis(proNormal_Klin, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+#                                            pca_method = 'ppca', num_PCs = 37, num_PCfeats = 30,
+#                                            use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
+#                                            feat_conv = T, plot_title = NULL, show_rownames = F,
+#                                            pca_metaVar = c('Recurrence', 'Gender', 'Age',
+#                                                            'Smoking', 'Stage', 'Adjuvant'),
+#                                            soa_unwantVar = 'Adjuvant')
+proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin.rds')
 ```
 
 Display significant associations between PCs (Var1) and sample metadata variables
@@ -462,7 +528,8 @@ topSigFeatDat <- tibble::as_tibble(datMat[topSigFeats$Var1,], rownames = 'Var1')
   dplyr::left_join(topSigFeats, by = 'Var1') %>%
   dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
   dplyr::mutate(Recur_Condi = paste0(Recurrence, '_', Condition),
-                Recur_Condi = factor(Recur_Condi, levels = gpLevel))
+                Recur_Condi = factor(Recur_Condi, levels = gpLevel),
+                Recurrence = factor(Recurrence, levels = c('Yes', 'No')))
 ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurrence)) +
   geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
   geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
@@ -471,20 +538,27 @@ ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurr
                              label = 'p.signif', tip.length = 0.015, bracket.size = 0.7, size = 4) +
   labs(x = 'Recurrence') +
   scale_color_manual(values = condiCol) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values = c('#F8766D', '#00BFC4')) +
   facet_wrap(vars(newVar1), scales = 'free') +
   th +
-  theme(strip.text = element_text(size = 13, face = 'bold'),
-             axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
-# theme(strip.text = element_text(size = 14, face = 'bold'),
-#       axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 20),
-#       axis.title = element_text(size = 26),
-#       legend.title = element_text(size = 24), legend.text = element_text(size = 22))
+  # theme(strip.text = element_text(size = 13, face = 'bold'),
+  #            axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  theme(strip.text = element_text(size = 14, face = 'bold'),
+        axis.title = element_text(size = 26),
+        axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1, size = 20),
+        legend.title = element_text(size = 24), legend.text = element_text(size = 22))
+# ggsave('./output/Discovery/group_meeting/topSigFeats_combined_proNormal_Klin.png',
+#        device = 'png', dpi = 400, height = 12, width = 14)
 ```
 
 Assess data power by p-value histogram
 ```{r}
-proNormalRes_Klin$pval.hist
+proNormalRes_Klin$pval.hist +
+  labs(title = 'Klin. Combined Normal Tissue DIA Proteomics') +
+  theme(axis.title = element_text(size = 28),
+        axis.text = element_text(size = 16))
+# ggsave('./output/Discovery/group_meeting/pVals_histogram_combined_proNormal_Klin.png',
+#        device = 'png', dpi = 400, height = 6, width = 11)
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -494,8 +568,137 @@ proNormalRes_Klin$sig.pc.tab
 
 Visualize significant PCs and display their top features with greatest absolute loadings
 ```{r}
-proNormalRes_Klin$sig.pc.dist$PC1
+pcTab <- proNormalRes_Klin$SOA.res$pcTab %>%
+  dplyr::mutate(Recurrence = factor(Recurrence, levels = c('Yes', 'No')))
+ggplot(pcTab, aes(x=Recurrence, y=`PC1 (11.1%)`, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 4, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                             size = 9, show.legend = F, hjust = 0.4, vjust = 1) +
+  scale_color_manual(values=c('#F8766D', '#00BFC4')) +
+  scale_fill_manual(values=c('#F8766D', '#00BFC4')) +
+  th +
+  theme(axis.title = element_text(size = 28),
+        axis.text = element_text(size = 16),
+        legend.title = element_text(size = 26), legend.text = element_text(size = 24))
+# ggsave('./output/Discovery/group_meeting/pca_PC1_combined_proNormal_Klin.png',
+#        device = 'png', dpi = 400, height = 10, width = 11)
+
 proNormalRes_Klin$pc.top.feat.tab$PC1
 proNormalRes_Klin$sig.pc.dist$PC9
 proNormalRes_Klin$pc.top.feat.tab$PC9
+```
+
+Enrichment analysis\
+Reference: Hallmark gene sets\
+**t-values**
+```{r}
+# Prepare ranked gene list
+statRes_Klin <- proNormalRes_Klin$SOA.res$featAssoRes %>%
+  dplyr::select(Var1, Stat) %>%
+  tibble::column_to_rownames('Var1')
+featAnno_Klin <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Protein') %>%
+  dplyr::rename(Gene = PG.Genes) %>%
+  tibble::column_to_rownames('Protein')
+rankedGeneList_Klin <- prepRankedFeatList(statRes = statRes_Klin, featAnno = featAnno_Klin, to_gene = T)
+
+# Hallmark gene sets
+# Retrieve annotated gene sets
+msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+# Run GSEA
+gseaResH_tVal_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabH,
+                                            minGSSize = 10, maxGSSize = 500,
+                                            pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                            by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResH_tVal_Klin@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 10) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No'),
+                Description = stringr::str_remove(Description, 'HALLMARK_')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+# theme(axis.title = element_text(size = 20, face = 'bold'),
+#       axis.text.x = element_text(size = 18),
+#       axis.text.y = element_text(size = 18, face = 'bold'),
+#       legend.title = element_text(size = 20),
+#       legend.text = element_text(size = 16),
+#       panel.grid.minor = element_blank())
+# ggsave('./output/Discovery/group_meeting/topOR_pathways_tVal_combined_proNormal_Klin_H.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
+```
+
+**PC1 loadings**
+```{r}
+# Prepare ranked gene list
+statRes_Klin <- proNormalRes_Klin$SOA.res$pcaRes@loadings %>%
+  tibble::as_tibble(rownames = 'Feature') %>%
+  dplyr::select(Feature, PC1) %>%
+  tibble::column_to_rownames('Feature')
+featAnno_Klin <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Protein') %>%
+  dplyr::rename(Gene = PG.Genes) %>%
+  tibble::column_to_rownames('Protein')
+rankedGeneList_Klin <- prepRankedFeatList(statRes = statRes_Klin, featAnno = featAnno_Klin, to_gene = T)
+rankedGeneList_Klin <- sort(-rankedGeneList_Klin, decreasing = T)
+
+# Hallmark gene sets
+# Retrieve annotated gene sets
+msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+# Run GSEA
+gseaResH_pc1_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabH,
+                                           minGSSize = 10, maxGSSize = 500,
+                                           pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                           by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResH_pc1_Klin@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 10) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No'),
+                Description = stringr::str_remove(Description, 'HALLMARK_')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
+  # theme(axis.title = element_text(size = 20, face = 'bold'),
+  #       axis.text.x = element_text(size = 18),
+  #       axis.text.y = element_text(size = 18, face = 'bold'),
+  #       legend.title = element_text(size = 20),
+  #       legend.text = element_text(size = 16),
+  #       panel.grid.minor = element_blank())
+# ggsave('./output/Discovery/group_meeting/topOR_pathways_pc1_combined_proNormal_Klin_H.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
 ```

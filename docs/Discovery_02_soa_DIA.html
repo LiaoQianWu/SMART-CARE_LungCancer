@@ -393,7 +393,7 @@ aria-hidden="true"></span> </a>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2023-12-06
+<strong>Last updated:</strong> 2023-12-13
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -550,15 +550,15 @@ relative
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree7f8311b18786948e24e79c7cdbe7bc7780db99c6targetblank7f8311ba">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree4e9331f246f3cf1a92c7e2dbd73963ddc36d8d02targetblank4e9331fa">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/7f8311b18786948e24e79c7cdbe7bc7780db99c6" target="_blank">7f8311b</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/4e9331f246f3cf1a92c7e2dbd73963ddc36d8d02" target="_blank">4e9331f</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree7f8311b18786948e24e79c7cdbe7bc7780db99c6targetblank7f8311ba"
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree4e9331f246f3cf1a92c7e2dbd73963ddc36d8d02targetblank4e9331fa"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -568,7 +568,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/7f8311b18786948e24e79c7cdbe7bc7780db99c6" target="_blank">7f8311b</a>.
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/4e9331f246f3cf1a92c7e2dbd73963ddc36d8d02" target="_blank">4e9331f</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -603,6 +603,10 @@ Untracked files:
     Untracked:  data/sample_metadata.xlsx
     Untracked:  output/MethodDev/
     Untracked:  output/SC_meeting/
+
+Unstaged changes:
+    Modified:   code/analysis_pipeline.R
+    Modified:   code/misc.R
 
 </code></pre>
 <p>
@@ -648,6 +652,23 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/LiaoQianWu/SMART-CARE_LungCancer/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/Discovery_02_soa_DIA.html" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -784,8 +805,45 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (31.5%)`, color=Condition, fill=Condition,
   scale_fill_brewer(palette = &#39;Dark2&#39;) +
   labs(x = &#39;Sample condition&#39;) +
   th</code></pre>
-<p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-3-1.png" width="960" style="display: block; margin: auto;" />
-=&gt; Tumor and Normal tissue samples will be analyzed separately for
+<p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-3-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-3-1">
+Past versions of unnamed-chunk-3-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-3-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-3-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>=&gt; Tumor and Normal tissue samples will be analyzed separately for
 two reasons: (1) They are characteristically different and might be
 offsets to each other, and (2) Normal tissues is always obtainable in
 case that Tumor tissues were not preserved after surgery.</p>
@@ -982,6 +1040,43 @@ to account for data missingness.</p>
 that features in rows are ordered by t-statistics.</p>
 <pre class="r"><code>proTumorRes$sig.feat.heat</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-7-1">
+Past versions of unnamed-chunk-7-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-7-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-7-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Visualize top significant features identified in Tumor samples (ns: p
 &gt; 0.05, <span class="math inline">\(*\)</span>: p &lt;= 0.05, <span
 class="math inline">\(**\)</span>: p &lt;= 0.01)</p>
@@ -1017,9 +1112,83 @@ ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurr
   th + theme(strip.text = element_text(size = 13, face = &#39;bold&#39;),
              axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-8-1">
+Past versions of unnamed-chunk-8-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-8-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-8-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Assess data power by p-value histogram</p>
 <pre class="r"><code>proTumorRes$pval.hist</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-9-1">
+Past versions of unnamed-chunk-9-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-9-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-9-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Display significant associations between PCs (Var1) and cancer
 recurrence (Var2)</p>
 <pre class="r"><code>proTumorRes$sig.pc.tab</code></pre>
@@ -1029,6 +1198,43 @@ recurrence (Var2)</p>
 greatest absolute loadings</p>
 <pre class="r"><code>proTumorRes$sig.pc.dist$PC20</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-11-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-1">
+Past versions of unnamed-chunk-11-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-11-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-11-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>proTumorRes$pc.top.feat.tab$PC20</code></pre>
 <pre><code>   Feature Loading      Gene
 1   P19075 -0.1170    TSPAN8
@@ -1073,6 +1279,7 @@ proNormalRes &lt;- doSingleOmicsAnalysis(proNormal, soa_metaVar = &#39;Recurrenc
                                       feat_conv = T, plot_title = NULL, show_rownames = F,
                                       pca_metaVar = c(&#39;Recurrence&#39;, &#39;Gender&#39;, &#39;Age&#39;,
                                                       &#39;Smoking&#39;, &#39;Stage&#39;, &#39;Adjuvant&#39;))</code></pre>
+<pre><code>Message: Not all sample&#39;s metadata is complete.</code></pre>
 <p>Display significant associations between PCs (Var1) and sample
 metadata variables (Var2) to overview sources of variance in data</p>
 <pre class="r"><code>proNormalRes$data.var.source</code></pre>
@@ -1362,6 +1569,43 @@ recurrence (Var2)</p>
 that features in rows are ordered by t-statistics.</p>
 <pre class="r"><code>proNormalRes$sig.feat.heat</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-15-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-15-1">
+Past versions of unnamed-chunk-15-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-15-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-15-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code># ggsave(&#39;./output/group_meeting/heatmap_sigFeats_proNormal_Krij.png&#39;, a, device = &#39;png&#39;, dpi = 400, height = 8, width = 10)</code></pre>
 <p>Visualize top significant features identified in Normal samples (ns:
 p &gt; 0.05, <span class="math inline">\(*\)</span>: p &lt;= 0.05, <span
@@ -1400,6 +1644,43 @@ ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurr
   theme(strip.text = element_text(size = 13, face = &#39;bold&#39;),
              axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-16-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-16-1">
+Past versions of unnamed-chunk-16-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-16-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-16-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code># theme(strip.text = element_text(size = 14, face = &#39;bold&#39;),
 #       axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 20),
 #       axis.title = element_text(size = 26),
@@ -1408,6 +1689,43 @@ ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurr
 <p>Assess data power by p-value histogram</p>
 <pre class="r"><code>proNormalRes$pval.hist</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-17-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-17-1">
+Past versions of unnamed-chunk-17-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-17-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-17-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code># ggsave(&#39;./output/group_meeting/histogram_pVals_proNormal_Krij.png&#39;, device = &#39;png&#39;, dpi = 400, height = 8, width = 10)</code></pre>
 <p>Display significant associations between PCs (Var1) and cancer
 recurrence (Var2)</p>
@@ -1419,6 +1737,43 @@ recurrence (Var2)</p>
 greatest absolute loadings</p>
 <pre class="r"><code>proNormalRes$sig.pc.dist$PC7</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-19-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-19-1">
+Past versions of unnamed-chunk-19-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-19-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-19-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>proNormalRes$pc.top.feat.tab$PC7</code></pre>
 <pre><code>         Feature Loading           Gene
 1         P49863 -0.1090           GZMK
@@ -1542,12 +1897,123 @@ sigFeatsRecur[sigFeatsRecur %in% sigFeatsSex]
 that features in rows are ordered by t-statistics.</p>
 <pre class="r"><code>proBaseRes$sig.feat.heat</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-25-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-25-1">
+Past versions of unnamed-chunk-25-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-25-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-25-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Visualize top significant features</p>
 <pre class="r"><code>proBaseRes$top.sig.feat.dist</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-26-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-26-1">
+Past versions of unnamed-chunk-26-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-26-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-26-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Assess data power by p-value histogram</p>
 <pre class="r"><code>proBaseRes$pval.hist</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-27-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-27-1">
+Past versions of unnamed-chunk-27-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-27-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-27-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Display significant associations between PCs (Var1) and cancer
 recurrence (Var2)</p>
 <pre class="r"><code>proBaseRes$sig.pc.tab</code></pre>
@@ -1557,6 +2023,43 @@ recurrence (Var2)</p>
 greatest absolute loadings</p>
 <pre class="r"><code>proBaseRes$sig.pc.dist$PC15</code></pre>
 <p><img src="figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-29-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-29-1">
+Past versions of unnamed-chunk-29-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-29-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/d71a18f5e66ebfd60aab06bf6e44877fcd01d701/docs/figure/Discovery_02_soa_DIA.Rmd/unnamed-chunk-29-1.png" target="_blank">d71a18f</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2023-12-06
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>proBaseRes$pc.top.feat.tab$PC15</code></pre>
 <pre><code>             Feature Loading               Gene
 1         A0A0J9YXX1  0.2150         IGHV5-10-1
@@ -1619,7 +2122,7 @@ attached base packages:
 other attached packages:
  [1] visdat_0.6.0                vsn_3.68.0                 
  [3] lubridate_1.9.2             forcats_1.0.0              
- [5] stringr_1.5.0               dplyr_1.1.3                
+ [5] stringr_1.5.1               dplyr_1.1.4                
  [7] purrr_1.0.2                 readr_2.1.4                
  [9] tidyr_1.3.0                 tibble_3.2.1               
 [11] tidyverse_2.0.0             SummarizedExperiment_1.30.2
@@ -1630,37 +2133,35 @@ other attached packages:
 [21] ggplotify_0.1.2             pheatmap_1.0.12            
 [23] proDA_1.14.0                limma_3.56.2               
 [25] pcaMethods_1.92.0           Biobase_2.60.0             
-[27] BiocGenerics_0.46.0         workflowr_1.7.0            
+[27] BiocGenerics_0.46.0        
 
 loaded via a namespace (and not attached):
- [1] bitops_1.0-7            rlang_1.1.1             magrittr_2.0.3         
- [4] git2r_0.32.0            compiler_4.3.0          getPass_0.2-2          
- [7] callr_3.7.3             vctrs_0.6.4             pkgconfig_2.0.3        
-[10] crayon_1.5.2            fastmap_1.1.1           backports_1.4.1        
-[13] XVector_0.40.0          labeling_0.4.3          utf8_1.2.4             
-[16] promises_1.2.0.1        rmarkdown_2.23          tzdb_0.4.0             
-[19] ps_1.7.5                preprocessCore_1.62.1   xfun_0.39              
-[22] zlibbioc_1.46.0         cachem_1.0.8            jsonlite_1.8.7         
-[25] highr_0.10              later_1.3.1             DelayedArray_0.26.6    
-[28] broom_1.0.5             R6_2.5.1                bslib_0.5.0            
-[31] stringi_1.7.12          RColorBrewer_1.1-3      car_3.1-2              
-[34] jquerylib_0.1.4         Rcpp_1.0.11             knitr_1.43             
-[37] httpuv_1.6.11           Matrix_1.6-0            timechange_0.2.0       
-[40] tidyselect_1.2.0        abind_1.4-5             rstudioapi_0.15.0      
-[43] yaml_2.3.7              affy_1.78.1             processx_3.8.2         
-[46] lattice_0.21-8          plyr_1.8.8              withr_2.5.1            
-[49] evaluate_0.21           gridGraphics_0.5-1      pillar_1.9.0           
-[52] affyio_1.70.0           BiocManager_1.30.21     ggpubr_0.6.0           
-[55] carData_3.0-5           whisker_0.4.1           generics_0.1.3         
-[58] rprojroot_2.0.3         RCurl_1.98-1.12         hms_1.1.3              
-[61] munsell_0.5.0           scales_1.2.1            extraDistr_1.9.1       
-[64] glue_1.6.2              tools_4.3.0             ggsignif_0.6.4         
-[67] fs_1.6.2                grid_4.3.0              colorspace_2.1-0       
-[70] GenomeInfoDbData_1.2.10 cli_3.6.1               fansi_1.0.5            
-[73] S4Arrays_1.0.4          gtable_0.3.4            rstatix_0.7.2          
-[76] yulab.utils_0.0.6       sass_0.4.7              digest_0.6.33          
-[79] farver_2.1.1            htmltools_0.5.5         lifecycle_1.0.3        
-[82] httr_1.4.6             </code></pre>
+ [1] tidyselect_1.2.0        farver_2.1.1            bitops_1.0-7           
+ [4] fastmap_1.1.1           RCurl_1.98-1.12         promises_1.2.0.1       
+ [7] digest_0.6.33           timechange_0.2.0        lifecycle_1.0.4        
+[10] magrittr_2.0.3          compiler_4.3.0          rlang_1.1.2            
+[13] sass_0.4.7              tools_4.3.0             utf8_1.2.4             
+[16] yaml_2.3.7              ggsignif_0.6.4          knitr_1.43             
+[19] labeling_0.4.3          S4Arrays_1.0.4          DelayedArray_0.26.6    
+[22] plyr_1.8.8              RColorBrewer_1.1-3      abind_1.4-5            
+[25] workflowr_1.7.0         withr_2.5.2             grid_4.3.0             
+[28] preprocessCore_1.62.1   fansi_1.0.5             ggpubr_0.6.0           
+[31] git2r_0.32.0            colorspace_2.1-0        scales_1.3.0           
+[34] cli_3.6.1               rmarkdown_2.23          crayon_1.5.2           
+[37] generics_0.1.3          rstudioapi_0.15.0       tzdb_0.4.0             
+[40] cachem_1.0.8            affy_1.78.1             zlibbioc_1.46.0        
+[43] BiocManager_1.30.22     XVector_0.40.0          vctrs_0.6.5            
+[46] yulab.utils_0.0.6       Matrix_1.6-0            carData_3.0-5          
+[49] jsonlite_1.8.7          car_3.1-2               gridGraphics_0.5-1     
+[52] hms_1.1.3               rstatix_0.7.2           jquerylib_0.1.4        
+[55] affyio_1.70.0           glue_1.6.2              stringi_1.8.2          
+[58] gtable_0.3.4            later_1.3.1             munsell_0.5.0          
+[61] pillar_1.9.0            htmltools_0.5.5         GenomeInfoDbData_1.2.10
+[64] R6_2.5.1                rprojroot_2.0.3         evaluate_0.21          
+[67] lattice_0.21-8          extraDistr_1.9.1        highr_0.10             
+[70] backports_1.4.1         broom_1.0.5             httpuv_1.6.11          
+[73] bslib_0.5.0             Rcpp_1.0.11             whisker_0.4.1          
+[76] xfun_0.39               fs_1.6.2                pkgconfig_2.0.3        </code></pre>
 </div>
 </div>
 </div>
