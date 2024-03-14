@@ -622,36 +622,36 @@ summarizePredPower <- function(pred, truth, auc_roc) {
   
   # Report summarized scores
   ci <- calcCI(accu, bootstrap = T)
-  cat('Averaged Accuracy: ', round(median(accu), 3), '\n',
+  cat('Mean Accuracy: ', round(mean(accu), 3), '\n',
       '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
   cat('\n')
   cat('\n')
   ci <- calcCI(sens, bootstrap = T)
-  cat('Averaged Sensitivity: ', round(median(sens), 3), '\n',
+  cat('Mean Sensitivity: ', round(mean(sens), 3), '\n',
       '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
   cat('\n')
   cat('\n')
   ci <- calcCI(spec, bootstrap = T)
-  cat('Averaged Specificity: ', round(median(spec), 3), '\n',
+  cat('Mean Specificity: ', round(mean(spec), 3), '\n',
       '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
   cat('\n')
   cat('\n')
   ci <- calcCI(prec, bootstrap = T)
-  cat('Averaged Precision: ', round(median(prec), 3), '\n',
+  cat('Mean Precision: ', round(mean(prec), 3), '\n',
       '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
   cat('\n')
   cat('\n')
   ci <- calcCI(reca, bootstrap = T)
-  cat('Averaged Recall: ', round(median(reca), 3), '\n',
+  cat('Mean Recall: ', round(mean(reca), 3), '\n',
       '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
   cat('\n')
   cat('\n')
   ci <- calcCI(f1, bootstrap = T)
-  cat('Averaged F1 score: ', round(median(f1), 3), '\n',
+  cat('Mean F1 score: ', round(mean(f1), 3), '\n',
       '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
   cat('\n')
   cat('\n')
   ci <- calcCI(auc, bootstrap = T)
-  cat('Averaged AUC-ROC score: ', round(median(auc), 3), '\n',
+  cat('Mean AUC-ROC score: ', round(mean(auc), 3), '\n',
       '95% CI: [', ci[1], ', ', ci[2], ']', sep = '')
 }
