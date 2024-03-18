@@ -142,11 +142,20 @@ doPCA <- function(data, pca_method = 'pca', num_PCs = 20) {
     # Run probabilistic PCA
     # Convert missing values from NaN to NA for performing PCA in 'pcaMethods' package
     data[is.nan(data)] <- NA
+    # Remove features fully missing
+    rmFeats <- which(apply(data, 1, function(featVec) {all(is.na(featVec))}))
+    if (length(rmFeats) != 0) {
+      data <- data[-rmFeats,]
+    }
     pcaRes <- pcaMethods::pca(t(data), method = 'ppca', nPcs = num_PCs, seed = 123,
                               center = T, scale = 'none')
   } else if (pca_method == 'bpca') {
     # Run Bayesian PCA
     data[is.nan(data)] <- NA
+    rmFeats <- which(apply(data, 1, function(featVec) {all(is.na(featVec))}))
+    if (length(rmFeats) != 0) {
+      data <- data[-rmFeats,]
+    }
     pcaRes <- pcaMethods::pca(t(data), method = 'bpca', nPcs = num_PCs,
                               center = T, scale = 'none')
   } else {
