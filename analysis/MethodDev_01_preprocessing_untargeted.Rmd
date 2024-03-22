@@ -48,6 +48,11 @@ th <- theme_bw(base_size = 15) +
         axis.text = element_text(face = 'bold'),
         axis.ticks = element_line(linewidth = 0.8),
         legend.text = element_text(size = 15))
+th4MissViz <- theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0,
+                                               size = 11, face = 'bold'),
+                    axis.text.y = element_blank(),
+                    axis.title.y = element_text(size = 13, face = 'bold'),
+                    legend.text = element_text(size = 12, face = 'bold'))
 ```
 
 ```{r prepare global info, message=F}
@@ -93,7 +98,7 @@ patientMetadat <- dplyr::slice(patientMetadat, -c(1:3)) %>%
                                             Adjuvant == 'false' ~ 'False'),
                 Age = as.numeric(Age))
 # Include patient recurrence information in patient metadata
-recurPats <- dplyr::filter(smpMetadat, TimePoint == 'Recurrence') %>%
+recurPats <- dplyr::filter(smpMetadat, Condition == 'Recurrence') %>%
   dplyr::pull(Patient)
 patientMetadat <- dplyr::mutate(patientMetadat, Recurrence = dplyr::case_when(Patient %in% recurPats ~ 'Yes',
                                                                               !Patient %in% recurPats ~ 'No'))
@@ -145,11 +150,6 @@ RT <- stringr::str_extract(metaPlasmaTab$`m/z_RT`, '/.*') %>%
   stringr::str_remove('/') %>%
   as.numeric()
 metaPlasmaTab <- metaPlasmaTab[RT >= 0.3 & RT <= 8.5,]
-# Remove those features whose intensities are smaller than 300?
-# MZ <- stringr::str_extract(metaPlasmaTab$`m/z_RT`, '.*/') %>%
-#   stringr::str_remove('/') %>%
-#   as.numeric()
-# sum(MZ < 300) #458
 
 # Create feature IDs for m/z_RT to simplify downstream operations
 metaPlasmaTab$Feature_ID <- paste0('Feature', seq(nrow(metaPlasmaTab)))
@@ -199,11 +199,16 @@ ggplot(metaPlasmaTab, aes(x=Sample_ID, y=log2Abundance)) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
-Percentage of missing values in data
+Visualize data missingness
 ```{r}
-# Display percentage of missing values
-abun <- metaPlasmaTab$Abundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), '% observations are missing.'))
+# Visualize data missingness
+abunMat <- dplyr::select(metaPlasmaTab, Feature_ID, Sample_ID, Abundance) %>%
+  tidyr::pivot_wider(names_from = 'Sample_ID', values_from = 'Abundance') %>%
+  tibble::column_to_rownames('Feature_ID')
+visdat::vis_miss(abunMat, cluster = T, sort_miss = T) +
+  labs(x = 'Samples', y = 'Features', title = 'Missingness of original data (Batch1 + Batch2 + Batch3)') +
+  th4MissViz + theme(axis.text.x = element_blank(),
+                     axis.title.x = element_text(size = 13, face = 'bold'))
 ```
 
 ```{r include = F, eval = F}
@@ -809,11 +814,15 @@ ggplot(merge_metaPlasmaVsnTab, aes(x=Sample, y=vsnAbundance)) +
   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-Percentage of missing values
+Visualize data missingness
 ```{r}
-# Display percentage of missing values
-abun <- merge_metaPlasmaVsnTab$vsnAbundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), '% observations are missing.'))
+# Visualize data missingness
+abunMat <- dplyr::select(merge_metaPlasmaVsnTab, Feature_ID, Sample, vsnAbundance) %>%
+  tidyr::pivot_wider(names_from = 'Sample', values_from = 'vsnAbundance') %>%
+  tibble::column_to_rownames('Feature_ID')
+visdat::vis_miss(abunMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features', title = 'Missingness of merged data') +
+  th4MissViz
 ```
 
 **Remove features quantified in less than 2/3 of samples in all four sample groups**
@@ -847,12 +856,20 @@ merge_metaPlasmaVsnTab <- dplyr::filter(merge_metaPlasmaVsnTab, !Feature_ID %in%
 metaPlasmaVsn <- df2SummExp(merge_metaPlasmaVsnTab, row_id = 'Feature_ID', col_id = 'Sample',
                             values = 'vsnAbundance', row_anno = 'm/z_RT', col_anno = smpAnno)
 # Save vsn normalized data
-saveRDS(metaPlasmaVsn, './data/MethodDev/AG_Hopf/metaPlasmaVsn.rds')
+# saveRDS(metaPlasmaVsn, './data/MethodDev/AG_Hopf/metaPlasmaVsn.rds')
 ```
 
 Display dimensions of filtered dataset
 ```{r}
 dim(metaPlasmaVsn)
+```
+
+Visualize data missingness
+```{r}
+# Visualize data missingness
+visdat::vis_miss(as.data.frame(assay(metaPlasmaVsn)), cluster = T, sort_miss = T) +
+  labs(y = 'Features', title = 'Missingness of filtered merged data') +
+  th4MissViz
 ```
 
 Show feature mean-variance relationship of vsn normalized data
@@ -992,7 +1009,7 @@ merge_metaPlasmaMediTab <- dplyr::left_join(merge_metaPlasmaMediTab, MZRT,
 metaPlasmaMedi <- df2SummExp(merge_metaPlasmaMediTab, row_id = 'Feature_ID', col_id = 'Sample',
                              values = 'mediAbundance', row_anno = 'm/z_RT', col_anno = smpAnno)
 # Save median normalized data
-saveRDS(metaPlasmaMedi, './data/MethodDev/AG_Hopf/metaPlasmaMedi.rds')
+# saveRDS(metaPlasmaMedi, './data/MethodDev/AG_Hopf/metaPlasmaMedi.rds')
 ```
 
 ```{r eval = F, include=F}
@@ -1224,11 +1241,16 @@ ggplot(lipPlasmaTab, aes(x=Sample_ID, y=log2Abundance)) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
-Percentage of missing values in data
+Visualize data missingness
 ```{r}
-# Display percentage of missing values
-abun <- lipPlasmaTab$Abundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), '% observations are missing.'))
+# Visualize data missingness
+abunMat <- dplyr::select(lipPlasmaTab, Feature_ID, Sample_ID, Abundance) %>%
+  tidyr::pivot_wider(names_from = 'Sample_ID', values_from = 'Abundance') %>%
+  tibble::column_to_rownames('Feature_ID')
+visdat::vis_miss(abunMat, cluster = T, sort_miss = T) +
+  labs(x = 'Samples', y = 'Features', title = 'Missingness of original data (Batch1 + Batch2 + Batch3)') +
+  th4MissViz + theme(axis.text.x = element_blank(),
+                     axis.title.x = element_text(size = 13, face = 'bold'))
 ```
 
 Display distribution of vsn normalized data
@@ -1678,11 +1700,15 @@ ggplot(merge_lipPlasmaVsnTab, aes(x=Sample, y=vsnAbundance)) +
   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-Percentage of missing values
+Visualize data missingness
 ```{r}
-# Display percentage of missing values
-abun <- merge_lipPlasmaVsnTab$vsnAbundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), '% observations are missing.'))
+# Visualize data missingness
+abunMat <- dplyr::select(merge_lipPlasmaVsnTab, Feature_ID, Sample, vsnAbundance) %>%
+  tidyr::pivot_wider(names_from = 'Sample', values_from = 'vsnAbundance') %>%
+  tibble::column_to_rownames('Feature_ID')
+visdat::vis_miss(abunMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features', title = 'Missingness of merged data') +
+  th4MissViz
 ```
 
 **Remove features quantified in less than 2/3 of samples in all four sample groups**
@@ -1709,12 +1735,20 @@ merge_lipPlasmaVsnTab <- dplyr::filter(merge_lipPlasmaVsnTab, !Feature_ID %in% r
 lipPlasmaVsn <- df2SummExp(merge_lipPlasmaVsnTab, row_id = 'Feature_ID', col_id = 'Sample',
                             values = 'vsnAbundance', row_anno = 'm/z_RT', col_anno = smpAnno)
 # Save vsn normalized data 
-saveRDS(lipPlasmaVsn, './data/MethodDev/AG_Hopf/lipPlasmaVsn.rds')
+# saveRDS(lipPlasmaVsn, './data/MethodDev/AG_Hopf/lipPlasmaVsn.rds')
 ```
 
 Display dimensions of filtered dataset
 ```{r}
 dim(lipPlasmaVsn)
+```
+
+Visualize data missingness
+```{r}
+# Visualize data missingness
+visdat::vis_miss(as.data.frame(assay(lipPlasmaVsn)), cluster = T, sort_miss = T) +
+  labs(y = 'Features', title = 'Missingness of filtered merged data') +
+  th4MissViz
 ```
 
 Show feature mean-variance relationship of vsn normalized data
@@ -1852,7 +1886,7 @@ merge_lipPlasmaMediTab <- dplyr::left_join(merge_lipPlasmaMediTab, MZRT,
 # analysis
 lipPlasmaMedi <- df2SummExp(merge_lipPlasmaMediTab, row_id = 'Feature_ID', col_id = 'Sample',
                             values = 'mediAbundance', row_anno = 'm/z_RT', col_anno = smpAnno)
-saveRDS(lipPlasmaMedi, './data/MethodDev/AG_Hopf/lipPlasmaMedi.rds')
+# saveRDS(lipPlasmaMedi, './data/MethodDev/AG_Hopf/lipPlasmaMedi.rds')
 ```
 
 ```{r eval = F, include=F}
@@ -2026,11 +2060,16 @@ ggplot(metaTissueTab, aes(x=Sample_ID, y=log2Abundance)) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
-Percentage of missing values in data
+Visualize data missingness
 ```{r}
-# Display percentage of missing values 
-abun <- metaTissueTab$Abundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), '% observations are missing.'))
+# Visualize data missingness
+abunMat <- dplyr::select(metaTissueTab, Feature_ID, Sample_ID, Abundance) %>%
+  tidyr::pivot_wider(names_from = 'Sample_ID', values_from = 'Abundance') %>%
+  tibble::column_to_rownames('Feature_ID')
+visdat::vis_miss(abunMat, cluster = T, sort_miss = T) +
+  labs(x = 'Samples', y = 'Features', title = 'Missingness of original data (Batch1 + Batch2 + Batch3)') +
+  th4MissViz + theme(axis.text.x = element_blank(),
+                     axis.title.x = element_text(size = 13, face = 'bold'))
 ```
 
 Display distribution of vsn normalized data
@@ -2243,11 +2282,15 @@ ggplot(merge_metaTissueVsnTab, aes(x=Sample, y=vsnAbundance)) +
   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-Percentage of missing values
+Visualize data missingness
 ```{r}
-# Display percentage of missing values
-abun <- merge_metaTissueVsnTab$vsnAbundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), '% observations are missing.'))
+# Visualize data missingness
+abunMat <- dplyr::select(merge_metaTissueVsnTab, Feature_ID, Sample, vsnAbundance) %>%
+  tidyr::pivot_wider(names_from = 'Sample', values_from = 'vsnAbundance') %>%
+  tibble::column_to_rownames('Feature_ID')
+visdat::vis_miss(abunMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features', title = 'Missingness of merged data') +
+  th4MissViz
 ```
 
 **Remove features quantified in less than 2/3 of samples in all four sample groups**
@@ -2268,12 +2311,20 @@ merge_metaTissueVsnTab <- dplyr::filter(merge_metaTissueVsnTab, !Feature_ID %in%
 metaTissueVsn <- df2SummExp(merge_metaTissueVsnTab, row_id = 'Feature_ID', col_id = 'Sample',
                             values = 'vsnAbundance', row_anno = 'MZ/RT', col_anno = c(smpAnno, 'TumorPurity'))
 # Save vsn normalized data
-saveRDS(metaTissueVsn, './data/MethodDev/AG_Hopf/metaTissueVsn.rds')
+# saveRDS(metaTissueVsn, './data/MethodDev/AG_Hopf/metaTissueVsn.rds')
 ```
 
 Display dimensions of filtered dataset
 ```{r}
 dim(metaTissueVsn)
+```
+
+Visualize data missingness
+```{r}
+# Visualize data missingness
+visdat::vis_miss(as.data.frame(assay(metaTissueVsn)), cluster = T, sort_miss = T) +
+  labs(y = 'Features', title = 'Missingness of filtered merged data') +
+  th4MissViz
 ```
 
 Show feature mean-variance relationship of vsn normalized data
@@ -2355,7 +2406,7 @@ merge_metaTissueMediTab <- dplyr::left_join(merge_metaTissueMediTab, MZRT,
 metaTissueMedi <- df2SummExp(merge_metaTissueMediTab, row_id = 'Feature_ID', col_id = 'Sample',
                              values = 'mediAbundance', row_anno = 'MZ/RT', col_anno = c(smpAnno, 'TumorPurity'))
 # Save median normalized data
-saveRDS(metaTissueMedi, './data/MethodDev/AG_Hopf/metaTissueMedi.rds')
+# saveRDS(metaTissueMedi, './data/MethodDev/AG_Hopf/metaTissueMedi.rds')
 ```
 
 
@@ -2453,11 +2504,16 @@ ggplot(lipTissueTab, aes(x=Sample_ID, y=log2Abundance)) +
   th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ```
 
-Percentage of missing values in data
+Visualize data missingness
 ```{r}
-# Display percentage of missing values 
-abun <- lipTissueTab$Abundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), '% observations are missing.'))
+# Visualize data missingness
+abunMat <- dplyr::select(lipTissueTab, Feature_ID, Sample_ID, Abundance) %>%
+  tidyr::pivot_wider(names_from = 'Sample_ID', values_from = 'Abundance') %>%
+  tibble::column_to_rownames('Feature_ID')
+visdat::vis_miss(abunMat, cluster = T, sort_miss = T) +
+  labs(x = 'Samples', y = 'Features', title = 'Missingness of original data (Batch1 + Batch2 + Batch3)') +
+  th4MissViz + theme(axis.text.x = element_blank(),
+                     axis.title.x = element_text(size = 13, face = 'bold'))
 ```
 
 Display distribution of vsn normalized data
@@ -2795,11 +2851,15 @@ ggplot(merge_lipTissueVsnTab, aes(x=Sample, y=vsnAbundance)) +
   th + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ```
 
-Percentage of missing values
+Visualize data missingness
 ```{r}
-# Display percentage of missing values
-abun <- merge_lipTissueVsnTab$vsnAbundance
-cat(paste0(round(sum(is.na(abun))/length(abun), 2), '% observations are missing.'))
+# Visualize data missingness
+abunMat <- dplyr::select(merge_lipTissueVsnTab, Feature_ID, Sample, vsnAbundance) %>%
+  tidyr::pivot_wider(names_from = 'Sample', values_from = 'vsnAbundance') %>%
+  tibble::column_to_rownames('Feature_ID')
+visdat::vis_miss(abunMat, cluster = T, sort_miss = T) +
+  labs(y = 'Features', title = 'Missingness of merged data') +
+  th4MissViz
 ```
 
 **Remove features quantified in less than 2/3 of samples in all four sample groups**
@@ -2820,12 +2880,20 @@ merge_lipTissueVsnTab <- dplyr::filter(merge_lipTissueVsnTab, !Feature_ID %in% r
 lipTissueVsn <- df2SummExp(merge_lipTissueVsnTab, row_id = 'Feature_ID', col_id = 'Sample',
                            values = 'vsnAbundance', row_anno = 'MZ/RT', col_anno = c(smpAnno, 'TumorPurity'))
 # Save vsn normalized data
-saveRDS(lipTissueVsn, './data/MethodDev/AG_Hopf/lipTissueVsn.rds')
+# saveRDS(lipTissueVsn, './data/MethodDev/AG_Hopf/lipTissueVsn.rds')
 ```
 
 Display dimensions of filtered dataset
 ```{r}
 dim(lipTissueVsn)
+```
+
+Visualize data missingness
+```{r}
+# Visualize data missingness
+visdat::vis_miss(as.data.frame(assay(lipTissueVsn)), cluster = T, sort_miss = T) +
+  labs(y = 'Features', title = 'Missingness of filtered merged data') +
+  th4MissViz
 ```
 
 Show feature mean-variance relationship of vsn normalized data
@@ -2904,5 +2972,5 @@ merge_lipTissueMediTab <- dplyr::left_join(merge_lipTissueMediTab, MZRT,
 # analysis
 lipTissueMedi <- df2SummExp(merge_lipTissueMediTab, row_id = 'Feature_ID', col_id = 'Sample',
                              values = 'mediAbundance', row_anno = 'MZ/RT', col_anno = c(smpAnno, 'TumorPurity'))
-saveRDS(lipTissueMedi, './data/MethodDev/AG_Hopf/lipTissueMedi.rds')
+# saveRDS(lipTissueMedi, './data/MethodDev/AG_Hopf/lipTissueMedi.rds')
 ```

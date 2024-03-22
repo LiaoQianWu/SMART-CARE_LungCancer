@@ -82,7 +82,7 @@ patientMetadat <- dplyr::slice(patientMetadat, -c(1:3)) %>%
                                             Adjuvant == 'false' ~ 'False'),
                 Age = as.numeric(Age))
 # Include patient recurrence information in patient metadata
-recurPats <- dplyr::filter(smpMetadat, TimePoint == 'Recurrence') %>%
+recurPats <- dplyr::filter(smpMetadat, Condition == 'Recurrence') %>%
   dplyr::pull(Patient)
 patientMetadat <- dplyr::mutate(patientMetadat, Recurrence = dplyr::case_when(Patient %in% recurPats ~ 'Yes',
                                                                               !Patient %in% recurPats ~ 'No'))
