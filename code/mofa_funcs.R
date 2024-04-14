@@ -15,45 +15,56 @@ mofa_summExp2df <- function(summ_exp, smp_type, data_acqui, data_modal) {
   #' 'value', 'view', 'group'. Extra columns may exist if sample metadata is provided
   
   # Convert SE objects to long data
-  #### SPECIFIC SITUATION FOR UNTARGETED METABOLOMICS AND LIPIDOMICS
+  #### SPECIFIC SITUATION FOR METHODDEV UNTARGETED METABOLOMICS AND LIPIDOMICS (MZ/RT -> MZ.RT)
   featMetadat <- stringr::str_replace(colnames(rowData(summ_exp)), '/', '.')
   longDat <- summExp2df(summ_exp = summ_exp, row_id = 'feature', col_id = 'sample') %>%
     # Remove feature metadata and sample identifiers
-    # dplyr::select(-c(colnames(rowData(summ_exp)), Identifier)) %>%
-    dplyr::select(-c(featMetadat, Identifier)) %>% ####
+    # dplyr::select(-colnames(rowData(summ_exp))) %>%
+    dplyr::select(-c(featMetadat)) %>% ####
     dplyr::rename(value = Value)
+  #### UP-TO-DATE PREPROCESSED DATA INCLUDES 'SmpType', 'TimePoint', AND 'Condition'
+  #### INFORMATION, WHICH CAN SHORTEN CHUNK BELOW
   if (smp_type == 'Plasma') {
     longDat <- dplyr::mutate(longDat,
-                             group = dplyr::case_when(Condition == 'Baseline' ~ 'Baseline Group',
-                                                      Condition != 'Baseline' ~ 'Follow-up Group'),
-                             view = paste(data_acqui, 'Plasma', data_modal)) %>%
-      dplyr::select(-Condition)
+                             group = dplyr::case_when(TimePoint %in% 'Baseline' ~ 'Baseline Group',
+                                                      !TimePoint %in% 'Baseline' ~ 'Follow-up Group'), ####
+                             view = paste(data_acqui, 'Plasma', data_modal),
+                             sample = stringr::str_replace(sample, '_V1', '_B')) %>%
+      dplyr::select(-c(SmpType, TimePoint, Date, Condition))
   } else if (smp_type == 'Tissue') {
     longDat <- dplyr::mutate(longDat,
-                             group = 'Baseline Group',
-                             view = dplyr::case_when(Condition == 'Tumor' ~ paste(data_acqui, 'Tumor', data_modal),
-                                                     Condition == 'Normal' ~ paste(data_acqui, 'Normal', data_modal)),
-                             sample = stringr::str_replace(sample, '_TG|_NG', '_P_B')) %>%
-      dplyr::select(-Condition)
+                             group = paste(TimePoint, 'Group'),
+                             view = paste(data_acqui, Condition, data_modal),
+                             sample = stringr::str_replace(sample, '_TG|_TU|_NG', '_B')) %>%
+      dplyr::select(-c(SmpType, TimePoint, Date, Condition))
   }
   
   return(longDat)
 }
 
 
-trainMOFA <- function(data_comb, view_data = T, train_mofa = T, num_factors = 10, save_path) {
+trainMOFA <- function(long_data, train_mofa = T, num_factors = 10, view_data = T, save_path = NULL) {
   #' Create MOFA object through 'create_mofa_from_df' to include metadata, train
   #' MOFA model, and save trained model
   #' 
   #' Parameters
-  #' data_comb: A list of long data
-  #' save_path: A character specifying the path to save trained model. The saved
-  #' data formats, '.hdf5' and '.rds', in the file names should be omitted.
+  #' long_data: A list of long data tables to be combined or a long data table
+  #' train_mofa: A logical variable indicating whether to train a MOFA model. If
+  #' FALSE, an untrained model will be returned. Default is TRUE
+  #' num_factors: A numeric value specifying the number of factors to learn. Default is 10
+  #' view_data: A logical variable indicating whether to show the data missing structure
+  #' save_path: A character specifying the path to save the trained model. The saved
+  #' data formats, '.hdf5' and '.rds', should be omitted in the saving path. Default is NULL
+  #' 
+  #' Return
+  #' mofaObj: A trained or untrained MOFA model
   
   # Create MOFA object
   # Concatenate long data
-  summTab <- dplyr::bind_rows(data_comb)
-  mofaObj <- MOFA2::create_mofa_from_df(summTab, extract_metadata = T)
+  if (is(long_data, 'list')) {
+    long_data <- dplyr::bind_rows(long_data)
+  }
+  mofaObj <- MOFA2::create_mofa_from_df(long_data, extract_metadata = T)
   # Overview data in MOFA object
   if (view_data) {
     print(MOFA2::plot_data_overview(mofaObj))
@@ -73,20 +84,44 @@ trainMOFA <- function(data_comb, view_data = T, train_mofa = T, num_factors = 10
                                    model_options = model_opts,
                                    training_options = train_opts)
     
-    mofaObj <- MOFA2::run_mofa(mofaObj,
-                               outfile = paste0(save_path, '.hdf5'),
-                               use_basilisk = T)
+    if (!is.null(save_path)) {
+      mofaObj <- MOFA2::run_mofa(mofaObj,
+                                 outfile = paste0(save_path, '.hdf5'),
+                                 use_basilisk = T)
+    } else {
+      mofaObj <- MOFA2::run_mofa(mofaObj,
+                                 outfile = NULL,
+                                 save_data = F,
+                                 use_basilisk = T)
+    }
     # Save trained MOFA model
-    saveRDS(mofaObj, paste0(save_path, '.rds'))
+    if (!is.null(save_path)) {
+      saveRDS(mofaObj, paste0(save_path, '.rds'))
+    }
   }
   
   return(mofaObj)
 }
 
 
-mofa_vizSigFactor <- function(mofaObj, smpGroup = 'Baseline Group', alpha = 0.05, show = T) {
-  #' Pinpoint significant cancer recurrence-related factors in trained MOFA model
-  #' and visualize data through boxplots
+mofa_vizSigFactor <- function(mofaObj, smpGroup = 'Baseline Group', alpha = 0.05, show_res = T) {
+  #' Identify significant cancer recurrence-related factors in trained MOFA model
+  #' and visualize those factors through boxplots
+  #' 
+  #' Parameters
+  #' mofaObj: A MOFA object containing the trained model
+  #' smpGroup: A character specifying the sample group to retrieve certain learnt
+  #' factors and sample metadata. Default is 'Baseline Group'
+  #' alpha: A numeric value specifying the significance level. Default is 0.05
+  #' show_res: A logical variable indicating whether to show and visualize significant
+  #' factors. Default is TRUE
+  #' 
+  #' Return
+  #' A list containing the following components:
+  #' sigAssoRes: A table displaying recurrence-related significant factors
+  #' plotList: A list containing visualizations of significant factors
+  #' tab4Plot: A table containing learnt factors and sample metadata, which can
+  #' be used to make plots
   
   # Conduct association tests between learnt factors and cancer recurrence
   facTab <- tibble::as_tibble(MOFA2::get_factors(mofaObj)[[smpGroup]], rownames = 'sample')
@@ -95,7 +130,7 @@ mofa_vizSigFactor <- function(mofaObj, smpGroup = 'Baseline Group', alpha = 0.05
     dplyr::select(sample, Recurrence)
   sigAssoRes <- testAsso(facTab, metaTab, cmn_col = 'sample') %>%
     dplyr::filter(pVal <= alpha)
-  if (show) {
+  if (show_res) {
     print(sigAssoRes)
   }
   
@@ -103,11 +138,11 @@ mofa_vizSigFactor <- function(mofaObj, smpGroup = 'Baseline Group', alpha = 0.05
   # Prepare information table and container for making and storing plots
   tab4Plot <- dplyr::left_join(facTab, metaTab, by = 'sample')
   plotList <- list()
-  if (show) {
+  if (nrow(sigAssoRes) != 0) {
     for (i in seq_len(nrow(sigAssoRes))) {
       fac <- sigAssoRes$Var1[i]
       p <- ggplot(tab4Plot, aes(x=Recurrence, y=.data[[fac]], col=Recurrence, fill=Recurrence)) +
-        geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+        geom_boxplot(alpha = 0.7, outlier.shape = NA) +
         geom_jitter(position = position_jitter(0.2), show.legend = F) +
         scale_color_manual(values=c('#00BFC4', '#F8766D')) +
         scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
@@ -115,7 +150,9 @@ mofa_vizSigFactor <- function(mofaObj, smpGroup = 'Baseline Group', alpha = 0.05
                                    method.args = list(var.equal = T),
                                    show.legend = F) +
         th
-      print(p)
+      if (show_res) {
+        print(p)
+      }
       # Store plot in list
       plotList[[i]] <- p
       names(plotList)[i] <- fac
@@ -127,10 +164,10 @@ mofa_vizSigFactor <- function(mofaObj, smpGroup = 'Baseline Group', alpha = 0.05
 
 
 mofa_rmFeatSuffix <- function(mofaObj, view, feat_anno = NULL) {
-  #' Remove suffixes from feature names in trained MOFA model for more concise plots.
-  #' Feature names are suffixed with views if duplicated across different views.
-  #' If feat_anno is not null, features are converted to corresponding feature
-  #' annotations, e.g., proteins to genes
+  #' Remove suffixes from feature names in trained MOFA model for more concise plots
+  #' generated using e.g., MOFA2::plot_top_weights. Feature names are suffixed with
+  #' views if duplicated across different views. If feat_anno is not null, features
+  #' are converted to corresponding feature annotations, e.g., proteins to genes
   #' 
   #' Parameters
   #' mofaObj: A trained MOFA model
@@ -277,11 +314,9 @@ mofa_keepUniFeats <- function(mofaObj, factor, view, feat_anno, to_genes = F) {
   W <- MOFA2::get_weights(mofaObj)[[view]]
   rownames(W) <- stringr::str_remove(rownames(W), paste0('_', view))
   colnames(feat_anno) <- 'Genes'
-  
-  # Sanity check
-  if(!identical(rownames(W), rownames(feat_anno))) {
-    stop("Feature order of specified view shold be same as that of provided feature annotation table.")
-  }
+  # Make row names of feature annotation table in same order as those of weight matrix.
+  # There will be NA if any missing feature exists, which will be removed later anyways
+  feat_anno <- feat_anno[rownames(W),, drop = F]
   
   # Pinpoint and remove duplicated protein features from weight matrix
   # Keep first inferred protein if there are many
@@ -333,13 +368,17 @@ mofa_keepUniFeats <- function(mofaObj, factor, view, feat_anno, to_genes = F) {
     dropFeatList <- unique(c(dropFeatList, naFeatIdx))
     # Filter out unwanted duplicated genes and corresponding proteins
     # feature annotation table (proteins)
-    feat_anno <- data.frame(Proteins = rownames(W)[-dropFeatList],
-                            row.names = featAnno[-dropFeatList])
-    # weight matrix
-    W <- W[-dropFeatList,, drop = F]
-    featAnno <- featAnno[-dropFeatList]
+    if (length(dropFeatList) != 0) {
+      feat_anno <- data.frame(Proteins = rownames(W)[-dropFeatList],
+                              row.names = featAnno[-dropFeatList])
+      # weight matrix
+      W <- W[-dropFeatList,, drop = F]
+      featAnno <- featAnno[-dropFeatList]
+    } else {
+      feat_anno <- data.frame(Proteins = rownames(W),
+                              row.names = featAnno)
+    }
     rownames(W) <- featAnno
-    
     seW <- SummarizedExperiment(W, rowData = feat_anno)
   }
   
