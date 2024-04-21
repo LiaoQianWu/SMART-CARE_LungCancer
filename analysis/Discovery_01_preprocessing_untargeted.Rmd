@@ -203,18 +203,7 @@ lipTissueUnfiltVsn <- doPreprocessing(lipTissueTab, feat = 'Feature', smp = 'Sam
                                       smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = F)$vsn.data
 # Prepare long data for plotting
 lipTissueUnfiltVsnTab <- summExp2df(lipTissueUnfiltVsn, assay = 'Abundance',
-                                    row_id = 'Feature', col_id = 'Sample') %>%
-  # Prepare information of sample median expressions and missing levels
-  dplyr::group_by(Sample) %>%
-  dplyr::mutate(MedianVsnAbun = median(Value, na.rm = T),
-                OriMissLevel = sum(is.na(Value)) / length(Value)) %>%
-  dplyr::ungroup()
-# Create SE object containing information of sample median expressions and missing levels
-colAnno <- dplyr::select(lipTissueUnfiltVsnTab, Sample, MedianVsnAbun, OriMissLevel) %>%
-  dplyr::filter(!duplicated(Sample)) %>%
-  tibble::column_to_rownames('Sample')
-lipTissueUnfiltVsn <- SummarizedExperiment(assays = list(Abundance = assay(lipTissueUnfiltVsn)),
-                                           colData = colAnno)
+                                    row_id = 'Feature', col_id = 'Sample')
 # Show dimensions of data
 cat('Data dimensions:', dim(lipTissueUnfiltVsn)[2], 'samples and', dim(lipTissueUnfiltVsn)[1], 'features')
 
@@ -230,38 +219,9 @@ ggplot(lipTissueUnfiltVsnTab, aes(x=Sample, y=Value)) +
   labs(x = 'Sample', y = 'Abundance', title = 'Distribution of Unfiltered vsn normalized data') +
   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 9))
 
-# Visualize relationship between sample median expressions and missing levels
-ggplot(lipTissueUnfiltVsnTab, aes(x=OriMissLevel, y=MedianVsnAbun)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(x = 'Missing level', y = 'Median expression') +
-  th
-
 # Visualize mean-sd relationship
 vsn::meanSdPlot(assay(lipTissueUnfiltVsn), ranks = T, plot = F, bins = 30)$gg +
   labs(x = 'Rank of mean', y = 'SD', title = 'Feature mean-sd relationship') +
-  th
-
-# Do PCA
-pcaRes <- doSOA(lipTissueUnfiltVsn, meta_var = c('MedianVsnAbun', 'OriMissLevel'),
-                pca_method = 'pca', num_PCs = 20, do_onlyPCA = T)
-# Show significant associations between PCs and sample median expressions and missing levels
-pcaRes$pcSigAssoRes
-```
-
-```{r}
-# Visualize relationship between PCs and sample median expressions and missing levels
-pcTab <- pcaRes$pcTab
-ggplot(pcTab, aes(x=`PC2 (11.9%)`, y=MedianVsnAbun)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(y = 'Median expression') +
-  th
-
-ggplot(pcTab, aes(x=`PC2 (11.9%)`, y=OriMissLevel)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(y = 'Missing level') +
   th
 ```
 
@@ -300,7 +260,7 @@ vsn::meanSdPlot(assay(lipTissueFiltVsn), ranks = T, plot = F, bins = 30)$gg +
   th
 
 # Save preprocessed data
-saveRDS(lipTissueFiltVsn, './data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
+# saveRDS(lipTissueFiltVsn, './data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
 ```
 
 **Do biological quality control**\
@@ -316,6 +276,7 @@ pcTab <- pcaRes$pcTab %>%
   dplyr::mutate(Label = case_when(Sample %in% c('1NL5BV_TU', '1NL5BV_NG',
                                                 'I0HVOL_TU', 'I0HVOL_NG',
                                                 '7EAOX7_TU', '7EAOX7_NG') ~ Sample))
+
 ggplot(pcTab, aes(x=Condition, y=`PC1 (41.5%)`, col=Condition, fill=Condition)) +
   geom_boxplot(alpha = 0.7, outliers = F) +
   geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
@@ -341,10 +302,10 @@ missInfo <- dplyr::group_by(lipTissueFiltVsnTab, Sample) %>%
 pcTab <- tibble::as_tibble(pcaRes$pcaRes@scores, rownames = 'Sample')
 testAssociation(pcTab, missInfo, cmn_col = 'Sample') %>%
   dplyr::filter(pVal <= 0.05)
-
+# Visualize PCs
 pcTab <- pcaRes$pcTab %>%
+  # Label those samples from bottom right cluster
   dplyr::mutate(Label = case_when(Sample %in% c('1NL5BV_TU', '1NL5BV_NG',
-                                                'I0HVOL_TU', 'I0HVOL_NG',
                                                 '1VVXHY_TU', '1VVXHY_NG',
                                                 'CMVZEW_TU', 'CMVZEW_NG',
                                                 '1XUOU0_TU', '1XUOU0_NG',
@@ -356,16 +317,156 @@ pcTab <- pcaRes$pcTab %>%
                                                 'NVJH6R_TU', 'NVJH6R_NG',
                                                 'Q89YQK_TU', 'Q89YQK_NG',
                                                 'MJMTYR_TU', 'MJMTYR_NG') ~ Sample)) %>%
-  dplyr::left_join(missInfo, by = 'Sample')
+dplyr::left_join(missInfo, by = 'Sample')
 
 ggplot(pcTab, aes(x=`PC1 (41.5%)`, y=`PC2 (13.5%)`, col=MissLevel)) +
   geom_point(size = 2.5) +
   scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
   th
 
-ggplot(pcTab, aes(x=`PC1 (41.5%)`, y=`PC2 (13.5%)`, col=Gender, label=Label)) +
+# Store probable bad-quality samples
+bqSmps <- c('1NL5BV_TU', '1NL5BV_NG', '1VVXHY_NG', 'CMVZEW_NG', '1XUOU0_NG', '1XGTDZ_TU',
+            '1XGTDZ_NG', '11BMIX_NG', '1IHGAC_NG', '1H3IW7_NG', 'Q7B5U6_TU', 'Q7B5U6_NG',
+            'NVJH6R_NG', 'Q89YQK_TU', 'Q89YQK_NG', 'MJMTYR_TU')
+```
+
+```{r message=F}
+# Do PCA
+pcaRes <- doSOA(lipTissueFiltVsn, meta_var = c('Condition', 'Recurrence', 'Gender',
+                                               'Age', 'Smoking', 'Stage', 'Adjuvant'),
+                pca_method = 'pca', num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and plates where samples are located
+pcaRes$pcSigAssoRes %>%
+  dplyr::filter(grepl('PC[1-9] \\(', Var1))
+# Visualize PCs
+pcTab <- pcaRes$pcTab %>%
+  dplyr::mutate(Label = case_when(Sample %in% bqSmps ~ Sample),
+                Label2 = case_when(Sample %in% c('1NL5BV_TU', '1NL5BV_NG',
+                                                 'MJMTYR_TU', 'MJMTYR_NG',
+                                                 '1XGTDZ_TU', '1XGTDZ_NG',
+                                                 '7EAOX7_TU', '7EAOX7_NG',
+                                                 'I0HVOL_TU', 'I0HVOL_NG') ~ Sample)) %>%
+  dplyr::left_join(missInfo, by = 'Sample')
+
+ggplot(pcTab, aes(x=Condition, y=`PC1 (27.4%)`, col=Condition, fill=Condition, label=Label2)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  geom_text_repel(show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  th
+
+ggplot(pcTab, aes(x=`PC1 (27.4%)`, y=`PC4 (5.7%)`, col=Condition, label=Label)) +
   geom_point(size = 2.5) +
   geom_text_repel(size = 4, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  th
+
+ggplot(pcTab, aes(x=`PC1 (27.4%)`, y=`PC4 (5.7%)`, col=MissLevel)) +
+  geom_point(size = 2.5) +
+  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
+  th
+```
+
+**Do cluster correction using limma**
+```{r}
+# Include cluster information (probably indicating sample quality) into SE object
+lipTissueFiltVsnTab <- dplyr::mutate(lipTissueFiltVsnTab,
+                                     Cluster = case_when(!Sample %in% bqSmps ~ '1',
+                                                         Sample %in% bqSmps ~ '2'))
+lipTissueFiltVsn <- df2SummExp(lipTissueFiltVsnTab, row_id = 'Feature', col_id = 'Sample',
+                               values = 'Value', row_anno = c('RT', 'CCS', 'MZ'),
+                               col_anno = c(smpAnno, 'TumorPurity', 'Cluster'))
+assay(lipTissueFiltVsn) <- as.matrix(assay(lipTissueFiltVsn))
+
+# Save preprocessed data
+saveRDS(lipTissueFiltVsn, './data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
+
+# Perform cluster correction to see if two unwanted cluster can be merged
+# Convert SE object into wide data
+datMat <- assay(lipTissueFiltVsn)
+# Define design matrix to keep particular effects, e.g., treatments
+smpAnnoTab <- tibble::as_tibble(colData(lipTissueFiltVsn), rownames = 'Sample')
+design <- model.matrix(~ smpAnnoTab$Recurrence)
+# Do correction
+datMat_C <- limma::removeBatchEffect(datMat, batch = smpAnnoTab$Cluster, design = design)
+lipTissueFiltVsn_C <- lipTissueFiltVsn
+assay(lipTissueFiltVsn_C) <- datMat_C
+
+# Do single-omics analysis
+pcaRes_C <- doSOA(lipTissueFiltVsn_C, meta_var = 'Condition', pca_method = 'ppca',
+                  num_PCs = 20, do_onlyPCA = T)
+pcaRes_C$pcSigAssoRes
+
+# Visualize PCs
+pcTab <- pcaRes_C$pcTab %>%
+  dplyr::mutate(Label = case_when(Sample %in% bqSmps ~ Sample)) %>%
+  dplyr::left_join(missInfo, by = 'Sample')
+
+ggplot(pcTab, aes(x=`PC1 (30.4%)`, y=`PC3 (8.3%)`, col=MissLevel)) +
+  geom_point(size = 2.5) +
+  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
+  th
+
+# Save preprocessed data
+saveRDS(lipTissueFiltVsn_C, './data/Discovery/AG_Hopf/lipTissueVsn_WBC25_C.rds')
+```
+
+**Investigate impacts of sample missing levels on observed features**\
+Display relationship between sample missing levels and median expressions computed
+by fully observed features
+```{r}
+# Normalize unfiltered data
+lipTissueTab <- lipTissueWBC25
+lipTissueUnfiltVsn <- doPreprocessing(lipTissueTab, feat = 'Feature', smp = 'Sample',
+                                      val = 'Abundance', featAnno = c('RT', 'CCS', 'MZ'),
+                                      smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = F)$vsn.data
+# Prepare long data for computing sample missing levels and median expressions
+lipTissueUnfiltVsnTab <- summExp2df(lipTissueUnfiltVsn, assay = 'Abundance',
+                                    row_id = 'Feature', col_id = 'Sample') %>%
+  # Prepare information of sample missing levels
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(OriMissLevel = sum(is.na(Value)) / length(Value)) %>%
+  dplyr::ungroup() %>%
+  # Prepare information of sample median expressions computed by fully observed features
+  dplyr::group_by(Feature) %>%
+  dplyr::mutate(Keep = dplyr::case_when(!any(is.na(Value)) ~ 'Yes',
+                                        any(is.na(Value)) ~ 'No')) %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(Keep %in% 'Yes') %>%
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(MedianVsnAbun = median(Value)) %>%
+  dplyr::ungroup()
+# Create SE object containing information of sample missing levels and median expressions
+colAnno <- dplyr::select(lipTissueUnfiltVsnTab, Sample, OriMissLevel, MedianVsnAbun) %>%
+  dplyr::filter(!duplicated(Sample)) %>%
+  tibble::column_to_rownames('Sample')
+lipTissueUnfiltVsn <- SummarizedExperiment(assays = list(Abundance = assay(lipTissueUnfiltVsn)),
+                                           colData = colAnno)
+
+# Visualize relationship between sample missing levels and median expressions
+ggplot(lipTissueUnfiltVsnTab, aes(x=OriMissLevel, y=MedianVsnAbun)) +
+  geom_point(size = 3.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  labs(x = 'Missing level', y = 'Median expression') +
+  th
+```
+
+Show significant associations between data and sample missing levels
+```{r message=F}
+# Do PCA
+pcaRes <- doSOA(lipTissueUnfiltVsn, meta_var = 'OriMissLevel', pca_method = 'pca',
+                num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample missing levels
+pcaRes$pcSigAssoRes %>%
+  dplyr::filter(grepl('PC[1-9] \\(', Var1))
+
+# Visualize relationship between PCs and sample missing levels
+pcTab <- pcaRes$pcTab
+ggplot(pcTab, aes(x=`PC2 (11.9%)`, y=OriMissLevel)) +
+  geom_point(size = 3.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  labs(y = 'Missing level') +
   th
 ```
 
@@ -443,18 +544,7 @@ lipTissueUnfiltVsn <- doPreprocessing(lipTissueTab, feat = 'Feature', smp = 'Sam
                                       smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = F)$vsn.data
 # Prepare long data for plotting
 lipTissueUnfiltVsnTab <- summExp2df(lipTissueUnfiltVsn, assay = 'Abundance',
-                                    row_id = 'Feature', col_id = 'Sample') %>%
-  # Prepare information of sample median expressions and missing levels
-  dplyr::group_by(Sample) %>%
-  dplyr::mutate(MedianVsnAbun = median(Value, na.rm = T),
-                OriMissLevel = sum(is.na(Value)) / length(Value)) %>%
-  dplyr::ungroup()
-# Create SE object containing information of sample median expressions and missing levels
-colAnno <- dplyr::select(lipTissueUnfiltVsnTab, Sample, MedianVsnAbun, OriMissLevel) %>%
-  dplyr::filter(!duplicated(Sample)) %>%
-  tibble::column_to_rownames('Sample')
-lipTissueUnfiltVsn <- SummarizedExperiment(assays = list(Abundance = assay(lipTissueUnfiltVsn)),
-                                           colData = colAnno)
+                                    row_id = 'Feature', col_id = 'Sample')
 # Show dimensions of data
 cat('Data dimensions:', dim(lipTissueUnfiltVsn)[2], 'samples and', dim(lipTissueUnfiltVsn)[1], 'features')
 
@@ -470,38 +560,9 @@ ggplot(lipTissueUnfiltVsnTab, aes(x=Sample, y=Value)) +
   labs(x = 'Sample', y = 'Abundance', title = 'Distribution of Unfiltered vsn normalized data') +
   th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 9))
 
-# Visualize relationship between sample median expressions and missing levels
-ggplot(lipTissueUnfiltVsnTab, aes(x=OriMissLevel, y=MedianVsnAbun)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(x = 'Missing level', y = 'Median expression') +
-  th
-
 # Visualize mean-sd relationship
 vsn::meanSdPlot(assay(lipTissueUnfiltVsn), ranks = T, plot = F, bins = 30)$gg +
   labs(x = 'Rank of mean', y = 'SD', title = 'Feature mean-sd relationship') +
-  th
-
-# Do PCA
-pcaRes <- doSOA(lipTissueUnfiltVsn, meta_var = c('MedianVsnAbun', 'OriMissLevel'),
-                pca_method = 'pca', num_PCs = 20, do_onlyPCA = T)
-# Show significant associations between PCs and sample median expressions and missing levels
-pcaRes$pcSigAssoRes
-```
-
-```{r}
-# Visualize relationship between PCs and sample median expressions and missing levels
-pcTab <- pcaRes$pcTab
-ggplot(pcTab, aes(x=`PC2 (12.5%)`, y=MedianVsnAbun)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(y = 'Median expression') +
-  th
-
-ggplot(pcTab, aes(x=`PC2 (12.5%)`, y=OriMissLevel)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(y = 'Missing level') +
   th
 ```
 
@@ -538,6 +599,9 @@ ggplot(lipTissueFiltVsnTab, aes(x=Sample, y=Value)) +
 vsn::meanSdPlot(assay(lipTissueFiltVsn), ranks = T, plot = F, bins = 30)$gg +
   labs(x = 'Rank of mean', y = 'SD', title = 'Feature mean-sd relationship') +
   th
+
+# Save preprocessed data
+saveRDS(lipTissueFiltVsn, './data/Discovery/AG_Hopf/lipTissueVsn_NoWBC.rds')
 ```
 
 **Do biological quality control**\
@@ -603,6 +667,64 @@ ggplot(pcTab, aes(x=`PC1 (42%)`, y=`PC2 (13%)`, col=MissLevel)) +
 ggplot(pcTab, aes(x=`PC1 (42%)`, y=`PC2 (13%)`, col=Gender, label=Label)) +
   geom_point(size = 2.5) +
   geom_text_repel(size = 4, show.legend = F) +
+  th
+```
+
+**Investigate impacts of sample missing levels on observed features**\
+Display relationship between sample missing levels and median expressions computed
+by fully observed features
+```{r}
+# Normalize unfiltered data
+lipTissueTab <- lipTissueNoWBC
+lipTissueUnfiltVsn <- doPreprocessing(lipTissueTab, feat = 'Feature', smp = 'Sample',
+                                      val = 'Abundance', featAnno = c('RT', 'CCS', 'MZ'),
+                                      smpAnno = c(smpAnno, 'TumorPurity'), do_featFilt = F)$vsn.data
+# Prepare long data for computing sample missing levels and median expressions
+lipTissueUnfiltVsnTab <- summExp2df(lipTissueUnfiltVsn, assay = 'Abundance',
+                                    row_id = 'Feature', col_id = 'Sample') %>%
+  # Prepare information of sample missing levels
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(OriMissLevel = sum(is.na(Value)) / length(Value)) %>%
+  dplyr::ungroup() %>%
+  # Prepare information of sample median expressions computed by fully observed features
+  dplyr::group_by(Feature) %>%
+  dplyr::mutate(Keep = dplyr::case_when(!any(is.na(Value)) ~ 'Yes',
+                                        any(is.na(Value)) ~ 'No')) %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(Keep %in% 'Yes') %>%
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(MedianVsnAbun = median(Value)) %>%
+  dplyr::ungroup()
+# Create SE object containing information of sample missing levels and median expressions
+colAnno <- dplyr::select(lipTissueUnfiltVsnTab, Sample, OriMissLevel, MedianVsnAbun) %>%
+  dplyr::filter(!duplicated(Sample)) %>%
+  tibble::column_to_rownames('Sample')
+lipTissueUnfiltVsn <- SummarizedExperiment(assays = list(Abundance = assay(lipTissueUnfiltVsn)),
+                                           colData = colAnno)
+
+# Visualize relationship between sample missing levels and median expressions
+ggplot(lipTissueUnfiltVsnTab, aes(x=OriMissLevel, y=MedianVsnAbun)) +
+  geom_point(size = 3.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  labs(x = 'Missing level', y = 'Median expression') +
+  th
+```
+
+Show significant associations between data and sample missing levels
+```{r message=F}
+# Do PCA
+pcaRes <- doSOA(lipTissueUnfiltVsn, meta_var = 'OriMissLevel', pca_method = 'pca',
+                num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample missing levels
+pcaRes$pcSigAssoRes %>%
+  dplyr::filter(grepl('PC[1-9] \\(', Var1))
+
+# Visualize relationship between PCs and sample missing levels
+pcTab <- pcaRes$pcTab
+ggplot(pcTab, aes(x=`PC2 (12.5%)`, y=OriMissLevel)) +
+  geom_point(size = 3.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  labs(y = 'Missing level') +
   th
 ```
 
@@ -867,18 +989,7 @@ lipPlasmaUnfiltVsn <- doPreprocessing(lipPlasmaTab, feat = 'Feature', smp = 'Sam
                                       smpAnno = c(smpAnno, 'Batch', 'Plate', 'Plate2'), do_featFilt = F)$vsn.data
 # Prepare long data for plotting
 lipPlasmaUnfiltVsnTab <- summExp2df(lipPlasmaUnfiltVsn, assay = 'Abundance',
-                                    row_id = 'Feature', col_id = 'Sample') %>%
-  # Prepare information of sample median expressions and missing levels
-  dplyr::group_by(Sample) %>%
-  dplyr::mutate(MedianVsnAbun = median(Value, na.rm = T),
-                OriMissLevel = sum(is.na(Value)) / length(Value)) %>%
-  dplyr::ungroup()
-# Create SE object containing information of sample median expressions and missing levels
-colAnno <- dplyr::select(lipPlasmaUnfiltVsnTab, Sample, MedianVsnAbun, OriMissLevel) %>%
-  dplyr::filter(!duplicated(Sample)) %>%
-  tibble::column_to_rownames('Sample')
-lipPlasmaUnfiltVsn <- SummarizedExperiment(assays = list(Abundance = assay(lipPlasmaUnfiltVsn)),
-                                           colData = colAnno)
+                                    row_id = 'Feature', col_id = 'Sample')
 # Show dimensions of data
 cat('Data dimensions:', dim(lipPlasmaUnfiltVsn)[2], 'samples and', dim(lipPlasmaUnfiltVsn)[1], 'features')
 
@@ -895,44 +1006,9 @@ ggplot(lipPlasmaUnfiltVsnTab, aes(x=Sample, y=Value)) +
   th + theme(axis.text.x = element_blank(),
              axis.ticks.x = element_blank())
 
-# Visualize relationship between sample median expressions and missing levels
-ggplot(lipPlasmaUnfiltVsnTab, aes(x=OriMissLevel, y=MedianVsnAbun)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(x = 'Missing level', y = 'Median expression') +
-  th
-
 # Visualize mean-sd relationship
 vsn::meanSdPlot(assay(lipPlasmaUnfiltVsn), ranks = T, plot = F, bins = 30)$gg +
   labs(x = 'Rank of mean', y = 'SD', title = 'Feature mean-sd relationship') +
-  th
-
-# Do PCA
-pcaRes <- doSOA(lipPlasmaUnfiltVsn, meta_var = c('MedianVsnAbun', 'OriMissLevel'),
-                pca_method = 'pca', num_PCs = 20, do_onlyPCA = T)
-# Show significant associations between PCs and sample median expressions and missing levels
-pcaRes$pcSigAssoRes %>%
-  dplyr::filter(grepl('^PC[1-9] \\(', Var1))
-```
-
-```{r}
-# Visualize relationship between PCs and sample median expressions and missing levels
-pcTab <- pcaRes$pcTab
-ggplot(pcTab, aes(x=`PC1 (15.8%)`, y=OriMissLevel)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(y = 'Missing level') +
-  th
-
-ggplot(pcTab, aes(x=`PC1 (15.8%)`, y=MedianVsnAbun)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(y = 'Median expression') +
-  th
-
-ggplot(pcTab, aes(x=`PC1 (15.8%)`, y=`PC2 (11.3%)`, col=OriMissLevel)) +
-  geom_point(size = 3.5) +
-  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
   th
 ```
 
@@ -975,7 +1051,7 @@ vsn::meanSdPlot(assay(lipBaseFiltVsn), ranks = T, plot = F, bins = 30)$gg +
   th
 
 # Save preprocessed data
-saveRDS(lipBaseFiltVsn, './data/Discovery/AG_Hopf/lipPlasmaVsn_B1WBC25.rds')
+saveRDS(lipBaseFiltVsn, './data/Discovery/AG_Hopf/lipBaseVsn_B1WBC25.rds')
 ```
 
 Show significant associations between PCs and plates where samples are located.
@@ -996,6 +1072,69 @@ ggplot(pcTab, aes(x=Plate2, y=`PC1 (20.4%)`, col=Plate2, fill=Plate2)) +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
                              size = 6, show.legend = F) +
+  th
+```
+
+**Investigate impacts of sample missing levels on observed features**\
+Display relationship between sample missing levels and median expressions computed
+by fully observed features
+```{r}
+# Normalize unfiltered data
+lipPlasmaTab <- lipPlasmaB1WBC25
+lipPlasmaUnfiltVsn <- doPreprocessing(lipPlasmaTab, feat = 'Feature', smp = 'Sample',
+                                      val = 'Abundance', featAnno = c('RT', 'CCS', 'MZ'),
+                                      smpAnno = c(smpAnno, 'Batch', 'Plate', 'Plate2'), do_featFilt = F)$vsn.data
+# Prepare long data for plotting
+lipPlasmaUnfiltVsnTab <- summExp2df(lipPlasmaUnfiltVsn, assay = 'Abundance',
+                                    row_id = 'Feature', col_id = 'Sample') %>%
+  # Prepare information of sample missing levels
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(OriMissLevel = sum(is.na(Value)) / length(Value)) %>%
+  dplyr::ungroup() %>%
+  # Prepare information of sample median expressions computed by fully observed features
+  dplyr::group_by(Feature) %>%
+  dplyr::mutate(Keep = dplyr::case_when(!any(is.na(Value)) ~ 'Yes',
+                                        any(is.na(Value)) ~ 'No')) %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(Keep %in% 'Yes') %>%
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(MedianVsnAbun = median(Value)) %>%
+  dplyr::ungroup()
+# Create SE object containing information of sample missing levels and median expressions
+colAnno <- dplyr::select(lipPlasmaUnfiltVsnTab, Sample, OriMissLevel, MedianVsnAbun) %>%
+  dplyr::filter(!duplicated(Sample)) %>%
+  tibble::column_to_rownames('Sample')
+lipPlasmaUnfiltVsn <- SummarizedExperiment(assays = list(Abundance = assay(lipPlasmaUnfiltVsn)),
+                                           colData = colAnno)
+
+# Visualize relationship between sample missing levels and median expressions
+ggplot(lipPlasmaUnfiltVsnTab, aes(x=OriMissLevel, y=MedianVsnAbun)) +
+  geom_point(size = 3.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  labs(x = 'Missing level', y = 'Median expression') +
+  th
+```
+
+Show significant associations between data and sample missing levels
+```{r message=F}
+# Do PCA
+pcaRes <- doSOA(lipPlasmaUnfiltVsn, meta_var = 'OriMissLevel', pca_method = 'pca',
+                num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample missing levels
+pcaRes$pcSigAssoRes %>%
+  dplyr::filter(grepl('PC[1-9] \\(', Var1))
+
+# Visualize relationship between PCs and sample missing levels
+pcTab <- pcaRes$pcTab
+ggplot(pcTab, aes(x=`PC1 (15.8%)`, y=OriMissLevel)) +
+  geom_point(size = 3.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  labs(y = 'Missing level') +
+  th
+
+ggplot(pcTab, aes(x=`PC1 (15.8%)`, y=`PC2 (11.3%)`, col=OriMissLevel)) +
+  geom_point(size = 3.5) +
+  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
   th
 ```
 
@@ -1098,18 +1237,7 @@ lipPlasmaUnfiltVsn <- doPreprocessing(lipPlasmaTab, feat = 'Feature', smp = 'Sam
                                       smpAnno = c(smpAnno, 'Batch', 'Plate'), do_featFilt = F)$vsn.data
 # Prepare long data for plotting
 lipPlasmaUnfiltVsnTab <- summExp2df(lipPlasmaUnfiltVsn, assay = 'Abundance',
-                                    row_id = 'Feature', col_id = 'Sample') %>%
-  # Prepare information of sample median expressions and missing levels
-  dplyr::group_by(Sample) %>%
-  dplyr::mutate(MedianVsnAbun = median(Value, na.rm = T),
-                OriMissLevel = sum(is.na(Value)) / length(Value)) %>%
-  dplyr::ungroup()
-# Create SE object containing information of sample median expressions and missing levels
-colAnno <- dplyr::select(lipPlasmaUnfiltVsnTab, Sample, MedianVsnAbun, OriMissLevel) %>%
-  dplyr::filter(!duplicated(Sample)) %>%
-  tibble::column_to_rownames('Sample')
-lipPlasmaUnfiltVsn <- SummarizedExperiment(assays = list(Abundance = assay(lipPlasmaUnfiltVsn)),
-                                           colData = colAnno)
+                                    row_id = 'Feature', col_id = 'Sample')
 # Show dimensions of data
 cat('Data dimensions:', dim(lipPlasmaUnfiltVsn)[2], 'samples and', dim(lipPlasmaUnfiltVsn)[1], 'features')
 
@@ -1126,44 +1254,9 @@ ggplot(lipPlasmaUnfiltVsnTab, aes(x=Sample, y=Value)) +
   th + theme(axis.text.x = element_blank(),
              axis.ticks.x = element_blank())
 
-# Visualize relationship between sample median expressions and missing levels
-ggplot(lipPlasmaUnfiltVsnTab, aes(x=OriMissLevel, y=MedianVsnAbun)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(x = 'Missing level', y = 'Median expression') +
-  th
-
 # Visualize mean-sd relationship
 vsn::meanSdPlot(assay(lipPlasmaUnfiltVsn), ranks = T, plot = F, bins = 30)$gg +
   labs(x = 'Rank of mean', y = 'SD', title = 'Feature mean-sd relationship') +
-  th
-
-# Do PCA
-pcaRes <- doSOA(lipPlasmaUnfiltVsn, meta_var = c('MedianVsnAbun', 'OriMissLevel'),
-                pca_method = 'pca', num_PCs = 20, do_onlyPCA = T)
-# Show significant associations between PCs and sample median expressions and missing levels
-pcaRes$pcSigAssoRes %>%
-  dplyr::filter(grepl('PC[1-9] \\(', Var1))
-```
-
-```{r}
-# Visualize relationship between PCs and sample median expressions and missing levels
-pcTab <- pcaRes$pcTab
-ggplot(pcTab, aes(x=`PC1 (17.1%)`, y=OriMissLevel)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(y = 'Missing level') +
-  th
-
-ggplot(pcTab, aes(x=`PC1 (17.1%)`, y=MedianVsnAbun)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(y = 'Median expression') +
-  th
-
-ggplot(pcTab, aes(x=`PC1 (17.1%)`, y=`PC2 (11.2%)`, col=OriMissLevel)) +
-  geom_point(size = 3.5) +
-  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
   th
 ```
 
@@ -1234,6 +1327,69 @@ ggplot(pcTab, aes(x=Plate, y=`PC1 (23.9%)`, col=Plate, fill=Plate)) +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
                              size = 6, show.legend = F) +
+  th
+```
+
+**Investigate impacts of sample missing levels on observed features**\
+Display relationship between sample missing levels and median expressions computed
+by fully observed features
+```{r}
+# Normalize unfiltered data
+lipPlasmaTab <- lipPlasmaB1WBC15
+lipPlasmaUnfiltVsn <- doPreprocessing(lipPlasmaTab, feat = 'Feature', smp = 'Sample',
+                                      val = 'Abundance', featAnno = c('RT', 'CCS', 'MZ'),
+                                      smpAnno = c(smpAnno, 'Batch', 'Plate'), do_featFilt = F)$vsn.data
+# Prepare long data for plotting
+lipPlasmaUnfiltVsnTab <- summExp2df(lipPlasmaUnfiltVsn, assay = 'Abundance',
+                                    row_id = 'Feature', col_id = 'Sample') %>%
+  # Prepare information of sample missing levels
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(OriMissLevel = sum(is.na(Value)) / length(Value)) %>%
+  dplyr::ungroup() %>%
+  # Prepare information of sample median expressions computed by fully observed features
+  dplyr::group_by(Feature) %>%
+  dplyr::mutate(Keep = dplyr::case_when(!any(is.na(Value)) ~ 'Yes',
+                                        any(is.na(Value)) ~ 'No')) %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(Keep %in% 'Yes') %>%
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(MedianVsnAbun = median(Value)) %>%
+  dplyr::ungroup()
+# Create SE object containing information of sample missing levels and median expressions
+colAnno <- dplyr::select(lipPlasmaUnfiltVsnTab, Sample, OriMissLevel, MedianVsnAbun) %>%
+  dplyr::filter(!duplicated(Sample)) %>%
+  tibble::column_to_rownames('Sample')
+lipPlasmaUnfiltVsn <- SummarizedExperiment(assays = list(Abundance = assay(lipPlasmaUnfiltVsn)),
+                                           colData = colAnno)
+
+# Visualize relationship between sample missing levels and median expressions
+ggplot(lipPlasmaUnfiltVsnTab, aes(x=OriMissLevel, y=MedianVsnAbun)) +
+  geom_point(size = 3.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  labs(x = 'Missing level', y = 'Median expression') +
+  th
+```
+
+Show significant associations between data and sample missing levels
+```{r message=F}
+# Do PCA
+pcaRes <- doSOA(lipPlasmaUnfiltVsn, meta_var = 'OriMissLevel', pca_method = 'pca',
+                num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample missing levels
+pcaRes$pcSigAssoRes %>%
+  dplyr::filter(grepl('PC[1-9] \\(', Var1))
+
+# Visualize relationship between PCs and sample missing levels
+pcTab <- pcaRes$pcTab
+ggplot(pcTab, aes(x=`PC1 (17.1%)`, y=OriMissLevel)) +
+  geom_point(size = 3.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  labs(y = 'Missing level') +
+  th
+
+ggplot(pcTab, aes(x=`PC1 (17.1%)`, y=`PC2 (11.2%)`, col=OriMissLevel)) +
+  geom_point(size = 3.5) +
+  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
   th
 ```
 
@@ -1336,18 +1492,7 @@ lipPlasmaUnfiltVsn <- doPreprocessing(lipPlasmaTab, feat = 'Feature', smp = 'Sam
                                       smpAnno = c(smpAnno, 'Batch', 'Plate'), do_featFilt = F)$vsn.data
 # Prepare long data for plotting
 lipPlasmaUnfiltVsnTab <- summExp2df(lipPlasmaUnfiltVsn, assay = 'Abundance',
-                                    row_id = 'Feature', col_id = 'Sample') %>%
-  # Prepare information of sample median expressions and missing levels
-  dplyr::group_by(Sample) %>%
-  dplyr::mutate(MedianVsnAbun = median(Value, na.rm = T),
-                OriMissLevel = sum(is.na(Value)) / length(Value)) %>%
-  dplyr::ungroup()
-# Create SE object containing information of sample median expressions and missing levels
-colAnno <- dplyr::select(lipPlasmaUnfiltVsnTab, Sample, MedianVsnAbun, OriMissLevel) %>%
-  dplyr::filter(!duplicated(Sample)) %>%
-  tibble::column_to_rownames('Sample')
-lipPlasmaUnfiltVsn <- SummarizedExperiment(assays = list(Abundance = assay(lipPlasmaUnfiltVsn)),
-                                           colData = colAnno)
+                                    row_id = 'Feature', col_id = 'Sample')
 # Show dimensions of data
 cat('Data dimensions:', dim(lipPlasmaUnfiltVsn)[2], 'samples and', dim(lipPlasmaUnfiltVsn)[1], 'features')
 
@@ -1364,44 +1509,9 @@ ggplot(lipPlasmaUnfiltVsnTab, aes(x=Sample, y=Value)) +
   th + theme(axis.text.x = element_blank(),
              axis.ticks.x = element_blank())
 
-# Visualize relationship between sample median expressions and missing levels
-ggplot(lipPlasmaUnfiltVsnTab, aes(x=OriMissLevel, y=MedianVsnAbun)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(x = 'Missing level', y = 'Median expression') +
-  th
-
 # Visualize mean-sd relationship
 vsn::meanSdPlot(assay(lipPlasmaUnfiltVsn), ranks = T, plot = F, bins = 30)$gg +
   labs(x = 'Rank of mean', y = 'SD', title = 'Feature mean-sd relationship') +
-  th
-
-# Do PCA
-pcaRes <- doSOA(lipPlasmaUnfiltVsn, meta_var = c('MedianVsnAbun', 'OriMissLevel'),
-                pca_method = 'pca', num_PCs = 20, do_onlyPCA = T)
-# Show significant associations between PCs and sample median expressions and missing levels
-pcaRes$pcSigAssoRes %>%
-  dplyr::filter(grepl('PC[1-9] \\(', Var1))
-```
-
-```{r}
-# Visualize relationship between PCs and sample median expressions and missing levels
-pcTab <- pcaRes$pcTab
-ggplot(pcTab, aes(x=`PC1 (20%)`, y=OriMissLevel)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(y = 'Missing level') +
-  th
-
-ggplot(pcTab, aes(x=`PC1 (20%)`, y=MedianVsnAbun)) +
-  geom_point(size = 3.5) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
-  labs(y = 'Median expression') +
-  th
-
-ggplot(pcTab, aes(x=`PC1 (20%)`, y=`PC2 (11.9%)`, col=OriMissLevel)) +
-  geom_point(size = 3.5) +
-  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
   th
 ```
 
@@ -1462,6 +1572,69 @@ ggplot(pcTab, aes(x=Plate, y=`PC1 (24.2%)`, col=Plate, fill=Plate)) +
   ggpubr::stat_compare_means(method = 't.test', paired = F,
                              method.args = list(var.equal = T),
                              size = 6, show.legend = F) +
+  th
+```
+
+**Investigate impacts of sample missing levels on observed features**\
+Display relationship between sample missing levels and median expressions computed
+by fully observed features
+```{r}
+# Normalize unfiltered data
+lipPlasmaTab <- lipPlasmaB1NoWBC
+lipPlasmaUnfiltVsn <- doPreprocessing(lipPlasmaTab, feat = 'Feature', smp = 'Sample',
+                                      val = 'Abundance', featAnno = c('RT', 'CCS', 'MZ'),
+                                      smpAnno = c(smpAnno, 'Batch', 'Plate'), do_featFilt = F)$vsn.data
+# Prepare long data for plotting
+lipPlasmaUnfiltVsnTab <- summExp2df(lipPlasmaUnfiltVsn, assay = 'Abundance',
+                                    row_id = 'Feature', col_id = 'Sample') %>%
+  # Prepare information of sample missing levels
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(OriMissLevel = sum(is.na(Value)) / length(Value)) %>%
+  dplyr::ungroup() %>%
+  # Prepare information of sample median expressions computed by fully observed features
+  dplyr::group_by(Feature) %>%
+  dplyr::mutate(Keep = dplyr::case_when(!any(is.na(Value)) ~ 'Yes',
+                                        any(is.na(Value)) ~ 'No')) %>%
+  dplyr::ungroup() %>%
+  dplyr::filter(Keep %in% 'Yes') %>%
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(MedianVsnAbun = median(Value)) %>%
+  dplyr::ungroup()
+# Create SE object containing information of sample missing levels and median expressions
+colAnno <- dplyr::select(lipPlasmaUnfiltVsnTab, Sample, OriMissLevel, MedianVsnAbun) %>%
+  dplyr::filter(!duplicated(Sample)) %>%
+  tibble::column_to_rownames('Sample')
+lipPlasmaUnfiltVsn <- SummarizedExperiment(assays = list(Abundance = assay(lipPlasmaUnfiltVsn)),
+                                           colData = colAnno)
+
+# Visualize relationship between sample missing levels and median expressions
+ggplot(lipPlasmaUnfiltVsnTab, aes(x=OriMissLevel, y=MedianVsnAbun)) +
+  geom_point(size = 3.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  labs(x = 'Missing level', y = 'Median expression') +
+  th
+```
+
+Show significant associations between data and sample missing levels
+```{r message=F}
+# Do PCA
+pcaRes <- doSOA(lipPlasmaUnfiltVsn, meta_var = 'OriMissLevel', pca_method = 'pca',
+                num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample missing levels
+pcaRes$pcSigAssoRes %>%
+  dplyr::filter(grepl('PC[1-9] \\(', Var1))
+
+# Visualize relationship between PCs and sample missing levels
+pcTab <- pcaRes$pcTab
+ggplot(pcTab, aes(x=`PC1 (20%)`, y=OriMissLevel)) +
+  geom_point(size = 3.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  labs(y = 'Missing level') +
+  th
+
+ggplot(pcTab, aes(x=`PC1 (20%)`, y=`PC2 (11.9%)`, col=OriMissLevel)) +
+  geom_point(size = 3.5) +
+  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
   th
 ```
 
@@ -2715,4 +2888,8 @@ ggplot(soaResB12WBC25$pcTab, aes(x=Recurrence, y=`PC5 (7%)`, col=Recurrence, fil
                              method.args = list(var.equal = T),
                              size = 6, show.legend = F) +
   th
+```
+
+```{r}
+sessionInfo()
 ```

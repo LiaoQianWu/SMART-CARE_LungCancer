@@ -8,7 +8,7 @@ output:
     code_folding: hide
 ---
 
-<font size='4'> Description: </font>
+<font size='4'> Description: Do multi-omics integration using MOFA. </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
@@ -98,16 +98,31 @@ dataList <- list(Comb_Tissue_Proteomics_Klin = comb_proTissue_Klin,
 # mDev_lipBaseTab_Hopf <- mofa_summExp2df(mDev_lipBase_Hopf, smp_type = 'Plasma',
 #                                         data_acqui = 'MethodDev Untargeted', data_modal = 'Lipidomics') %>%
 #   dplyr::filter(feature %in% sigFeats_mDev_lipBase_Hopf)
+
+# Prepare sample spaces from different datasets to remove unwanted samples later 
+smps_CombNTP <- stringr::str_replace(colnames(comb_proNormal_Klin), '_NG', '_B')
+smps_DisNTL <- stringr::str_replace(colnames(dis_lipNormal_Hopf), '_NG', '_B')
+smps_MDevNTL <- stringr::str_replace(colnames(mDev_lipNormal_Hopf), '_NG', '_B')
+smps_DisBPL <- stringr::str_replace(colnames(dis_lipBase_Hopf), '_V1', '_B')
+smps_MDevBPL <- colnames(mDev_lipBase_Hopf)
 ```
 
 # Comb. DIA NTP (Klin.) + All Unt. NTL
 Combined DIA Normal Tissue Proteomics (MethodDev + Discovery) from AG Klingmüller +
 Discovery and MethodDev Untargeted Normal Tissue Lipidomics\
-(since features defined by RT/CCS/MZ have difficulty being combined together from different cohorts)
+(since features defined by RT/CCS/MZ have difficulty being combined together from different cohorts)\
+**Note that only statistically significant recurrence-related features were used to train a MOFA model**
 
 ```{r}
 # Train MOFA model
-# mofaObject <- trainMOFA(list(comb_proNormalTab_Klin, dis_lipNormalTab_Hopf, mDev_lipNormalTab_Hopf),
+# Remove unwanted samples
+# smpViewCounts <- table(c(smps_CombNTP, smps_DisNTL, smps_MDevNTL))
+# rmSmps <- names(smpViewCounts)[smpViewCounts == 1]
+# tmp_dis_lipNormalTab_Hopf <- dplyr::filter(dis_lipNormalTab_Hopf, !sample %in% rmSmps)
+# tmp_mDev_lipNormalTab_Hopf <- dplyr::filter(mDev_lipNormalTab_Hopf, !sample %in% rmSmps)
+# 
+# mofaObject <- trainMOFA(list(comb_proNormalTab_Klin, tmp_dis_lipNormalTab_Hopf,
+#                              tmp_mDev_lipNormalTab_Hopf),
 #                         view_data = T, train_mofa = T, num_factors = 10,
 #                         save_path = './data/Discovery/mofa/sigFeats_CombDIANTPKlin_DisMDevUntNTL')
 
@@ -115,7 +130,8 @@ Discovery and MethodDev Untargeted Normal Tissue Lipidomics\
 mofaObject <- readRDS('./data/Discovery/mofa/sigFeats_CombDIANTPKlin_DisMDevUntNTL.rds')
 ```
 
-Overview model
+Overview model\
+Note that samples in only one view were removed from model training
 ```{r}
 # Overview model
 MOFA2::plot_data_overview(mofaObject)
@@ -124,7 +140,7 @@ MOFA2::plot_data_overview(mofaObject)
 Quantify amount of variance explained by each factor in each data modality
 ```{r}
 # Do sanity check for factor correlations
-# MOFA2::plot_factor_cor(mofaObject)
+MOFA2::plot_factor_cor(mofaObject)
 
 # Perform variance dedecomposition analysis (coefficient of determination)
 MOFA2::plot_variance_explained(mofaObject, max_r2 = 15)
@@ -136,46 +152,18 @@ Display and visualize significant recurrence-related factors
 # (Var2) and visualize significant recurrence-related factors
 sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
 
-# Factor1: p-value = 0.000021 without zero-valued samples
+ggplot(sigFactor$tab4Plot, aes(x=Factor1, y=Factor4, col=Recurrence)) +
+  geom_point(size = 4) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  th
 ```
-=> Samples with extremely small scores of Factor1&4 exist only in Untargeted Lipidomics
-that includes few features.\
 => Factor1 is highly correlated with PC1 from Klin. NTP and explains variance also
-in MDev. NTL, but in Dis. NTL. Note that Dis. NTL got 21 samples and MDev. NTL got
-18 samples in common with Klin. NTP, which might imply worse sample or data quality
-of Discovery Tissue Lipidomics (which is proved by their biological quality controls).
-
-Visualize Factor1 without samples with extremely small values
-```{r}
-# Do t-test without samples existing in Discovery Untargeted Lipidomics but Klin. Proteomics
-# Collect samples to be removed
-smps_CombNTP <- stringr::str_replace(colnames(comb_proNormal_Klin), '_NG', '_B')
-smps_DisNTL <- stringr::str_replace(colnames(dis_lipNormal_Hopf), '_NG', '_B')
-rmSmps <- smps_DisNTL[!smps_DisNTL %in% smps_CombNTP]
-# Prepare factor table
-facTab <- get_factors(mofaObject)[['Baseline Group']] %>%
-  tibble::as_tibble(rownames = 'sample') %>%
-  dplyr::select(sample, Factor1) %>%
-  dplyr::filter(!sample %in% rmSmps)
-# Prepare metadata table
-metaTab <- samples_metadata(mofaObject) %>%
-  dplyr::select(sample, Recurrence) %>%
-  dplyr::filter(!sample %in% rmSmps)
-# Do t-test
-# testAsso(facTab, metaTab, cmn_col = 'sample') %>%
-#     dplyr::filter(pVal <= 0.05)
-# Visualize factor values
-tab4Plot <- dplyr::left_join(facTab, metaTab, by = 'sample')
-ggplot(tab4Plot, aes(x=Recurrence, y=Factor1, col=Recurrence, fill=Recurrence)) +
-        geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-        geom_jitter(position = position_jitter(0.2), show.legend = F) +
-        scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-        scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-        ggpubr::stat_compare_means(method = 't.test', paired = F,
-                                   method.args = list(var.equal = T),
-                                   show.legend = F) +
-        th
-```
+in MDev. NTL, but in Dis. NTL, which implies that significant features captured
+from MDev. and Dis. NTL may provide distinct information probably due to biological
+variations in different patient cohorts. In addition, Dis. Tissue Lipidomics got
+worse sample or data quality than MDev., which is shown by their metadata-assisted
+quality controls (Tumor vs Normal).
 
 Compare Factor1 with recurrence-related PC1 learned from Combined Klin. Normal Tissue Proteomics
 ```{r}
@@ -249,15 +237,14 @@ ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=
         legend.title = element_text(size = 12),
         legend.text = element_text(size = 12))
 
-# => Factor2: HALLMARK_E2F_TARGETS, HALLMARK_MYC_TARGETS_V1, HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION
 # => Factor4: HALLMARK_MYC_TARGETS_V1
 ```
 
 ```{r include=F, eval=F}
 # Compare factors learned from different MOFA models
 mofaObj1 <- readRDS('./data/Discovery/mofa/sigFeats_CombDIANTPKlin_DisMDevUntNTL.rds')
-mofaObj2 <- readRDS('./data/Discovery/mofa/sigFeats_CombDIANTPKlin_DisUntNTL.rds')
-mofaObj3 <- readRDS('./data/Discovery/mofa/sigFeats_CombDIANTPKlin_MDevUntNTL.rds')
+mofaObj2 <- readRDS('./data/Discovery/mofa/X/sigFeats_CombDIANTPKlin_DisUntNTL.rds')
+mofaObj3 <- readRDS('./data/Discovery/mofa/X/sigFeats_CombDIANTPKlin_MDevUntNTL.rds')
 
 MOFA2::plot_variance_explained(mofaObj2, max_r2 = 15) +
   labs(title = 'DisUntNTL: Factor1&2 Sig.')
@@ -267,14 +254,22 @@ MOFA2::plot_variance_explained(mofaObj3, max_r2 = 15) +
 MOFA2::compare_factors(list(DisMDevUntNTL = mofaObj1, DisUntNTL = mofaObj2, MDevUntNTL = mofaObj3))
 ```
 
-## Comb. DIA NTP (Klin.) + All Unt. BPL
+# Comb. DIA NTP (Klin.) + All Unt. BPL
 Combined DIA Normal Tissue Proteomics (MethodDev + Discovery) from AG Klingmüller +
 Discovery and MethodDev Untargeted Baseline Plasma Lipidomics
-(since features defined by RT/CCS/MZ have difficulty being combined together from different cohorts)
+(since features defined by RT/CCS/MZ have difficulty being combined together from different cohorts)\
+**Note that only statistically significant recurrence-related features were used to train a MOFA model**
 
 ```{r}
 # Train MOFA model
-# mofaObject <- trainMOFA(list(comb_proNormalTab_Klin, dis_lipBaseTab_Hopf, mDev_lipBaseTab_Hopf),
+# Remove unwanted samples
+# smpViewCounts <- table(c(smps_CombNTP, smps_DisBPL, smps_MDevBPL))
+# rmSmps <- names(smpViewCounts)[smpViewCounts == 1]
+# tmp_dis_lipBaseTab_Hopf <- dplyr::filter(dis_lipBaseTab_Hopf, !sample %in% rmSmps)
+# tmp_mDev_lipBaseTab_Hopf <- dplyr::filter(mDev_lipBaseTab_Hopf, !sample %in% rmSmps)
+# 
+# mofaObject <- trainMOFA(list(comb_proNormalTab_Klin, tmp_dis_lipBaseTab_Hopf,
+#                              tmp_mDev_lipBaseTab_Hopf),
 #                         view_data = T, train_mofa = T, num_factors = 10,
 #                         save_path = './data/Discovery/mofa/sigFeats_CombDIANTPKlin_DisMDevUntBPL')
 
@@ -282,7 +277,8 @@ Discovery and MethodDev Untargeted Baseline Plasma Lipidomics
 mofaObject <- readRDS('./data/Discovery/mofa/sigFeats_CombDIANTPKlin_DisMDevUntBPL.rds')
 ```
 
-Overview model
+Overview model\
+Note that samples in only one view were removed from model training
 ```{r}
 # Overview model
 MOFA2::plot_data_overview(mofaObject)
@@ -338,13 +334,8 @@ facTab2 <- get_factors(mofaObj)[['Baseline Group']] %>%
   tibble::as_tibble(rownames = 'sample') %>%
   dplyr::select(sample, Factor1) %>%
   dplyr::rename(Factor1_NTL = Factor1)
-# Collect samples with extremely small Factor1_NTL, which will be removed
-smps_CombNTP <- stringr::str_replace(colnames(comb_proNormal_Klin), '_NG', '_B')
-smps_DisNTL <- stringr::str_replace(colnames(dis_lipNormal_Hopf), '_NG', '_B')
-rmSmps <- smps_DisNTL[!smps_DisNTL %in% smps_CombNTP]
 # Combine all information and remove unwanted samples
-combinedTab <- dplyr::left_join(facTab, facTab2, by = 'sample') %>%
-  dplyr::filter(!sample %in% rmSmps)
+combinedTab <- dplyr::left_join(facTab, facTab2, by = 'sample')
 # Make a plot and compute correlation
 ggplot(combinedTab, aes(x=Factor1_BPL, y=Factor1_NTL)) +
   geom_point(aes(col=Recurrence), size = 4) +
@@ -353,7 +344,6 @@ ggplot(combinedTab, aes(x=Factor1_BPL, y=Factor1_NTL)) +
   ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
   th
 ```
-=> Samples with extremely small Factor1_NTL were removed.
 
 Visualize enrichment analysis results
 ```{r message=F}
