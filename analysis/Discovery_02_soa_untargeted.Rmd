@@ -1,0 +1,402 @@
+---
+title: "Single-omics analysis: Untargeted Lipidomics of Discovery cohort"
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+---
+
+<font size='4'> Description: Conduct univariate (t-test) and multivariate (PCA)
+analyses on individual datasets, i.e., Tissue and Plasma Untargeted Lipidomics from
+AG Hopf (2 datasets), to have overview of data and take initial look at data
+power in terms of predicting patient cancer recurrence. </font>
+
+**Metadata variables**\
+Patients who got Tissue samples (n = 43):\
+Recurrence -> Cancer recurrences, Yes:No = 19:24\
+Gender -> Female:Male = 18:25\
+Age -> Diagnosis ages ranging from 51 to 76\
+Smoking -> Smoker:Ex-smoker:Non-Smoker = 11:26:6\
+Stage -> Pathological stages, IB:IIA:IIB = 25:6:12\
+Adjuvant -> Adjuvant chemotherapy, True:False = 14:29\
+Samples:\
+Condition -> Tumor:Normal = 1:1
+
+Patients who got Baseline Plasma samples (n = 63):\
+Recurrence -> Cancer recurrences, Yes:No = 24:39\
+Gender -> Female:Male = 28:35\
+Age -> Diagnosis ages ranging from 40 to 82\
+Smoking -> Smoker:Ex-smoker:Non-Smoker = 16:40:7\
+Stage -> Pathological stages, IB:IIA:IIB = 39:13:11\
+Adjuvant -> Adjuvant chemotherapy, True:False = 20:43
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer')
+```
+
+Load libraries
+```{r library loading, message = F}
+library('sva')
+library('pcaMethods')
+library('limma')
+library('proDA')
+library('pheatmap')
+library('ggplotify')
+library('ggrepel')
+library('SummarizedExperiment')
+library('tidyverse')
+# Load user-defined functions
+source('./code/analysis_pipeline.R')
+source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+    theme(axis.title = element_text(face = 'bold'),
+          axis.text = element_text(face = 'bold'),
+          axis.ticks = element_line(linewidth = 0.8),
+          legend.text = element_text(size = 15))
+```
+
+Display associations between cancer recurrence and the other patient metadata variables
+to identify potential predictors (or confounders)
+```{r}
+# Test associations between cancer recurrence and the other patient metadata variables
+# Prepare patient metadata
+lipTissue <- readRDS('./data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
+patientMetadat <- tibble::as_tibble(colData(lipTissue)) %>%
+  dplyr::filter(!duplicated(Patient)) %>%
+  dplyr::select(Patient, Recurrence, Gender, Age, Smoking, Stage, Adjuvant)
+patientRecur <- dplyr::select(patientMetadat, Patient, Recurrence)
+patientMetadat <- dplyr::select(patientMetadat, -Recurrence)
+testAsso(patientMetadat, patientRecur, cmn_col = 'Patient') %>%
+  dplyr::select(-Stat)
+```
+
+# Tissue Lipidomics
+
+**Do metadata-assisted quality control**\
+After testing associations between PCs and tissue sample conditions, we found that
+PC1 and PC2 can significantly separate Tumor and Normal samples, which indicates
+decent data quality. Yet, there are some samples misclassified.\
+The following 4 samples were misclassified in Krijgsveld Discovery DIA Proteomics:\
+Tumor purity: I0HVOL_TU - 87% / 7EAOX7_TU - 70% / MJMTYR_TU - 40% / XFKHGP_TU - 100%\
+(Mean of sample tumor cell contents is 74%, ranging from 40% to 100%.)
+```{r}
+# Load preprocessed data
+lipTissue <- readRDS('./data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
+# Do metadata-assisted quality control
+# Perform single-omics analysis
+lipTissueRes <- doSOA(lipTissue, meta_var = 'Condition', pca_method = 'ppca', do_onlyPCA = T)
+# Visualize top PCs
+pcTab <- lipTissueRes$pcTab %>%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% c('I0HVOL_TU', '7EAOX7_TU',
+                                                       'MJMTYR_TU', 'XFKHGP_TU',
+                                                       'XFKHGP_NG', 'MJMTYR_NG',
+                                                       'I0HVOL_NG', '7EAOX7_NG') ~ Sample))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (41.5%)`, color=Condition, fill=Condition, label=Label)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  geom_text_repel(show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  labs(x = 'Sample condition') +
+  th
+```
+
+Tumor purity: I0HVOL_TU - 87% / 7EAOX7_TU - 70% / 1NL5BV_TU - 53%\
+(Mean of sample tumor cell contents is 74%, ranging from 40% to 100%.)
+```{r}
+pcTab <- lipTissueRes$pcTab %>%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% c('1NL5BV_TU', '1NL5BV_NG',
+                                                       'I0HVOL_TU', 'I0HVOL_NG',
+                                                       '7EAOX7_TU', '7EAOX7_NG') ~ Sample))
+ggplot(pcTab, aes(x=`PC1 (41.5%)`, y=`PC2 (13.5%)`, col=Condition, label=Label)) +
+  geom_point(size = 2.5) +
+  geom_text_repel(size = 4, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  th
+```
+=> Tumor and Normal tissue samples will be analyzed separately for two reasons:
+(1) They are characteristically different and might be offsets to each other, and
+(2) Normal tissues is always obtainable in case that Tumor tissues were not preserved
+after surgery.
+
+## Normal samples
+
+Display significant associations between SVs and sample metadata variables. SVs
+(surrogate variables) will be included in linear model for differential analysis
+```{r}
+# Subset certain samples
+lipNormal <- lipTissue[, which(colData(lipTissue)$Condition == 'Normal')]
+
+# Do SVA to identify latent factors that explain unknown variance
+# Prepare data matrix and sample metadata table for creating model matrices
+datMat <- assay(lipNormal)
+# Keep only complete features
+keptFeats <- apply(datMat, 1, function(featVec) {
+  !any(is.na(featVec))
+})
+datMat <- datMat[keptFeats,]
+metadatTab <- colData(lipNormal) %>%
+  tibble::as_tibble(rownames = 'Sample')
+# Create full model matrix including both adjustment variables and variables of interest
+modelMat <- model.matrix(~ Recurrence, data = metadatTab)
+# Create null model matrix including only adjustment variables
+modelMat0 <- model.matrix(~ 1, data = metadatTab)
+
+# Perform SVA
+# Identify number of latent factors that need to be estimated
+numSV = sva::num.sv(datMat, modelMat, method = 'be')
+svObj = sva(datMat, modelMat, modelMat0, n.sv = numSV)
+
+# Do association tests between SVs and patient metadata
+# Prepare surrogate variable table
+svTab <- svObj$sv
+rownames(svTab) <- metadatTab$Sample
+colnames(svTab) <- paste0('SV', seq_len(ncol(svTab)))
+svTab <- tibble::as_tibble(svTab, rownames = 'Sample')
+# Prepare patient metadata table
+metaTab <- dplyr::select(metadatTab, Sample, Recurrence, Gender, Age, Smoking, Stage,
+                         Adjuvant, MissLevel)
+# Do association tests
+testAsso(svTab, metaTab, cmn_col = 'Sample') %>%
+  dplyr::filter(pVal <= 0.05)
+
+# Include surrogate variables into SE object
+lipNormalTab <- summExp2df(lipNormal, row_id = 'Feature', col_id = 'Sample')
+lipNormalTab <- dplyr::left_join(lipNormalTab, svTab, by = 'Sample')
+lipNormal <- df2SummExp(lipNormalTab, row_id = 'Feature', col_id = 'Sample',
+                        values = 'Value', row_anno = c('RT', 'CCS', 'MZ'),
+                        col_anno = c(colnames(colData(lipNormal)),
+                                     paste0('SV', seq_len(ncol(svTab)-1))))
+assay(lipNormal) <- as.matrix(assay(lipNormal))
+```
+
+```{r message=F}
+# Perform single-omics analysis
+lipNormalRes <- doSingleOmicsAnalysis(lipNormal, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+                                      pca_method = 'ppca', num_PCs = 20, num_PCfeats = 30,
+                                      use_proDA = T, pca_metaVar = c('Recurrence', 'Gender', 'Age',
+                                                                     'Smoking', 'Stage', 'Adjuvant',
+                                                                     'MissLevel'),
+                                      show_row = F,
+                                      soa_unwantVar = c(paste0('SV', seq_len(6)),
+                                                        'MissLevel', 'Stage', 'Gender',
+                                                        'Adjuvant', 'Smoking'))
+                                      # soa_unwantVar = c('MissLevel', 'Stage', 'Gender',
+                                      #                   'Adjuvant', 'Smoking'))
+```
+
+Display significant associations between PCs (Var1) and sample metadata variables
+(Var2) to overview sources of variance in data
+```{r}
+lipNormalRes$data.var.source
+```
+
+Display significant associations between features (Var1) and cancer recurrence (Var2).
+Owing to missing values, there may be situation that only few observations in sample
+groups, resulting in unreliable t-statistics. To this end, we used probabilistic
+dropout model (proDA) to account for data missingness.
+```{r}
+lipNormalRes$sig.feat.tab
+```
+
+Visualize molecular signatures of significant features in data. Note that features
+in rows are ordered by t-statistics.
+```{r}
+lipNormalRes$sig.feat.heat
+```
+
+Visualize top significant features identified in Tumor samples (ns: p > 0.05,
+$*$: p <= 0.05, $**$: p <= 0.01)
+```{r fig.height=10}
+# Prepare data matrix and metadata including both Tumor and Normal samples
+datMat <- lipTissueRes$data
+smpAnnoTab <- lipTissueRes$smpMetadata
+# Prepare significant feature table
+featSigAssoTab <- lipNormalRes$sig.feat.tab
+num_sigFeats <- 6
+gpLevel = c('Yes_Normal', 'No_Normal', 'Yes_Tumor', 'No_Tumor')
+condiCol = c('firebrick', 'grey50') #c(Normal, Tumor)
+# Extract top significant features and prepare needed information
+topSigFeats <- featSigAssoTab[1:num_sigFeats,] %>%
+  dplyr::pull(Var1)
+topSigFeatDat <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Var1') %>%
+  tidyr::pivot_longer(cols = -'Var1', names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
+  dplyr::mutate(Var1 = factor(Var1, levels = topSigFeats),
+                Recur_Condi = paste0(Recurrence, '_', Condition),
+                Recur_Condi = factor(Recur_Condi, levels = gpLevel))
+ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                             comparisons = list(c('Yes_Normal', 'No_Normal'), c('Yes_Tumor', 'No_Tumor')),
+                             label = 'p.signif', tip.length = 0.015, bracket.size = 0.7, size = 4) +
+  labs(x = 'Recurrence') +
+  scale_color_manual(values = condiCol) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Var1), scales = 'free') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'),
+             axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+Assess data power by p-value histogram
+```{r}
+lipNormalRes$pval.hist
+```
+
+Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+```{r}
+lipNormalRes$sig.pc.tab
+```
+
+Visualize significant PCs and display their top features with greatest absolute loadings
+```{r}
+lipNormalRes$sig.pc.dist$PC18
+lipNormalRes$pc.top.feat.tab$PC18
+```
+
+## Tumor samples
+
+Note that tumor purity is also included in linear model for more reliable t-test
+results because they are significantly associated with top PCs.
+```{r}
+# Subset certain samples
+lipTumor <- lipTissue[, which(colData(lipTissue)$Condition == 'Tumor')]
+# Perform single-omics analysis
+lipTumorRes <- doSingleOmicsAnalysis(lipTumor, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+                                     pca_method = 'ppca', num_PCs = 20, num_PCfeats = 30,
+                                     use_proDA = T, pca_metaVar = c('Recurrence', 'Gender', 'Age',
+                                                                    'Smoking', 'Stage', 'Adjuvant',
+                                                                    'TumorPurity'),
+                                     soa_unwantVar = 'TumorPurity')
+```
+
+Display significant associations between PCs (Var1) and sample metadata variables
+(Var2) to overview sources of variance in data
+```{r}
+lipTumorRes$data.var.source
+```
+
+Display significant associations between features (Var1) and cancer recurrence (Var2).
+```{r}
+lipTumorRes$sig.feat.tab
+```
+
+Visualize molecular signatures of significant features in data. Note that features
+in rows are ordered by t-statistics.
+```{r}
+lipTumorRes$sig.feat.heat
+```
+
+Visualize top significant features identified in Tumor samples (ns: p > 0.05,
+$*$: p <= 0.05, $**$: p <= 0.01)
+```{r fig.height=10}
+# Prepare data matrix and metadata including both Tumor and Normal samples
+datMat <- lipTissueRes$data
+smpAnnoTab <- lipTissueRes$smpMetadata
+# Prepare significant feature table
+featSigAssoTab <- lipTumorRes$sig.feat.tab
+num_sigFeats <- 6
+gpLevel = c('Yes_Tumor', 'No_Tumor', 'Yes_Normal', 'No_Normal')
+condiCol = c('grey50', 'firebrick') #c(Normal, Tumor)
+# Extract top significant features and prepare needed information
+topSigFeats <- featSigAssoTab[1:num_sigFeats,] %>%
+  dplyr::pull(Var1)
+topSigFeatDat <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Var1') %>%
+  tidyr::pivot_longer(cols = -'Var1', names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
+  dplyr::mutate(Var1 = factor(Var1, levels = topSigFeats),
+                Recur_Condi = paste0(Recurrence, '_', Condition),
+                Recur_Condi = factor(Recur_Condi, levels = gpLevel))
+ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
+  geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                             comparisons = list(c('Yes_Tumor', 'No_Tumor'), c('Yes_Normal', 'No_Normal')),
+                             label = 'p.signif', tip.length = 0.015, bracket.size = 0.7, size = 4) +
+  labs(x = 'Recurrence') +
+  scale_color_manual(values = condiCol) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  facet_wrap(vars(Var1), scales = 'free') +
+  th + theme(strip.text = element_text(size = 13, face = 'bold'),
+             axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+Assess data power by p-value histogram
+```{r}
+lipTumorRes$pval.hist
+```
+
+There exists no PC significantly associated with cancer recurrence
+```{r}
+lipTumorRes$sig.pc.tab
+```
+
+# Plasma Proteomics
+We first focused on analysis of Baseline plasma samples because (1) what we are
+most interested in is predicting recurrence, and (2) Baseline samples are less
+complex compared to Follow-up samples.
+
+## Baseline samples
+
+Note that plates where samples were located are also included in linear model for
+more reliable t-test results because they are significantly associated with top PCs.
+```{r}
+# Load preprocessed data
+lipBase <- readRDS('./data/Discovery/AG_Hopf/lipBaseVsn_B1WBC25.rds')
+
+# Perform single-omics analysis
+lipBaseRes <- doSingleOmicsAnalysis(lipBase, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+                                    pca_method = 'ppca', num_PCs = 20, num_PCfeats = 30,
+                                    use_proDA = T, pca_metaVar = c('Recurrence', 'Gender', 'Age',
+                                                                   'Smoking', 'Stage', 'Adjuvant',
+                                                                   'Plate'),
+                                    soa_unwantVar = 'Plate')
+```
+
+Display significant associations between PCs (Var1) and sample metadata variables
+(Var2) to overview sources of variance in data
+```{r}
+lipBaseRes$data.var.source
+```
+
+Display significant associations between features (Var1) and cancer recurrence (Var2).
+Owing to missing values, there may be situation that only few observations in sample
+groups, resulting in unreliable t-statistics. To this end, we used probabilistic
+dropout model (proDA) to account for data missingness.
+```{r}
+lipBaseRes$sig.feat.tab
+```
+
+Visualize molecular signatures of significant features in data. Note that features
+in rows are ordered by t-statistics.
+```{r}
+lipBaseRes$sig.feat.heat
+```
+
+Visualize top significant features
+```{r}
+lipBaseRes$top.sig.feat.dist
+```
+
+Assess data power by p-value histogram
+```{r}
+lipBaseRes$pval.hist
+```
+
+Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+```{r}
+lipBaseRes$sig.pc.tab
+```
+
+Visualize significant PCs and display their top features with greatest absolute loadings
+```{r}
+lipBaseRes$sig.pc.dist$PC5
+lipBaseRes$pc.top.feat.tab$PC5
+```
+

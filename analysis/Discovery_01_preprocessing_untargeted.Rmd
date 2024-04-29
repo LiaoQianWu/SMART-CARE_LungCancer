@@ -26,6 +26,7 @@ library(readr)
 library(readxl)
 library(vsn)
 library(limma)
+library(sva)
 library(visdat)
 library(ggrepel)
 library(ggvenn)
@@ -238,7 +239,15 @@ lipTissueFilt <- lipTissue$filt.data
 lipTissueFiltVsn <- lipTissue$vsn.data
 # Prepare long data for plotting
 lipTissueFiltVsnTab <- summExp2df(lipTissueFiltVsn, assay = 'Abundance',
-                                  row_id = 'Feature', col_id = 'Sample')
+                                  row_id = 'Feature', col_id = 'Sample') %>%
+  # Compute sample missing levels
+  dplyr::group_by(Sample) %>%
+  dplyr::mutate(MissLevel = sum(is.na(Value)) / length(Value)) %>%
+  dplyr::ungroup()
+lipTissueFiltVsn <- df2SummExp(lipTissueFiltVsnTab, row_id = 'Feature', col_id = 'Sample',
+                               values = 'Value', row_anno = c('RT', 'CCS', 'MZ'),
+                               col_anno = c(smpAnno, 'TumorPurity', 'MissLevel'))
+assay(lipTissueFiltVsn) <- as.matrix(assay(lipTissueFiltVsn))
 # Show dimensions of data
 cat('Data dimensions:', dim(lipTissueFiltVsn)[2], 'samples and', dim(lipTissueFiltVsn)[1], 'features')
 
@@ -260,14 +269,16 @@ vsn::meanSdPlot(assay(lipTissueFiltVsn), ranks = T, plot = F, bins = 30)$gg +
   th
 
 # Save preprocessed data
-# saveRDS(lipTissueFiltVsn, './data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
+saveRDS(lipTissueFiltVsn, './data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
 ```
 
 **Do biological quality control**\
+<font size='2'> **PPCA** </font>
 ```{r}
 # Do PCA
 pcaRes <- doSOA(lipTissueFiltVsn, meta_var = c('Condition', 'Recurrence', 'Gender',
-                                               'Age', 'Smoking', 'Stage', 'Adjuvant'),
+                                               'Age', 'Smoking', 'Stage', 'Adjuvant',
+                                               'MissLevel'),
                 pca_method = 'ppca', num_PCs = 20, do_onlyPCA = T)
 # Show significant associations between PCs and plates where samples are located
 pcaRes$pcSigAssoRes
@@ -275,7 +286,19 @@ pcaRes$pcSigAssoRes
 pcTab <- pcaRes$pcTab %>%
   dplyr::mutate(Label = case_when(Sample %in% c('1NL5BV_TU', '1NL5BV_NG',
                                                 'I0HVOL_TU', 'I0HVOL_NG',
-                                                '7EAOX7_TU', '7EAOX7_NG') ~ Sample))
+                                                '7EAOX7_TU', '7EAOX7_NG') ~ Sample),
+                Label2 = case_when(Sample %in% c('1NL5BV_TU', '1NL5BV_NG',
+                                                 '1VVXHY_TU', '1VVXHY_NG',
+                                                 'CMVZEW_TU', 'CMVZEW_NG',
+                                                 '1XUOU0_TU', '1XUOU0_NG',
+                                                 '1XGTDZ_TU', '1XGTDZ_NG',
+                                                 '11BMIX_TU', '11BMIX_NG',
+                                                 '1IHGAC_TU', '1IHGAC_NG',
+                                                 '1H3IW7_TU', '1H3IW7_NG',
+                                                 'Q7B5U6_TU', 'Q7B5U6_NG',
+                                                 'NVJH6R_TU', 'NVJH6R_NG',
+                                                 'Q89YQK_TU', 'Q89YQK_NG',
+                                                 'MJMTYR_TU', 'MJMTYR_NG') ~ Sample))
 
 ggplot(pcTab, aes(x=Condition, y=`PC1 (41.5%)`, col=Condition, fill=Condition)) +
   geom_boxplot(alpha = 0.7, outliers = F) +
@@ -289,35 +312,6 @@ ggplot(pcTab, aes(x=`PC1 (41.5%)`, y=`PC2 (13.5%)`, col=Condition, label=Label))
   geom_text_repel(size = 4, show.legend = F) +
   scale_color_brewer(palette = 'Dark2') +
   th
-```
-=> Tumor purity: I0HVOL_TU - 87% / 7EAOX7_TU - 70% / 1NL5BV_TU - 53%\
-(Mean of sample tumor cell contents is 74%, ranging from 40% to 100%.)
-
-```{r}
-# Prepare information of sample missing levels
-missInfo <- dplyr::group_by(lipTissueFiltVsnTab, Sample) %>%
-  dplyr::summarise(MissLevel = sum(is.na(Value)) / length(Value)) %>%
-  dplyr::filter(!duplicated(Sample))
-# Show significant associations between PCs and sample missing levels
-pcTab <- tibble::as_tibble(pcaRes$pcaRes@scores, rownames = 'Sample')
-testAssociation(pcTab, missInfo, cmn_col = 'Sample') %>%
-  dplyr::filter(pVal <= 0.05)
-# Visualize PCs
-pcTab <- pcaRes$pcTab %>%
-  # Label those samples from bottom right cluster
-  dplyr::mutate(Label = case_when(Sample %in% c('1NL5BV_TU', '1NL5BV_NG',
-                                                '1VVXHY_TU', '1VVXHY_NG',
-                                                'CMVZEW_TU', 'CMVZEW_NG',
-                                                '1XUOU0_TU', '1XUOU0_NG',
-                                                '1XGTDZ_TU', '1XGTDZ_NG',
-                                                '11BMIX_TU', '11BMIX_NG',
-                                                '1IHGAC_TU', '1IHGAC_NG',
-                                                '1H3IW7_TU', '1H3IW7_NG',
-                                                'Q7B5U6_TU', 'Q7B5U6_NG',
-                                                'NVJH6R_TU', 'NVJH6R_NG',
-                                                'Q89YQK_TU', 'Q89YQK_NG',
-                                                'MJMTYR_TU', 'MJMTYR_NG') ~ Sample)) %>%
-dplyr::left_join(missInfo, by = 'Sample')
 
 ggplot(pcTab, aes(x=`PC1 (41.5%)`, y=`PC2 (13.5%)`, col=MissLevel)) +
   geom_point(size = 2.5) +
@@ -329,11 +323,15 @@ bqSmps <- c('1NL5BV_TU', '1NL5BV_NG', '1VVXHY_NG', 'CMVZEW_NG', '1XUOU0_NG', '1X
             '1XGTDZ_NG', '11BMIX_NG', '1IHGAC_NG', '1H3IW7_NG', 'Q7B5U6_TU', 'Q7B5U6_NG',
             'NVJH6R_NG', 'Q89YQK_TU', 'Q89YQK_NG', 'MJMTYR_TU')
 ```
+=> Tumor purity: I0HVOL_TU - 87% / 7EAOX7_TU - 70% / 1NL5BV_TU - 53%\
+(Mean of sample tumor cell contents is 74%, ranging from 40% to 100%.)
 
+<font size='2'> **Ordinary PCA** </font>
 ```{r message=F}
 # Do PCA
 pcaRes <- doSOA(lipTissueFiltVsn, meta_var = c('Condition', 'Recurrence', 'Gender',
-                                               'Age', 'Smoking', 'Stage', 'Adjuvant'),
+                                               'Age', 'Smoking', 'Stage', 'Adjuvant',
+                                               'MissLevel'),
                 pca_method = 'pca', num_PCs = 20, do_onlyPCA = T)
 # Show significant associations between PCs and plates where samples are located
 pcaRes$pcSigAssoRes %>%
@@ -345,8 +343,7 @@ pcTab <- pcaRes$pcTab %>%
                                                  'MJMTYR_TU', 'MJMTYR_NG',
                                                  '1XGTDZ_TU', '1XGTDZ_NG',
                                                  '7EAOX7_TU', '7EAOX7_NG',
-                                                 'I0HVOL_TU', 'I0HVOL_NG') ~ Sample)) %>%
-  dplyr::left_join(missInfo, by = 'Sample')
+                                                 'I0HVOL_TU', 'I0HVOL_NG') ~ Sample))
 
 ggplot(pcTab, aes(x=Condition, y=`PC1 (27.4%)`, col=Condition, fill=Condition, label=Label2)) +
   geom_boxplot(alpha = 0.7, outliers = F) +
@@ -366,44 +363,65 @@ ggplot(pcTab, aes(x=`PC1 (27.4%)`, y=`PC4 (5.7%)`, col=MissLevel)) +
   geom_point(size = 2.5) +
   scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
   th
+
+ggplot(pcTab, aes(x=MissLevel, y=`PC2 (11.9%)`, col=MissLevel)) +
+  geom_point(size = 2.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
+  th
+
+ggplot(pcTab, aes(x=MissLevel, y=`PC3 (9%)`, col=MissLevel)) +
+  geom_point(size = 2.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
+  th
+
+ggplot(pcTab, aes(x=`PC2 (11.9%)`, y=`PC3 (9%)`, col=MissLevel)) +
+  geom_point(size = 2.5) +
+  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
+  th
 ```
 
 **Do cluster correction using limma**
-```{r}
+```{r eval=F}
 # Include cluster information (probably indicating sample quality) into SE object
 lipTissueFiltVsnTab <- dplyr::mutate(lipTissueFiltVsnTab,
                                      Cluster = case_when(!Sample %in% bqSmps ~ '1',
                                                          Sample %in% bqSmps ~ '2'))
 lipTissueFiltVsn <- df2SummExp(lipTissueFiltVsnTab, row_id = 'Feature', col_id = 'Sample',
                                values = 'Value', row_anno = c('RT', 'CCS', 'MZ'),
-                               col_anno = c(smpAnno, 'TumorPurity', 'Cluster'))
+                               col_anno = c(smpAnno, 'TumorPurity', 'MissLevel', 'Cluster'))
 assay(lipTissueFiltVsn) <- as.matrix(assay(lipTissueFiltVsn))
 
 # Save preprocessed data
-saveRDS(lipTissueFiltVsn, './data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
+# saveRDS(lipTissueFiltVsn, './data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
 
 # Perform cluster correction to see if two unwanted cluster can be merged
 # Convert SE object into wide data
 datMat <- assay(lipTissueFiltVsn)
 # Define design matrix to keep particular effects, e.g., treatments
 smpAnnoTab <- tibble::as_tibble(colData(lipTissueFiltVsn), rownames = 'Sample')
-design <- model.matrix(~ smpAnnoTab$Recurrence)
+design <- model.matrix(~ smpAnnoTab$Recurrence + smpAnnoTab$Condition)
 # Do correction
 datMat_C <- limma::removeBatchEffect(datMat, batch = smpAnnoTab$Cluster, design = design)
 lipTissueFiltVsn_C <- lipTissueFiltVsn
 assay(lipTissueFiltVsn_C) <- datMat_C
 
 # Do single-omics analysis
-pcaRes_C <- doSOA(lipTissueFiltVsn_C, meta_var = 'Condition', pca_method = 'ppca',
-                  num_PCs = 20, do_onlyPCA = T)
+pcaRes_C <- doSOA(lipTissueFiltVsn_C, meta_var = c('Condition', 'MissLevel', 'Cluster'),
+                  pca_method = 'ppca', num_PCs = 20, do_onlyPCA = T)
 pcaRes_C$pcSigAssoRes
 
 # Visualize PCs
 pcTab <- pcaRes_C$pcTab %>%
-  dplyr::mutate(Label = case_when(Sample %in% bqSmps ~ Sample)) %>%
-  dplyr::left_join(missInfo, by = 'Sample')
+  dplyr::mutate(Label = case_when(Sample %in% bqSmps ~ Sample))
 
-ggplot(pcTab, aes(x=`PC1 (30.4%)`, y=`PC3 (8.3%)`, col=MissLevel)) +
+ggplot(pcTab, aes(x=`PC1 (31.1%)`, y=`PC3 (8.4%)`, col=Condition)) +
+  geom_point(size = 2.5) +
+  scale_color_brewer(palette = 'Dark2') +
+  th
+
+ggplot(pcTab, aes(x=`PC1 (31.1%)`, y=`PC3 (8.4%)`, col=MissLevel)) +
   geom_point(size = 2.5) +
   scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
   th
@@ -411,6 +429,85 @@ ggplot(pcTab, aes(x=`PC1 (30.4%)`, y=`PC3 (8.3%)`, col=MissLevel)) +
 # Save preprocessed data
 saveRDS(lipTissueFiltVsn_C, './data/Discovery/AG_Hopf/lipTissueVsn_WBC25_C.rds')
 ```
+
+**Identify latent factors that explain unknown variance using sva**
+```{r}
+# Do SVA to identify latent factors that explain unknown variance
+# Prepare data matrix and sample metadata table for creating model matrices
+datMat <- assay(lipTissueFiltVsn)
+# Keep only complete features
+keptFeats <- apply(datMat, 1, function(featVec) {
+  !any(is.na(featVec))
+})
+datMat <- datMat[keptFeats,]
+metadatTab <- colData(lipTissueFiltVsn) %>%
+  tibble::as_tibble(rownames = 'Sample')
+# Create full model matrix including both adjustment variables and variables of interest
+modelMat <- model.matrix(~ Recurrence, data = metadatTab)
+# Create null model matrix including only adjustment variables
+modelMat0 <- model.matrix(~ 1, data = metadatTab)
+
+# Perform SVA
+# Identify number of latent factors that need to be estimated
+numSV = sva::num.sv(datMat, modelMat, method = 'leek')
+svObj = sva(datMat, modelMat, modelMat0, n.sv = numSV)
+# Prepare surrogate variable table
+svTab <- svObj$sv
+rownames(svTab) <- metadatTab$Sample
+colnames(svTab) <- paste0('SV', seq_len(ncol(svTab)))
+svTab <- tibble::as_tibble(svTab, rownames = 'Sample')
+
+# Do association tests between SVs and patient metadata
+# Prepare patient metadata table
+metaTab <- dplyr::select(metadatTab, Sample, Condition, Recurrence, Gender, Age,
+                         Smoking, Stage, Adjuvant, TumorPurity, MissLevel)
+# Do association tests
+testAsso(svTab, metaTab, cmn_col = 'Sample') %>%
+  dplyr::filter(pVal <= 0.05)
+
+# Visualize significant SVs
+vizTab <- dplyr::left_join(svTab, metaTab, by = 'Sample')
+# => High correlation between SV and TumorPurity just due to many 100% tumor samples
+# and all 0% normal samples
+
+ggplot(vizTab, aes(x=Condition, y=SV1, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  th
+
+ggplot(vizTab, aes(x=SV1, y=MissLevel, col=MissLevel)) +
+  geom_point(size = 2.5) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 6) +
+  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
+  th
+
+# Do differential analysis
+# Include surrogate variables into model matrices
+# modelMat <- cbind(modelMat, svObj$sv)
+# modelMat0 <- cbind(modelMat0, svObj$sv)
+# tRes <- sva::f.pvalue(datMat, modelMat, modelMat0)
+# tResAdj <- p.adjust(tRes, method = 'BH')
+
+# Include surrogate variables into SE object
+# lipTissueFiltVsnTab <- dplyr::left_join(lipTissueFiltVsnTab, svTab, by = 'Sample')
+# lipTissueFiltVsn <- df2SummExp(lipTissueFiltVsnTab, row_id = 'Feature', col_id = 'Sample',
+#                                values = 'Value', row_anno = c('RT', 'CCS', 'MZ'),
+#                                col_anno = c(smpAnno, 'TumorPurity',
+#                                             paste0('SV', seq_len(ncol(svTab)-1))))
+# assay(lipTissueFiltVsn) <- as.matrix(assay(lipTissueFiltVsn))
+
+# Save preprocessed data
+# saveRDS(lipTissueFiltVsn, './data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
+```
+=> SVA will be conducted individually for Normal and Tumor dataset later, because\
+(1) including Condition (Tumor and Normal samples) into variables of interest results
+in no SV identified, and without including Condition, SVA tends to identify SV (r=0.99
+with PC1 computed by ordinary PCA) that is highly associated with Condition, which
+is not unwanted variation, and\
+(2) identified SVs could be more specific to sub-datasets, i.e, Normal and Tumor
+datasets that will be analyzed separately.
 
 **Investigate impacts of sample missing levels on observed features**\
 Display relationship between sample missing levels and median expressions computed
