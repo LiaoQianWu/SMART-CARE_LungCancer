@@ -316,7 +316,7 @@ Discovery and MethodDev Untargeted Baseline Plasma Lipidomics
 
 # Load trained model
 mofaObject <- readRDS('./data/Discovery/mofa/sigFeats_CombDIANTPKlin_DisMDevUntBPL.rds')
-views_names(mofaObject) <- c('Dis. Unt. BPL', 'Comb. DIA NTP', 'MDev. Unt. BPL')
+# views_names(mofaObject) <- c('Dis. Unt. BPL', 'Comb. DIA NTP', 'MDev. Unt. BPL')
 ```
 
 Overview model\
