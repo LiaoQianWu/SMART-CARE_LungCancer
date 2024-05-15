@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Qian-Wu Liao" />
+
+
+<title>Feature selection: Machine learning models</title>
+
+<script src="site_libs/header-attrs-2.26/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">SMART-CARE: Lung Cancer</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Feature selection: Machine learning
+models</h1>
+<h4 class="author">Qian-Wu Liao</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2024-05-15
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong> <code>SMART-CARE_LungCancer/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20230425code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20230425)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20230425code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20230425)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
+</p>
+</div>
+<div id="strongFilepathsstrongabsolute" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Using absolute paths to the files within your workflowr project makes it
+difficult for you and others to run your code on a different machine.
+Change the absolute path(s) below to the suggested relative path(s) to
+make your code more reproducible.
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+absolute
+</th>
+<th style="text-align:left;">
+relative
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+/Users/qianwu/Desktop/SMART-CARE_LungCancer
+</td>
+<td style="text-align:left;">
+.
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree9a5191e865f9c1d40a49ea46a7c1c020e986c53etargetblank9a5191ea">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/9a5191e865f9c1d40a49ea46a7c1c020e986c53e" target="_blank">9a5191e</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree9a5191e865f9c1d40a49ea46a7c1c020e986c53etargetblank9a5191ea"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/9a5191e865f9c1d40a49ea46a7c1c020e986c53e" target="_blank">9a5191e</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    analysis/.DS_Store
+    Ignored:    code/.DS_Store
+    Ignored:    data/.DS_Store
+    Ignored:    output/.DS_Store
+
+Untracked files:
+    Untracked:  analysis/CrossCohort_investigation_EXP.Rmd
+    Untracked:  code/archive/
+    Untracked:  code/comparison_funcs.R
+    Untracked:  code/dataset_list.R
+    Untracked:  code/workflowr_commands.R
+    Untracked:  data/Discovery/
+    Untracked:  data/MethodDev/
+    Untracked:  data/aliquot_metadata.xlsx
+    Untracked:  data/patient_metadata.xlsx
+    Untracked:  data/sample_metadata.xlsx
+    Untracked:  output/Discovery/
+    Untracked:  output/MethodDev/
+    Untracked:  output/SC_meeting/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/FeatSelection_ML.Rmd</code>) and
+HTML (<code>docs/FeatSelection_ML.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/9a5191e865f9c1d40a49ea46a7c1c020e986c53e/analysis/FeatSelection_ML.Rmd" target="_blank">9a5191e</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-05-15
+</td>
+<td>
+Update analysis report
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/b83f6736534c624c72cb444130bf22766780a846/analysis/FeatSelection_ML.Rmd" target="_blank">b83f673</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-05-15
+</td>
+<td>
+Just for quick update of analysis report webpage
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/c670593956b87ecba62ddd081c6c358631caa50b/analysis/FeatSelection_ML.Rmd" target="_blank">c670593</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-04-30
+</td>
+<td>
+Write functions for repetitive tasks and play around with logistic
+regression model
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/67817ea971be09a45d10861552effe81cde6879b/analysis/FeatSelection_ML.Rmd" target="_blank">67817ea</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-03-06
+</td>
+<td>
+Train XGBoost and lasso logistic regression models on combined Klin.
+normal tissue DIA proteomics and tidy up code for analysis of combined
+proteomics data
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/b608341740ae56d67ec6128db92896e8e9ee4231/analysis/FeatSelection_ML.Rmd" target="_blank">b608341</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-01-26
+</td>
+<td>
+Train RF models and do feature selection
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<p><font size='4'> Description: Do feature selection using machine
+learning models (e.g., random forest) trained on combined data of
+cohorts to identify potential biomarkers for predicting lung cancer
+recurrence. </font></p>
+<p>Load libraries</p>
+<pre class="r"><code>library(&#39;spsUtil&#39;)
+library(&#39;randomForest&#39;)
+library(&#39;missForest&#39;)
+library(xgboost)
+library(&#39;caret&#39;)
+library(&#39;glmnet&#39;)
+library(&#39;SummarizedExperiment&#39;)
+library(&#39;tidyverse&#39;)
+# Load user-defined functions
+source(&#39;./code/misc.R&#39;)
+source(&#39;./code/ml_funcs.R&#39;)
+
+# Set plot theme
+th &lt;- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = &#39;bold&#39;),
+        axis.text = element_text(face = &#39;bold&#39;),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))</code></pre>
+<div id="ntp-ag-klin." class="section level1">
+<h1>NTP (AG Klin.)</h1>
+<p>Normal Tissue DIA Proteomics from AG Klingmüller</p>
+<div id="rf" class="section level2">
+<h2>RF</h2>
+<p><strong>Average model performance (Uncorrelated significant features,
+iter = 1000)</strong></p>
+<pre class="r"><code># Load RF training results
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/rfResSig_proNormal_randSplit_1000_Klin.rds&#39;)
+
+# Report summarized scores
+trainedModels &lt;- rfRes$rfRes$rfRes
+# Prepare predictions and ground truths
+pred &lt;- as.list(rep(NA, length(trainedModels)))
+for (i in seq_len(length(trainedModels))) {
+  pred[[i]] &lt;- trainedModels[[i]]$test$predicted
+}
+truth &lt;- rfRes$rfRes$y_test
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.875
+95% CI: [0.5625, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-1-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Top important features with highest median ranks</strong></p>
+<pre class="r"><code># Visualize top important features
+# Prepare feature annotation table
+proTissue_Klin &lt;- readRDS(&#39;./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds&#39;)
+featAnno &lt;- tibble::as_tibble(rowData(proTissue_Klin), rownames = &#39;Feature&#39;)
+
+topImpoFeatPlots &lt;- vizTopImpoFeatsRF(rfRes, fullData = proTissue_Klin, trainData_smpType = &#39;Normal&#39;,
+                                      featAnno = featAnno, num_p1TopFeats = 15)
+topImpoFeatPlots$topFeatTab</code></pre>
+<pre><code>   Protein    Gene Cluster MedianRank
+1   Q9NVZ3  NECAP2    &lt;NA&gt;        8.0
+2   Q08554    DSC1    &lt;NA&gt;       14.0
+3   Q13190    STX5    &lt;NA&gt;       18.5
+4   P41208   CETN2  P83916       20.0
+5   P63104   YWHAZ    &lt;NA&gt;       20.0
+6   Q5S007   LRRK2    &lt;NA&gt;       21.0
+7   Q5SY16    NOL9    &lt;NA&gt;       27.0
+8   P84243   H3-3B    &lt;NA&gt;       28.0
+9   Q96QA5   GSDMA    &lt;NA&gt;       28.0
+10  P63173   RPL38    &lt;NA&gt;       28.0
+11  Q6NXT1 ANKRD54    &lt;NA&gt;       30.5
+12  Q13464   ROCK1    &lt;NA&gt;       34.0
+13  Q9UJ83   HACL1    &lt;NA&gt;       34.0
+14  Q10570   CPSF1    &lt;NA&gt;       34.0
+15  Q99816  TSG101    &lt;NA&gt;       36.0</code></pre>
+<pre class="r"><code>topImpoFeatPlots$rank + theme(axis.title = element_text(size = 28),
+                              axis.text = element_text(size = 16))</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-2-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(&#39;./output/Discovery/group_meeting/rf_topImpo_combined_proNormal_Klin.png&#39;,
+#        device = &#39;png&#39;, dpi = 400, height = 8, width = 10)
+
+topImpoFeatPlots$abun</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-2-2.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="xgboost" class="section level2">
+<h2>XGBoost</h2>
+<p><strong>Tree booster</strong></p>
+<pre class="r"><code># Load imputed data
+# proNormal_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/impuByMF/proNormalVsnImpu.rds&#39;)
+# treeBoostRes &lt;- iterXGBoost(proNormal_Klin, booster = &#39;gbtree&#39;)
+# saveRDS(treeBoostRes, &#39;./data/Discovery/xgboost/tree_xgbResSig_proNormal_randSplit_logloss_1000_Klin.rds&#39;)
+treeBoostRes &lt;- readRDS(&#39;./data/Discovery/xgboost/tree_xgbResSig_proNormal_randSplit_logloss_1000_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- treeBoostRes$xgbRes$y_pred
+truth &lt;- treeBoostRes$xgbRes$y_truth
+auc_roc &lt;- treeBoostRes$xgbRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.639
+95% CI: [0.1666667, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-3-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Take only models with good performance?
+bestModels &lt;- which(treeBoostRes$xgbRes$auc_roc == 1)</code></pre>
+<pre class="r"><code># treeBoostRes$xgbRes$auc_roc</code></pre>
+<p><strong>Linear booster</strong></p>
+<pre class="r"><code># Load imputed data
+# proNormal_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/impuByMF/proNormalVsnImpu.rds&#39;)
+# linearBoostRes &lt;- iterXGBoost(proNormal_Klin, booster = &#39;gblinear&#39;)
+# saveRDS(linearBoostRes, &#39;./data/Discovery/xgboost/linear_xgbResSig_proNormal_randSplit_logloss_1000_Klin.rds&#39;)
+linearBoostRes &lt;- readRDS(&#39;./data/Discovery/xgboost/linear_xgbResSig_proNormal_randSplit_error_1000_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- linearBoostRes$xgbRes$y_pred
+truth &lt;- linearBoostRes$xgbRes$y_truth
+auc_roc &lt;- linearBoostRes$xgbRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.934
+95% CI: [0.6666667, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-5-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># impoTab &lt;- xgb.importance(model = linearBoost$modelRes[[1]])
+# xgb.ggplot.importance(importance_matrix = impoTab,  top_n = 20) +
+#   th</code></pre>
+</div>
+<div id="lasso-logistic-regression" class="section level2">
+<h2>Lasso logistic regression</h2>
+<p><strong>Models with no any non-zero beta are removed.</strong></p>
+<pre class="r"><code># Load imputed data. Use &#39;deviance&#39; as CV metric due to too few (&lt; 10) observations per fold for &#39;auc&#39;
+# proNormal_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/impuByMF/proNormalVsnImpu.rds&#39;)
+# lrRes &lt;- iterLogisR(proNormal_Klin, iter = 1000, cvFold = 5, cvMeasure = &#39;deviance&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/lrResSig_proNormal_randSplit_1000_5fold_deviance_lmin_Klin.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/lrResSig_proNormal_randSplit_1000_5fold_deviance_lmin_Klin.rds&#39;)
+
+# Pinpoint useless models that will be removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0) #higher lambda results in simpler model
+# for (i in uselessModels) {
+#   pred &lt;- lrRes$lrRes$y_pred[[i]]
+#   truth &lt;- lrRes$lrRes$y_truth[[i]]
+#   scores &lt;- caret::confusionMatrix(data = pred, reference = truth, positive = &#39;1&#39;)
+#   cat(scores$overall[[&#39;Accuracy&#39;]], &#39;\n&#39;)
+# } # Models that got only intercept make random predictions, 0.5 accuracy and AUC-ROC
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc)) #warning due to sometimes only pos or neg predictions</code></pre>
+<pre><code>Mean AUC-ROC score: 0.738
+95% CI: [0.375, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-6-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Total number of unique selected features by top models
+(depending on AUC-ROC)</strong></p>
+<pre class="r"><code># Show number of features with non-zero coefficients, i.e., selected features
+cutoffs &lt;- c(1, 0.9, 0.8, 0.7, 0.6, 0.5)
+numPickedFeats &lt;- c()
+for (cuto in cutoffs) {
+  models &lt;- which(lrRes$lrRes$auc_roc &gt;= cuto)
+  coefMat &lt;- lrRes$lrRes$coefficient[, models]
+  topImpoFeats &lt;- as.data.frame(coefMat) %&gt;%
+    dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
+                                                   .x == 0 ~ 0))) %&gt;%
+    tibble::rownames_to_column(&#39;Feature&#39;) %&gt;%
+    tidyr::pivot_longer(cols = -&#39;Feature&#39;, names_to = &#39;Model&#39;, values_to = &#39;Pick&#39;) %&gt;%
+    dplyr::filter(Pick != 0) %&gt;%
+    dplyr::pull(Feature) %&gt;%
+    unique()
+  numPickedFeats &lt;- c(numPickedFeats, length(topImpoFeats))
+}
+numPickedFeatTab &lt;- data.frame(Cutoff = cutoffs, NumPickedFeats = numPickedFeats)
+
+ggplot(numPickedFeatTab, aes(x=Cutoff, y=NumPickedFeats)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2.5) +
+  labs(x = &#39;Cutoff of AUC-ROC for model selection&#39;,
+       y = &#39;Total number of unique selected features&#39;) +
+  th</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Top important features that are most frequently
+selected</strong></p>
+<pre class="r"><code># Visualize top important features
+# Prepare feature annotation table
+proTissue_Klin &lt;- readRDS(&#39;./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds&#39;)
+featAnno &lt;- tibble::as_tibble(rowData(proTissue_Klin), rownames = &#39;Feature&#39;)
+
+topImpoFeatPlots &lt;- vizTopImpoFeatsLR(lrRes, fullData = proTissue_Klin, trainData_smpType = &#39;Normal&#39;,
+                                      featAnno = featAnno, num_p1TopFeats = 15)
+topImpoFeatPlots$topImpoFeatTab</code></pre>
+<pre><code>      Protein     Gene       Cluster  PickRate
+1      P04259    KRT6B P04264/P35527 0.9009585
+2      Q5T8I9   HENMT1          &lt;NA&gt; 0.8913738
+3      O95678    KRT75          &lt;NA&gt; 0.8296060
+4      Q5T3I0  GPATCH4          &lt;NA&gt; 0.7507987
+5  A0A0B4J1U3 IGLV1-36          &lt;NA&gt; 0.5335463
+6      Q9NZH6     IL37          &lt;NA&gt; 0.5047923
+7      P13727     PRG2          &lt;NA&gt; 0.4611289
+8      Q53QV2      LBH          &lt;NA&gt; 0.4270501
+9      P51911     CNN1 P53814/Q9BX66 0.3982961
+10     Q9UBH6     XPR1          &lt;NA&gt; 0.3855165
+11     Q9NZT1   CALML5          &lt;NA&gt; 0.3738019
+12     Q86U06    RBM23          &lt;NA&gt; 0.3727370
+13     Q9UPW5  AGTPBP1          &lt;NA&gt; 0.3684771
+14     P58340     MLF1          &lt;NA&gt; 0.3631523
+15     P81605      DCD          &lt;NA&gt; 0.3162939</code></pre>
+<pre class="r"><code>topImpoFeatPlots$pick</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>topImpoFeatPlots$abun</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-8-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>topImpoFeatPlots$fullImpoFeatTab</code></pre>
+<pre><code># A tibble: 101 × 4
+   Feature    Annotation Cluster       PickRate
+   &lt;chr&gt;      &lt;chr&gt;      &lt;chr&gt;            &lt;dbl&gt;
+ 1 P04259     KRT6B      P04264/P35527    0.901
+ 2 Q5T8I9     HENMT1     &lt;NA&gt;             0.891
+ 3 O95678     KRT75      &lt;NA&gt;             0.830
+ 4 Q5T3I0     GPATCH4    &lt;NA&gt;             0.751
+ 5 A0A0B4J1U3 IGLV1-36   &lt;NA&gt;             0.534
+ 6 Q9NZH6     IL37       &lt;NA&gt;             0.505
+ 7 P13727     PRG2       &lt;NA&gt;             0.461
+ 8 Q53QV2     LBH        &lt;NA&gt;             0.427
+ 9 P51911     CNN1       P53814/Q9BX66    0.398
+10 Q9UBH6     XPR1       &lt;NA&gt;             0.386
+# ℹ 91 more rows</code></pre>
+<pre class="r"><code># Train models with top important features
+cutoffs &lt;- c(1, 0.9, 0.8, 0.7, 0.6, 0.5)
+# proNormal_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/impuByMF/proNormalVsnImpu.rds&#39;)
+# for (cuto in cutoffs) {
+#   models &lt;- which(lrRes$lrRes$auc_roc &gt;= cuto)
+#   coefMat &lt;- lrRes$lrRes$coefficient[, models]
+#   topImpoFeatTab &lt;- as.data.frame(coefMat) %&gt;%
+#     dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
+#                                                    .x == 0 ~ 0))) %&gt;%
+#     tibble::rownames_to_column(&#39;Feature&#39;) %&gt;%
+#     tidyr::pivot_longer(cols = -&#39;Feature&#39;, names_to = &#39;Model&#39;, values_to = &#39;Pick&#39;) %&gt;%
+#     dplyr::group_by(Feature) %&gt;%
+#     dplyr::summarise(Frequency = sum(Pick),
+#                      PickRate = Frequency/length(models)) %&gt;%
+#     dplyr::filter(Frequency != 0) %&gt;%
+#     dplyr::arrange(desc(Frequency))
+#   topImpoFeats &lt;- topImpoFeatTab$Feature
+# 
+#   # Train lasso logistic regression model
+#   x &lt;- t(lrRes$featClusters$reducedData[topImpoFeats,])
+#   y &lt;- colData(proNormal_Klin)$Recurrence
+#   # set.seed(42)
+#   lrResStab &lt;- runLogisR(x, y, targetClass = &#39;Yes&#39;, iter = 1000, regularized_method = &#39;lasso&#39;,
+#                          cvFold = 5, cvMeasure = &#39;deviance&#39;, used_lambda = &#39;lambda.min&#39;,
+#                          trainSet_ratio = 0.8, split_method = &#39;random split&#39;,
+#                          plot_ROC = F, save_model = T)
+#   saveRDS(lrResStab, paste0(&#39;./data/Discovery/logisR/AUC&#39;, cuto,
+#                             &#39;_lrResSig_proNormal_randSplit_1000_5fold_deviance_lmin_Klin.rds&#39;))
+# }
+
+# Display performance of reduced models
+meanAUC &lt;- c()
+lowerAUC &lt;- c()
+upperAUC &lt;- c()
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/lrResSig_proNormal_randSplit_1000_5fold_deviance_lmin_Klin.rds&#39;)
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+meanAUC &lt;- c(meanAUC, round(mean(auc_roc), 3))
+ci &lt;- calcCI(auc_roc, bootstrap = T)
+lowerAUC &lt;- c(lowerAUC, ci[1])
+upperAUC &lt;- c(upperAUC, ci[2])
+for (cuto in cutoffs) {
+  lrResStab &lt;- readRDS(paste0(&#39;./data/Discovery/logisR/others/AUC&#39;, cuto,
+                              &#39;_lrResSig_proNormal_randSplit_1000_5fold_deviance_lmin_Klin.rds&#39;))
+  auc_roc &lt;- lrResStab$auc_roc
+  meanAUC &lt;- c(meanAUC, round(mean(auc_roc), 3))
+  ci &lt;- calcCI(auc_roc, bootstrap = T)
+  lowerAUC &lt;- c(lowerAUC, ci[1])
+  upperAUC &lt;- c(upperAUC, ci[2])
+}
+aucStatTab &lt;- data.frame(FeatSpace = c(&#39;Ori.&#39;, paste0(&#39;AUC &gt;= &#39;, cutoffs)),
+                         MeanAUC = meanAUC, UpperAUC = upperAUC, LowerAUC = lowerAUC)
+
+ggplot(aucStatTab, aes(x=FeatSpace, y=MeanAUC)) +
+  geom_bar(stat = &#39;identity&#39;, position = position_dodge(), alpha = 0.9) +
+  geom_errorbar(aes(ymin=LowerAUC, ymax=UpperAUC), width = 0.4) +
+  labs(x = &#39;Feature space used to train 1000 models&#39;, y = &#39;Mean AUC-ROC&#39;,
+       title = &#39;Reduced models&#39;) +
+  th</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Train models without top important features, aka noninformative models
+# proNormal_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/impuByMF/proNormalVsnImpu.rds&#39;)
+# cutoffs &lt;- c(1, 0.9, 0.8, 0.7, 0.6, 0.5)
+# for (cuto in cutoffs) {
+#   models &lt;- which(lrRes$lrRes$auc_roc &gt;= cuto)
+#   coefMat &lt;- lrRes$lrRes$coefficient[, models]
+#   topImpoFeats &lt;- as.data.frame(coefMat) %&gt;%
+#     dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
+#                                                    .x == 0 ~ 0))) %&gt;%
+#     tibble::rownames_to_column(&#39;Feature&#39;) %&gt;%
+#     tidyr::pivot_longer(cols = -&#39;Feature&#39;, names_to = &#39;Model&#39;, values_to = &#39;Pick&#39;) %&gt;%
+#     dplyr::filter(Pick != 0) %&gt;%
+#     dplyr::pull(Feature) %&gt;%
+#     unique()
+# 
+#   # Train lasso logistic regression model
+#   reducedData &lt;- lrRes$featClusters$reducedData
+#   x &lt;- t(reducedData[!rownames(reducedData) %in% topImpoFeats,])
+#   y &lt;- colData(proNormal_Klin)$Recurrence
+#   # set.seed(42)
+#   lrResNonInfo &lt;- runLogisR(x, y, targetClass = &#39;Yes&#39;, iter = 1000, regularized_method = &#39;lasso&#39;,
+#                             cvFold = 5, cvMeasure = &#39;deviance&#39;, used_lambda = &#39;lambda.min&#39;,
+#                             trainSet_ratio = 0.8, split_method = &#39;random split&#39;,
+#                             plot_ROC = F, save_model = T)
+#   saveRDS(lrResNonInfo, paste0(&#39;./data/Discovery/logisR/NonInfo_AUC&#39;, cuto,
+#                                &#39;_lrResSig_proNormal_randSplit_1000_5fold_deviance_lmin_Klin.rds&#39;))
+# }
+
+# Display performance of noninformative models
+meanAUC &lt;- c()
+lowerAUC &lt;- c()
+upperAUC &lt;- c()
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/lrResSig_proNormal_randSplit_1000_5fold_deviance_lmin_Klin.rds&#39;)
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+meanAUC &lt;- c(meanAUC, round(mean(auc_roc), 3))
+ci &lt;- calcCI(auc_roc, bootstrap = T)
+lowerAUC &lt;- c(lowerAUC, ci[1])
+upperAUC &lt;- c(upperAUC, ci[2])
+for (cuto in cutoffs) {
+  lrResNonInfo &lt;- readRDS(paste0(&#39;./data/Discovery/logisR/others/NonInfo_AUC&#39;, cuto,
+                                 &#39;_lrResSig_proNormal_randSplit_1000_5fold_deviance_lmin_Klin.rds&#39;))
+  auc_roc &lt;- lrResNonInfo$auc_roc
+  meanAUC &lt;- c(meanAUC, round(mean(auc_roc), 3))
+  ci &lt;- calcCI(auc_roc, bootstrap = T)
+  lowerAUC &lt;- c(lowerAUC, ci[1])
+  upperAUC &lt;- c(upperAUC, ci[2])
+}
+aucStatTab &lt;- data.frame(FeatSpace = c(&#39;Ori.&#39;, paste0(&#39;AUC &gt;= &#39;, cutoffs)),
+                         MeanAUC = meanAUC, UpperAUC = upperAUC, LowerAUC = lowerAUC)
+
+ggplot(aucStatTab, aes(x=FeatSpace, y=MeanAUC)) +
+  geom_bar(stat = &#39;identity&#39;, position = position_dodge(), alpha = 0.9) +
+  geom_errorbar(aes(ymin=LowerAUC, ymax=UpperAUC), width = 0.4) +
+  labs(x = &#39;Feature space removed to train 1000 models&#39;, y = &#39;Mean AUC-ROC&#39;,
+       title = &#39;Noninformative models&#39;) +
+  th</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-9-2.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="ttp-ag-klin." class="section level1">
+<h1>TTP (AG Klin.)</h1>
+<p>Tumor Tissue DIA Proteomics from AG Klingmüller</p>
+<div id="rf-1" class="section level2">
+<h2>RF</h2>
+<p><strong>Average model performance (Uncorrelated significant features,
+iter = 1000)</strong></p>
+<pre class="r"><code># Load RF training results
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/rfResSig_proTumor_randSplit_1000_Klin.rds&#39;)
+
+# Report summarized scores
+trainedModels &lt;- rfRes$rfRes$rfRes
+# Prepare predictions and ground truths
+pred &lt;- as.list(rep(NA, length(trainedModels)))
+for (i in seq_len(length(trainedModels))) {
+  pred[[i]] &lt;- trainedModels[[i]]$test$predicted
+}
+truth &lt;- rfRes$rfRes$y_test
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.943
+95% CI: [0.75, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-10-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Top important features with highest median ranks</strong></p>
+<pre class="r"><code># Visualize top important features
+# Prepare feature annotation table
+proTissue_Klin &lt;- readRDS(&#39;./data/MethodDev/AG_Klingmueller/proTissueVsnBC.rds&#39;)
+featAnno &lt;- tibble::as_tibble(rowData(proTissue_Klin), rownames = &#39;Feature&#39;)
+
+topImpoFeatPlots &lt;- vizTopImpoFeatsRF(rfRes, fullData = proTissue_Klin, trainData_smpType = &#39;Tumor&#39;,
+                                      featAnno = featAnno, num_p1TopFeats = 15)
+topImpoFeatPlots$rank</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-11-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="xgboost-1" class="section level2">
+<h2>XGBoost</h2>
+<p><strong>Tree booster</strong></p>
+<pre class="r"><code># Load imputed data
+# proTumor_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/impuByMF/proTumorVsnImpu.rds&#39;)
+# treeBoostRes &lt;- iterXGBoost(proTumor_Klin, booster = &#39;gbtree&#39;)
+# saveRDS(treeBoostRes, &#39;./data/Discovery/xgboost/tree_xgbResSig_proTumor_randSplit_logloss_1000_Klin.rds&#39;)
+treeBoostRes &lt;- readRDS(&#39;./data/Discovery/xgboost/tree_xgbResSig_proTumor_randSplit_logloss_1000_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- treeBoostRes$xgbRes$y_pred
+truth &lt;- treeBoostRes$xgbRes$y_truth
+auc_roc &lt;- treeBoostRes$xgbRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.572
+95% CI: [0.1, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-12-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Linear booster</strong></p>
+<pre class="r"><code># Load imputed data
+# proTumor_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/impuByMF/proTumorVsnImpu.rds&#39;)
+# linearBoostRes &lt;- iterXGBoost(proTumor_Klin, booster = &#39;gblinear&#39;)
+# saveRDS(linearBoostRes, &#39;./data/Discovery/xgboost/linear_xgbResSig_proTumor_randSplit_error_1000_Klin.rds&#39;)
+linearBoostRes &lt;- readRDS(&#39;./data/Discovery/xgboost/linear_xgbResSig_proTumor_randSplit_error_1000_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- linearBoostRes$xgbRes$y_pred
+truth &lt;- linearBoostRes$xgbRes$y_truth
+auc_roc &lt;- linearBoostRes$xgbRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.982
+95% CI: [0.8333333, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="lasso-logistic-regression-1" class="section level2">
+<h2>Lasso logistic regression</h2>
+<p><strong>Models with no any non-zero beta are removed.</strong></p>
+<pre class="r"><code># Load imputed data
+# proTumor_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/impuByMF/proTumorVsnImpu.rds&#39;)
+# lrRes &lt;- iterLogisR(proTumor_Klin, iter = 1000, cvFold = 5, cvMeasure = &#39;deviance&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/lrResSig_proTumor_randSplit_1000_5fold_deviance_lmin_Klin.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/lrResSig_proTumor_randSplit_1000_5fold_deviance_lmin_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.686
+95% CI: [0.25, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-14-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="ntp-ag-krij." class="section level1">
+<h1>NTP (AG Krij.)</h1>
+<p>Normal Tissue DIA Proteomics from AG Krijgsveld</p>
+<div id="rf-2" class="section level2">
+<h2>RF</h2>
+<p><strong>Average model performance (Uncorrelated significant features,
+iter = 1000)</strong></p>
+<pre class="r"><code># Load RF training results
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/rfResSig_proNormal_randSplit_1000_Krij.rds&#39;)
+
+# Report summarized scores
+trainedModels &lt;- rfRes$rfRes$rfRes
+# Prepare predictions and ground truths
+pred &lt;- as.list(rep(NA, length(trainedModels)))
+for (i in seq_len(length(trainedModels))) {
+  pred[[i]] &lt;- trainedModels[[i]]$test$predicted
+}
+truth &lt;- rfRes$rfRes$y_test
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.835
+95% CI: [0.5714286, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-16-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Top important features with highest median ranks</strong></p>
+<pre class="r"><code># Visualize top important features
+# Prepare feature annotation table
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+featAnno &lt;- tibble::as_tibble(rowData(proTissue_Krij), rownames = &#39;Feature&#39;) %&gt;%
+  dplyr::select(Feature, Genes)
+
+topImpoFeatPlots &lt;- vizTopImpoFeatsRF(rfRes, fullData = proTissue_Krij, trainData_smpType = &#39;Normal&#39;,
+                                      featAnno = featAnno, num_p1TopFeats = 15)
+topImpoFeatPlots$rank</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-17-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ggsave(&#39;./output/Discovery/group_meeting/combined_rf_featImpo_proNormal_Krij.png&#39;,
+#        device = &#39;png&#39;, dpi = 400, height = 8, width = 10)</code></pre>
+</div>
+<div id="xgboost-2" class="section level2">
+<h2>XGBoost</h2>
+<p><strong>Tree booster</strong></p>
+<pre class="r"><code># Load imputed data
+# proNormal_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/impuByMF/combined_proNormalVsnImpu.rds&#39;)
+# treeBoostRes &lt;- iterXGBoost(proNormal_Krij, booster = &#39;gbtree&#39;)
+# saveRDS(treeBoostRes, &#39;./data/Discovery/xgboost/tree_xgbResSig_proNormal_randSplit_logloss_1000_Krij.rds&#39;)
+treeBoostRes &lt;- readRDS(&#39;./data/Discovery/xgboost/tree_xgbResSig_proNormal_randSplit_logloss_1000_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- treeBoostRes$xgbRes$y_pred
+truth &lt;- treeBoostRes$xgbRes$y_truth
+auc_roc &lt;- treeBoostRes$xgbRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.623
+95% CI: [0.2777778, 0.9259921]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-19-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Linear booster</strong></p>
+<pre class="r"><code># Load imputed data
+# proNormal_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/impuByMF/combined_proNormalVsnImpu.rds&#39;)
+# linearBoostRes &lt;- iterXGBoost(proNormal_Krij, booster = &#39;gblinear&#39;)
+# saveRDS(linearBoostRes, &#39;./data/Discovery/xgboost/linear_xgbResSig_proNormal_randSplit_error_1000_Krij.rds&#39;)
+linearBoostRes &lt;- readRDS(&#39;./data/Discovery/xgboost/linear_xgbResSig_proNormal_randSplit_error_1000_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- linearBoostRes$xgbRes$y_pred
+truth &lt;- linearBoostRes$xgbRes$y_truth
+auc_roc &lt;- linearBoostRes$xgbRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.877
+95% CI: [0.6111111, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-20-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="lasso-logistic-regression-2" class="section level2">
+<h2>Lasso logistic regression</h2>
+<p><strong>Models with no any non-zero beta are removed.</strong></p>
+<pre class="r"><code># Load imputed data
+# proNormal_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/impuByMF/combined_proNormalVsnImpu.rds&#39;)
+# lrRes &lt;- iterLogisR(proNormal_Krij, iter = 1000, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/lrResSig_proNormal_randSplit_1000_5fold_auc_lmin_Krij.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/lrResSig_proNormal_randSplit_1000_5fold_auc_lmin_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.825
+95% CI: [0.547619, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-21-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="ttp-ag-krij." class="section level1">
+<h1>TTP (AG Krij.)</h1>
+<p>Tumor Tissue DIA Proteomics from AG Krijgsveld</p>
+<div id="rf-3" class="section level2">
+<h2>RF</h2>
+<p><strong>Average model performance (Uncorrelated significant features,
+iter = 1000)</strong></p>
+<pre class="r"><code># Load RF training results
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/rfResSig_proTumor_randSplit_1000_Krij.rds&#39;)
+
+# Report summarized scores
+trainedModels &lt;- rfRes$rfRes$rfRes
+# Prepare predictions and ground truths
+pred &lt;- as.list(rep(NA, length(trainedModels)))
+for (i in seq_len(length(trainedModels))) {
+  pred[[i]] &lt;- trainedModels[[i]]$test$predicted
+}
+truth &lt;- rfRes$rfRes$y_test
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.888
+95% CI: [0.689881, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-22-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Top important features with highest median ranks</strong></p>
+<pre class="r"><code># Visualize top important features
+# Prepare feature annotation table
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+featAnno &lt;- tibble::as_tibble(rowData(proTissue_Krij), rownames = &#39;Feature&#39;) %&gt;%
+  dplyr::select(Feature, Genes)
+
+topImpoFeatPlots &lt;- vizTopImpoFeatsRF(rfRes, fullData = proTissue_Krij, trainData_smpType = &#39;Tumor&#39;,
+                                      featAnno = featAnno, num_p1TopFeats = 15)
+topImpoFeatPlots$rank</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-23-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="xgboost-3" class="section level2">
+<h2>XGBoost</h2>
+<p><strong>Tree booster</strong></p>
+<pre class="r"><code># Load imputed data
+# proTumor_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/impuByMF/combined_proTumorVsnImpu.rds&#39;)
+# treeBoostRes &lt;- iterXGBoost(proTumor_Krij, booster = &#39;gbtree&#39;)
+# saveRDS(treeBoostRes, &#39;./data/Discovery/xgboost/tree_xgbResSig_proTumor_randSplit_logloss_1000_Krij.rds&#39;)
+treeBoostRes &lt;- readRDS(&#39;./data/Discovery/xgboost/tree_xgbResSig_proTumor_randSplit_logloss_1000_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- treeBoostRes$xgbRes$y_pred
+truth &lt;- treeBoostRes$xgbRes$y_truth
+auc_roc &lt;- treeBoostRes$xgbRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.617
+95% CI: [0.277474, 0.9259921]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-24-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>Linear booster</strong></p>
+<pre class="r"><code># Load imputed data
+# proTumor_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/impuByMF/combined_proTumorVsnImpu.rds&#39;)
+# linearBoostRes &lt;- iterXGBoost(proTumor_Krij, booster = &#39;gblinear&#39;)
+# saveRDS(linearBoostRes, &#39;./data/Discovery/xgboost/linear_xgbResSig_proTumor_randSplit_error_1000_Krij.rds&#39;)
+linearBoostRes &lt;- readRDS(&#39;./data/Discovery/xgboost/linear_xgbResSig_proTumor_randSplit_error_1000_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- linearBoostRes$xgbRes$y_pred
+truth &lt;- linearBoostRes$xgbRes$y_truth
+auc_roc &lt;- linearBoostRes$xgbRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.911
+95% CI: [0.6944444, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-25-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="lasso-logistic-regression-3" class="section level2">
+<h2>Lasso logistic regression</h2>
+<p><strong>Models with no any non-zero beta are removed.</strong></p>
+<pre class="r"><code># Load imputed data
+# proTumor_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/impuByMF/combined_proTumorVsnImpu.rds&#39;)
+# lrRes &lt;- iterLogisR(proTumor_Krij, iter = 1000, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/lrResSig_proTumor_randSplit_1000_5fold_auc_lmin_Krij.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/lrResSig_proTumor_randSplit_1000_5fold_auc_lmin_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.78
+95% CI: [0.4279762, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML.Rmd/unnamed-chunk-26-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Ventura 13.4
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Berlin
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] proDA_1.16.0                limma_3.58.1               
+ [3] pcaMethods_1.94.0           lubridate_1.9.3            
+ [5] forcats_1.0.0               stringr_1.5.1              
+ [7] dplyr_1.1.4                 purrr_1.0.2                
+ [9] readr_2.1.5                 tidyr_1.3.1                
+[11] tibble_3.2.1                tidyverse_2.0.0            
+[13] SummarizedExperiment_1.32.0 Biobase_2.62.0             
+[15] GenomicRanges_1.54.1        GenomeInfoDb_1.38.8        
+[17] IRanges_2.36.0              S4Vectors_0.40.2           
+[19] BiocGenerics_0.48.1         MatrixGenerics_1.14.0      
+[21] matrixStats_1.3.0           glmnet_4.1-8               
+[23] Matrix_1.6-5                caret_6.0-94               
+[25] lattice_0.22-6              ggplot2_3.5.1              
+[27] xgboost_1.7.7.1             missForest_1.5             
+[29] randomForest_4.7-1.1        spsUtil_0.2.2              
+[31] workflowr_1.7.1            
+
+loaded via a namespace (and not attached):
+  [1] rstudioapi_0.16.0       jsonlite_1.8.8          shape_1.4.6.1          
+  [4] magrittr_2.0.3          farver_2.1.1            rmarkdown_2.26         
+  [7] fs_1.6.3                zlibbioc_1.48.2         vctrs_0.6.5            
+ [10] RCurl_1.98-1.14         rstatix_0.7.2           htmltools_0.5.8.1      
+ [13] S4Arrays_1.2.1          itertools_0.1-3         broom_1.0.5            
+ [16] SparseArray_1.2.4       pROC_1.18.5             sass_0.4.9             
+ [19] parallelly_1.37.1       bslib_0.7.0             plyr_1.8.9             
+ [22] cachem_1.0.8            whisker_0.4.1           lifecycle_1.0.4        
+ [25] iterators_1.0.14        pkgconfig_2.0.3         R6_2.5.1               
+ [28] fastmap_1.1.1           GenomeInfoDbData_1.2.11 future_1.33.2          
+ [31] digest_0.6.35           colorspace_2.1-0        ps_1.7.6               
+ [34] rprojroot_2.0.4         ggpubr_0.6.0            labeling_0.4.3         
+ [37] fansi_1.0.6             timechange_0.3.0        httr_1.4.7             
+ [40] abind_1.4-5             compiler_4.3.2          proxy_0.4-27           
+ [43] rngtools_1.5.2          withr_3.0.0             backports_1.4.1        
+ [46] carData_3.0-5           highr_0.10              ggsignif_0.6.4         
+ [49] MASS_7.3-60.0.1         lava_1.8.0              DelayedArray_0.28.0    
+ [52] ModelMetrics_1.2.2.2    tools_4.3.2             httpuv_1.6.15          
+ [55] future.apply_1.11.2     nnet_7.3-19             glue_1.7.0             
+ [58] callr_3.7.6             nlme_3.1-164            promises_1.3.0         
+ [61] grid_4.3.2              getPass_0.2-4           reshape2_1.4.4         
+ [64] generics_0.1.3          recipes_1.0.10          gtable_0.3.5           
+ [67] tzdb_0.4.0              class_7.3-22            data.table_1.15.4      
+ [70] hms_1.1.3               car_3.1-2               utf8_1.2.4             
+ [73] XVector_0.42.0          foreach_1.5.2           pillar_1.9.0           
+ [76] later_1.3.2             splines_4.3.2           survival_3.5-8         
+ [79] tidyselect_1.2.1        knitr_1.46              git2r_0.33.0           
+ [82] xfun_0.43               statmod_1.5.0           hardhat_1.3.1          
+ [85] timeDate_4032.109       stringi_1.8.3           yaml_2.3.8             
+ [88] evaluate_0.23           codetools_0.2-20        cli_3.6.2              
+ [91] rpart_4.1.23            munsell_0.5.1           processx_3.8.4         
+ [94] jquerylib_0.1.4         Rcpp_1.0.12             globals_0.16.3         
+ [97] parallel_4.3.2          gower_1.0.1             doRNG_1.8.6            
+[100] bitops_1.0-7            listenv_0.9.1           ipred_0.9-14           
+[103] e1071_1.7-14            scales_1.3.0            prodlim_2023.08.28     
+[106] crayon_1.5.2            rlang_1.1.3            </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Ventura 13.4
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Berlin
+tzcode source: internal
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] proDA_1.16.0                limma_3.58.1               
+ [3] pcaMethods_1.94.0           lubridate_1.9.3            
+ [5] forcats_1.0.0               stringr_1.5.1              
+ [7] dplyr_1.1.4                 purrr_1.0.2                
+ [9] readr_2.1.5                 tidyr_1.3.1                
+[11] tibble_3.2.1                tidyverse_2.0.0            
+[13] SummarizedExperiment_1.32.0 Biobase_2.62.0             
+[15] GenomicRanges_1.54.1        GenomeInfoDb_1.38.8        
+[17] IRanges_2.36.0              S4Vectors_0.40.2           
+[19] BiocGenerics_0.48.1         MatrixGenerics_1.14.0      
+[21] matrixStats_1.3.0           glmnet_4.1-8               
+[23] Matrix_1.6-5                caret_6.0-94               
+[25] lattice_0.22-6              ggplot2_3.5.1              
+[27] xgboost_1.7.7.1             missForest_1.5             
+[29] randomForest_4.7-1.1        spsUtil_0.2.2              
+[31] workflowr_1.7.1            
+
+loaded via a namespace (and not attached):
+  [1] rstudioapi_0.16.0       jsonlite_1.8.8          shape_1.4.6.1          
+  [4] magrittr_2.0.3          farver_2.1.1            rmarkdown_2.26         
+  [7] fs_1.6.3                zlibbioc_1.48.2         vctrs_0.6.5            
+ [10] RCurl_1.98-1.14         rstatix_0.7.2           htmltools_0.5.8.1      
+ [13] S4Arrays_1.2.1          itertools_0.1-3         broom_1.0.5            
+ [16] SparseArray_1.2.4       pROC_1.18.5             sass_0.4.9             
+ [19] parallelly_1.37.1       bslib_0.7.0             plyr_1.8.9             
+ [22] cachem_1.0.8            whisker_0.4.1           lifecycle_1.0.4        
+ [25] iterators_1.0.14        pkgconfig_2.0.3         R6_2.5.1               
+ [28] fastmap_1.1.1           GenomeInfoDbData_1.2.11 future_1.33.2          
+ [31] digest_0.6.35           colorspace_2.1-0        ps_1.7.6               
+ [34] rprojroot_2.0.4         ggpubr_0.6.0            labeling_0.4.3         
+ [37] fansi_1.0.6             timechange_0.3.0        httr_1.4.7             
+ [40] abind_1.4-5             compiler_4.3.2          proxy_0.4-27           
+ [43] rngtools_1.5.2          withr_3.0.0             backports_1.4.1        
+ [46] carData_3.0-5           highr_0.10              ggsignif_0.6.4         
+ [49] MASS_7.3-60.0.1         lava_1.8.0              DelayedArray_0.28.0    
+ [52] ModelMetrics_1.2.2.2    tools_4.3.2             httpuv_1.6.15          
+ [55] future.apply_1.11.2     nnet_7.3-19             glue_1.7.0             
+ [58] callr_3.7.6             nlme_3.1-164            promises_1.3.0         
+ [61] grid_4.3.2              getPass_0.2-4           reshape2_1.4.4         
+ [64] generics_0.1.3          recipes_1.0.10          gtable_0.3.5           
+ [67] tzdb_0.4.0              class_7.3-22            data.table_1.15.4      
+ [70] hms_1.1.3               car_3.1-2               utf8_1.2.4             
+ [73] XVector_0.42.0          foreach_1.5.2           pillar_1.9.0           
+ [76] later_1.3.2             splines_4.3.2           survival_3.5-8         
+ [79] tidyselect_1.2.1        knitr_1.46              git2r_0.33.0           
+ [82] xfun_0.43               statmod_1.5.0           hardhat_1.3.1          
+ [85] timeDate_4032.109       stringi_1.8.3           yaml_2.3.8             
+ [88] evaluate_0.23           codetools_0.2-20        cli_3.6.2              
+ [91] rpart_4.1.23            munsell_0.5.1           processx_3.8.4         
+ [94] jquerylib_0.1.4         Rcpp_1.0.12             globals_0.16.3         
+ [97] parallel_4.3.2          gower_1.0.1             doRNG_1.8.6            
+[100] bitops_1.0-7            listenv_0.9.1           ipred_0.9-14           
+[103] e1071_1.7-14            scales_1.3.0            prodlim_2023.08.28     
+[106] crayon_1.5.2            rlang_1.1.3            </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
