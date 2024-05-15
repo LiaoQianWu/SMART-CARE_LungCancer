@@ -32,6 +32,7 @@ knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer')
 Load libraries
 ```{r library loading, message = F}
 library('pcaMethods')
+library('sva')
 library('limma')
 library('proDA')
 library('pheatmap')
@@ -108,6 +109,37 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (38%)`, color=Condition, fill=Condition, l
   scale_color_brewer(palette = 'Dark2') +
   scale_fill_brewer(palette = 'Dark2') +
   labs(x = 'Sample condition') +
+  th
+```
+
+```{r include=F, eval=F}
+smpMetadata <- as_tibble(colData(proTissue_Krij), rownames = 'Sample')
+datTab <- t(assay(proTissue_Krij)) %>%
+  as_tibble(rownames = 'Sample') %>%
+  dplyr::select(Sample, P41208, P63104) %>%
+  left_join(smpMetadata, by = 'Sample') %>%
+  dplyr::filter(Condition %in% 'Normal')
+
+ggplot(datTab, aes(x=Recurrence, y=P41208, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  labs(x = 'Cancer recurrence', y = 'P41208 (CETN2)') +
+  th
+
+ggplot(datTab, aes(x=Recurrence, y=P63104, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 6, show.legend = F) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  labs(x = 'Cancer recurrence', y = 'P63104 (YWHAZ)') +
   th
 ```
 
@@ -209,13 +241,13 @@ proTumorRes_Krij$pc.top.feat.tab$PC11
 # Subset certain samples
 proNormal_Krij <- proTissue_Krij[, which(colData(proTissue_Krij)$Condition == 'Normal')]
 # Perform single-omics analysis
-# proNormalRes_Krij <- doSingleOmicsAnalysis(proNormal_Krij, soa_metaVar = 'Recurrence', num_sigFeats = 6,
-#                                            pca_method = 'ppca', num_PCs = 40, num_PCfeats = 30,
-#                                            use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
-#                                            feat_conv = T, plot_title = NULL, show_rownames = F,
-#                                            pca_metaVar = c('Recurrence', 'Gender', 'Age',
-#                                                            'Smoking', 'Stage', 'Adjuvant'))
-proNormalRes_Krij <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Krij.rds')
+proNormalRes_Krij <- doSingleOmicsAnalysis(proNormal_Krij, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+                                           pca_method = 'ppca', num_PCs = 40, num_PCfeats = 30,
+                                           use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
+                                           feat_conv = T, plot_title = NULL, show_rownames = F,
+                                           pca_metaVar = c('Recurrence', 'Gender', 'Age',
+                                                           'Smoking', 'Stage', 'Adjuvant'))
+# proNormalRes_Krij <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Krij.rds')
 ```
 
 Display significant associations between PCs (Var1) and sample metadata variables
@@ -377,16 +409,106 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (31.8%)`, color=Condition, fill=Condition,
   scale_color_brewer(palette = 'Dark2') +
   scale_fill_brewer(palette = 'Dark2') +
   labs(x = 'Sample condition') +
-  th
+  th +
+  theme(axis.title = element_text(size = 30), axis.text = element_text(size = 20),
+        legend.title = element_text(size = 28), legend.text = element_text(size = 26))
+# ggsave('./output/Discovery/2nd_TAC/boxplot_quality_control_combined_proTissue_Klin.png',
+#        device = 'png', dpi = 400, height = 9, width = 11)
+```
+
+```{r eval=F}
+proTissueCondiRes <- doSOA(proTissue_Klin, meta_var = 'Condition', use_proDA = T)
+datTab <- t(proTissueCondiRes$data) %>%
+  as_tibble(rownames = 'Sample') %>%
+  dplyr::select(Sample, P63104) %>%
+  left_join(proTissueCondiRes$smpMetadata, by = 'Sample')
+
+ggplot(datTab, aes(x=Condition, y=P63104, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F,
+                             method.args = list(var.equal = T),
+                             size = 9, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  labs(x = 'Sample condition', y = 'P63104 (YWHAZ)') +
+  th +
+  theme(axis.title = element_text(size = 30), axis.text = element_text(size = 20),
+        legend.title = element_text(size = 28), legend.text = element_text(size = 26))
+# ggsave('./output/Discovery/2nd_TAC/boxplot_YWHAZ_combined_proTissue_Klin.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
+# => Tumor P63104 abundances are not associated with pathological stages or tumor purity.
+# Difference in mean abundances between Normal and Tumor samples might be larger
+# if patients are at advanced cancer stage.
+
+# tmp_datTab <- dplyr::filter(datTab, Condition %in% 'Tumor')
+# ggplot(tmp_datTab, aes(x=Stage, y=P63104, col=Stage, fill=Stage)) +
+#   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+#   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+#   ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+#                              comparisons = list(c('IB', 'IIA'), c('IIA', 'IIB'), c('IB', 'IIB')),
+#                              label = 'p.signif', tip.length = 0.02, bracket.size = 0.7, size = 6) +
+#   labs(x = 'Pathological stage', y = 'P63104 (YWHAZ)') +
+#   th
+# 
+# ggplot(tmp_datTab, aes(x=P63104, y=TumorPurity, col=Stage)) +
+#   geom_point(size = 4) +
+#   labs(x = 'P63104 (YWHAZ)', y = 'Tumor purity (%)') +
+#   th
 ```
 
 ## Tumor samples
 
-Note that **Stage** are also included in linear model for more reliable t-test results
-because it is significantly associated with top PCs.
+Display significant associations between SVs and sample metadata variables. SVs
+(surrogate variables) will be included in linear model for differential analysis
 ```{r}
 # Subset certain samples
 proTumor_Klin <- proTissue_Klin[, which(colData(proTissue_Klin)$Condition == 'Tumor')]
+
+# Do SVA to identify latent factors that explain unknown variance
+# Prepare data matrix and sample metadata table for creating model matrices
+datMat <- assay(proTumor_Klin)
+# Keep only complete features
+keptFeats <- apply(datMat, 1, function(featVec) {
+  !any(is.na(featVec))
+})
+datMat <- datMat[keptFeats,]
+metadatTab <- colData(proTumor_Klin) %>%
+  tibble::as_tibble(rownames = 'Sample')
+# Create full model matrix including both adjustment variables and variables of interest
+modelMat <- model.matrix(~ Recurrence, data = metadatTab)
+# Create null model matrix including only adjustment variables
+modelMat0 <- model.matrix(~ 1, data = metadatTab)
+
+# Perform SVA
+# Identify number of latent factors that need to be estimated
+numSV = sva::num.sv(datMat, modelMat, method = 'be')
+svObj = sva(datMat, modelMat, modelMat0, n.sv = numSV)
+
+# Do association tests between SVs and patient metadata
+# Prepare surrogate variable table
+svTab <- svObj$sv
+rownames(svTab) <- metadatTab$Sample
+colnames(svTab) <- paste0('SV', seq_len(ncol(svTab)))
+svTab <- tibble::as_tibble(svTab, rownames = 'Sample')
+# Prepare patient metadata table
+metaTab <- dplyr::select(metadatTab, Sample, Recurrence, Gender, Age, Smoking, Stage,
+                         Adjuvant)
+# Do association tests
+testAsso(svTab, metaTab, cmn_col = 'Sample') %>%
+  dplyr::filter(pVal <= 0.05)
+
+# Include surrogate variables into SE object
+proTumorTab <- summExp2df(proTumor_Klin, row_id = 'Feature', col_id = 'Sample')
+proTumorTab <- dplyr::left_join(proTumorTab, svTab, by = 'Sample')
+proTumor_Klin <- df2SummExp(proTumorTab, row_id = 'Feature', col_id = 'Sample',
+                             values = 'Value', row_anno = colnames(rowData(proTumor_Klin)),
+                             col_anno = c(colnames(colData(proTumor_Klin)),
+                                          paste0('SV', seq_len(ncol(svTab)-1))))
+assay(proTumor_Klin) <- as.matrix(assay(proTumor_Klin))
+```
+
+```{r}
 # Perform single-omics analysis
 proTumorRes_Klin <- doSingleOmicsAnalysis(proTumor_Klin, soa_metaVar = 'Recurrence', num_sigFeats = 6,
                                           pca_method = 'ppca', num_PCs = 37, num_PCfeats = 30,
@@ -395,7 +517,7 @@ proTumorRes_Klin <- doSingleOmicsAnalysis(proTumor_Klin, soa_metaVar = 'Recurren
                                           pca_metaVar = c('Recurrence', 'Gender', 'Age',
                                                           'Smoking', 'Stage', 'Adjuvant',
                                                           'TumorPurity', 'Cohort'),
-                                          soa_unwantVar = 'Stage')
+                                          soa_unwantVar = paste0('SV', seq_len(8)))
 ```
 
 Display significant associations between PCs (Var1) and sample metadata variables
@@ -474,11 +596,57 @@ proTumorRes_Klin$pc.top.feat.tab$PC34
 
 ## Normal samples
 
-Note that **Adjuvant** are also included in linear model for more reliable t-test
-results because it is significantly associated with top PCs.
-```{r message=F}
+Display significant associations between SVs and sample metadata variables. SVs
+(surrogate variables) will be included in linear model for differential analysis
+```{r}
 # Subset certain samples
 proNormal_Klin <- proTissue_Klin[, which(colData(proTissue_Klin)$Condition == 'Normal')]
+
+# Do SVA to identify latent factors that explain unknown variance
+# Prepare data matrix and sample metadata table for creating model matrices
+datMat <- assay(proNormal_Klin)
+# Keep only complete features
+keptFeats <- apply(datMat, 1, function(featVec) {
+  !any(is.na(featVec))
+})
+datMat <- datMat[keptFeats,]
+metadatTab <- colData(proNormal_Klin) %>%
+  tibble::as_tibble(rownames = 'Sample')
+# Create full model matrix including both adjustment variables and variables of interest
+modelMat <- model.matrix(~ Recurrence, data = metadatTab)
+# Create null model matrix including only adjustment variables
+modelMat0 <- model.matrix(~ 1, data = metadatTab)
+
+# Perform SVA
+# Identify number of latent factors that need to be estimated
+numSV = sva::num.sv(datMat, modelMat, method = 'leek')
+svObj = sva(datMat, modelMat, modelMat0, n.sv = numSV)
+
+# Do association tests between SVs and patient metadata
+# Prepare surrogate variable table
+svTab <- svObj$sv
+rownames(svTab) <- metadatTab$Sample
+colnames(svTab) <- paste0('SV', seq_len(ncol(svTab)))
+svTab <- tibble::as_tibble(svTab, rownames = 'Sample')
+# Prepare patient metadata table
+metaTab <- dplyr::select(metadatTab, Sample, Recurrence, Gender, Age, Smoking, Stage,
+                         Adjuvant)
+# Do association tests
+testAsso(svTab, metaTab, cmn_col = 'Sample') %>%
+  dplyr::filter(pVal <= 0.05)
+
+# Include surrogate variables into SE object
+proNormalTab <- summExp2df(proNormal_Klin, row_id = 'Feature', col_id = 'Sample')
+proNormalTab <- dplyr::left_join(proNormalTab, svTab, by = 'Sample')
+proNormal_Klin <- df2SummExp(proNormalTab, row_id = 'Feature', col_id = 'Sample',
+                             values = 'Value', row_anno = colnames(rowData(proNormal_Klin)),
+                             col_anno = c(colnames(colData(proNormal_Klin)),
+                                          paste0('SV', seq_len(ncol(svTab)-1))))
+assay(proNormal_Klin) <- as.matrix(assay(proNormal_Klin))
+# SVs will be incorporated into our linear model as covariates
+```
+
+```{r message=F}
 # Perform single-omics analysis
 # proNormalRes_Klin <- doSingleOmicsAnalysis(proNormal_Klin, soa_metaVar = 'Recurrence', num_sigFeats = 6,
 #                                            pca_method = 'ppca', num_PCs = 37, num_PCfeats = 30,
@@ -486,8 +654,9 @@ proNormal_Klin <- proTissue_Klin[, which(colData(proTissue_Klin)$Condition == 'N
 #                                            feat_conv = T, plot_title = NULL, show_rownames = F,
 #                                            pca_metaVar = c('Recurrence', 'Gender', 'Age',
 #                                                            'Smoking', 'Stage', 'Adjuvant'),
-#                                            soa_unwantVar = 'Adjuvant')
-proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin.rds')
+#                                            soa_unwantVar = 'SV1')
+                                           # fontsize = 15, fontsize_col = 14
+proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin_SV1.rds')
 ```
 
 Display significant associations between PCs (Var1) and sample metadata variables
@@ -505,6 +674,8 @@ Visualize molecular signatures of significant features in data. Note that featur
 in rows are ordered by t-statistics.
 ```{r}
 proNormalRes_Klin$sig.feat.heat
+# ggsave('./output/Discovery/2nd_TAC/heatmap_sigFeats_combined_proNormal_Klin.png', a,
+#        device = 'png', dpi = 400, height = 10, width = 12)
 ```
 
 Visualize top significant features identified in Normal samples (ns: p > 0.05,
@@ -521,7 +692,7 @@ condiCol = c('firebrick', 'grey50') #c(Normal, Tumor)
 # Extract top significant features and prepare needed information
 topSigFeats <- featSigAssoTab[1:num_sigFeats,] %>%
   dplyr::select(Var1, Gene) %>%
-  dplyr::mutate(newVar1 = paste0(Var1, ' (', Gene, ')'),
+  dplyr::mutate(newVar1 = paste0(Gene, ' (', Var1, ')'), #\n
                 newVar1 = factor(newVar1, levels = unique(newVar1)))
 topSigFeatDat <- tibble::as_tibble(datMat[topSigFeats$Var1,], rownames = 'Var1') %>%
   tidyr::pivot_longer(cols = -'Var1', names_to = 'Sample', values_to = 'Abundance') %>%
@@ -543,22 +714,52 @@ ggplot(topSigFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurr
   th +
   # theme(strip.text = element_text(size = 13, face = 'bold'),
   #            axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
-  theme(strip.text = element_text(size = 14, face = 'bold'),
-        axis.title = element_text(size = 26),
-        axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1, size = 20),
-        legend.title = element_text(size = 24), legend.text = element_text(size = 22))
-# ggsave('./output/Discovery/group_meeting/topSigFeats_combined_proNormal_Klin.png',
-#        device = 'png', dpi = 400, height = 12, width = 14)
+  theme(strip.text = element_text(size = 14, face = 'bold'), #size = 26, margin = margin(0.5,0,0.5,0, 'cm')
+        axis.title = element_text(size = 28),
+        axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1, size = 14), #size = 24
+        legend.title = element_text(size = 28), legend.text = element_text(size = 26))
+# ggsave('./output/Discovery/2nd_TAC/boxplot_topSigFeats_combined_proNormal_Klin.png',
+#        device = 'png', dpi = 400, height = 9, width = 16)
+```
+
+```{r}
+# Prepare proteins of interest and recurrence information
+datTab <- t(proNormalRes_Klin$SOA.res$data) %>%
+  as_tibble(rownames = 'Sample') %>%
+  left_join(proNormalRes_Klin$SOA.res$smpMetadata) %>%
+  dplyr::select(Sample, P41208, P63104, Recurrence)
+
+# Compute ROC-AUC score
+response <- ifelse(datTab$Recurrence == 'Yes', yes = '1', no = '0') %>%
+  factor(levels = c('1', '0'))
+predictor <- datTab$P41208
+rocRes <- pROC::roc(response = response, predictor = predictor, plot = T,
+                    legacy.axes = T, print.auc = T, print.auc.x = 0.4,
+                    xlab = substitute(paste(bold('False positive rate'))),
+                    ylab = substitute(paste(bold('True positive rate'))),
+                    main = 'ROC Curve for P41208 (CETN2)',
+                    cex.lab = 1.8, cex.axis = 1.2, cex.main = 1.8, col = '#377eb8',
+                    lwd = 6, direction = '<', quiet = T)
+# pROC::ci.auc(rocRes)
+
+predictor <- datTab$P63104
+rocRes <- pROC::roc(response = response, predictor = predictor, plot = T,
+                    legacy.axes = T, print.auc = T, print.auc.x = 0.4,
+                    xlab = substitute(paste(bold('False positive rate'))),
+                    ylab = substitute(paste(bold('True positive rate'))),
+                    main = 'ROC Curve for P63104 (YWHAZ)',
+                    cex.lab = 1.8, cex.axis = 1.2, cex.main = 1.8, col = '#377eb8',
+                    lwd = 6, direction = '<', quiet = T)
+# pROC::ci.auc(rocRes)
 ```
 
 Assess data power by p-value histogram
 ```{r}
 proNormalRes_Klin$pval.hist +
   labs(title = 'Klin. Combined Normal Tissue DIA Proteomics') +
-  theme(axis.title = element_text(size = 28),
-        axis.text = element_text(size = 16))
-# ggsave('./output/Discovery/group_meeting/pVals_histogram_combined_proNormal_Klin.png',
-#        device = 'png', dpi = 400, height = 6, width = 11)
+  theme(axis.title = element_text(size = 30), axis.text = element_text(size = 18))
+# ggsave('./output/Discovery/2nd_TAC/histogram_pVals_combined_proNormal_Klin.png',
+#        device = 'png', dpi = 400, height = 9, width = 11)
 ```
 
 Display significant associations between PCs (Var1) and cancer recurrence (Var2)
@@ -569,20 +770,38 @@ proNormalRes_Klin$sig.pc.tab
 Visualize significant PCs and display their top features with greatest absolute loadings
 ```{r}
 pcTab <- proNormalRes_Klin$SOA.res$pcTab %>%
-  dplyr::mutate(Recurrence = factor(Recurrence, levels = c('Yes', 'No')))
-ggplot(pcTab, aes(x=Recurrence, y=`PC1 (11.1%)`, col=Recurrence, fill=Recurrence)) +
+  dplyr::mutate(Recurrence = factor(Recurrence, levels = c('Yes', 'No')),
+                Label = dplyr::case_when(Recurrence %in% 'Yes' & `PC1 (11.1%)` > 0 ~ Sample,
+                                         Recurrence %in% 'No' & `PC1 (11.1%)` < 0 ~ Sample))
+# pcTab$Label[!is.na(pcTab$Label)]
+# Yes: ZSOOQ4_NG | No: CH51FFJ5_NG
+
+ggplot(pcTab, aes(x=Recurrence, y=`PC1 (11.1%)`, col=Recurrence, fill=Recurrence, label=Label)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(position = position_jitter(0.2), size = 4, show.legend = F) +
+  # geom_text_repel(show.legend = F) +
   ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
                              size = 9, show.legend = F, hjust = 0.4, vjust = 1) +
   scale_color_manual(values=c('#F8766D', '#00BFC4')) +
   scale_fill_manual(values=c('#F8766D', '#00BFC4')) +
   th +
-  theme(axis.title = element_text(size = 28),
-        axis.text = element_text(size = 16),
-        legend.title = element_text(size = 26), legend.text = element_text(size = 24))
-# ggsave('./output/Discovery/group_meeting/pca_PC1_combined_proNormal_Klin.png',
-#        device = 'png', dpi = 400, height = 10, width = 11)
+  theme(axis.title = element_text(size = 30), axis.text = element_text(size = 20),
+        legend.title = element_text(size = 28), legend.text = element_text(size = 26))
+# ggsave('./output/Discovery/2nd_TAC/boxplot_pca_PC1_combined_proNormal_Klin.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
+
+# Compute ROC-AUC score
+response <- ifelse(pcTab$Recurrence == 'Yes', yes = '1', no = '0') %>%
+  factor(levels = c('1', '0'))
+predictor <- pcTab$`PC1 (11.1%)`
+rocRes <- pROC::roc(response = response, predictor = predictor, plot = T,
+                    legacy.axes = T, print.auc = T, print.auc.x = 0.4,
+                    xlab = substitute(paste(bold('False positive rate'))),
+                    ylab = substitute(paste(bold('True positive rate'))),
+                    main = 'ROC Curve for PC1',
+                    cex.lab = 1.8, cex.axis = 1.2, cex.main = 1.8, col = '#377eb8',
+                    lwd = 4, direction = '<', quiet = T)
+pROC::ci.auc(rocRes)
 
 proNormalRes_Klin$pc.top.feat.tab$PC1
 proNormalRes_Klin$sig.pc.dist$PC9
@@ -637,12 +856,12 @@ ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=
         legend.text = element_text(size = 12),
         title = element_text(face = 'bold', size = 12))
 # theme(axis.title = element_text(size = 20, face = 'bold'),
-#       axis.text.x = element_text(size = 18),
-#       axis.text.y = element_text(size = 18, face = 'bold'),
-#       legend.title = element_text(size = 20),
-#       legend.text = element_text(size = 16),
-#       panel.grid.minor = element_blank())
-# ggsave('./output/Discovery/group_meeting/topOR_pathways_tVal_combined_proNormal_Klin_H.png',
+      # axis.text.x = element_text(size = 18),
+      # axis.text.y = element_text(size = 18, face = 'bold'),
+      # legend.title = element_text(size = 20),
+      # legend.text = element_text(size = 16),
+      # panel.grid.minor = element_blank())
+# ggsave('./output/Discovery/2nd_TAC/gsea_tVal_combined_proNormal_Klin_H.png',
 #        device = 'png', dpi = 400, height = 8, width = 11)
 ```
 
@@ -699,6 +918,6 @@ ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=
   #       legend.title = element_text(size = 20),
   #       legend.text = element_text(size = 16),
   #       panel.grid.minor = element_blank())
-# ggsave('./output/Discovery/group_meeting/topOR_pathways_pc1_combined_proNormal_Klin_H.png',
+# ggsave('./output/Discovery/2nd_TAC/gsea_pc1_combined_proNormal_Klin_H.png',
 #        device = 'png', dpi = 400, height = 8, width = 11)
 ```

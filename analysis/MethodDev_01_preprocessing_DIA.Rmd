@@ -589,6 +589,32 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (31.1%)`, col=Condition, fill=Condition, l
 ```
 => Tumor purity: I0HVOL_TU - 87% (Mean of sample tumor cell contents is 93%, ranging from 73% to 100%.)
 
+**Hierarchical clustering**\
+Check if there exists batch effect
+```{r}
+# Compute sample euclidean distances
+d <- dist(t(assay(proTissue_Klin$vsn.data)), method = 'euclidean')
+
+# Visualize sample distances by heatmap with clustering
+batchAnno <- tibble::as_tibble(colData(proTissue_Klin$vsn.data), rownames = 'Sample') %>%
+  dplyr::select(Sample, Batch) %>%
+  dplyr::mutate(Batch = dplyr::case_when(Batch == '1' ~ 'MethodDev',
+                                         Batch == '2' ~ 'Discovery')) %>%
+  tibble::column_to_rownames('Sample')
+pheatmap(as.matrix(d), annotation_col = batchAnno, scale = 'row', #row scaling is across columns
+         color = colorRampPalette(c('navy', 'white', 'red'))(100),
+         cluster_cols = T, cluster_rows = F, show_rownames = F,
+         clustering_method = 'ward.D2', fontsize_col = 6,
+         annotation_colors = list(Batch = c(MethodDev = 'grey30', Discovery = 'grey60')))
+
+# Do hierarchical clustering
+# hc <- hclust(d, method = 'ward.D2')
+# # Plot clustering result
+# plot(hc, hang = 0.04, cex = 0.5, frame.plot = T, main = NULL)
+```
+
+**PCA**\
+Check if there exists potential batch effect
 ```{r}
 ggplot(pcTab, aes(x=`PC1 (31.1%)`, y=`PC2 (11.3%)`, col=Batch, shape=Condition)) +
   geom_point(size = 4) +

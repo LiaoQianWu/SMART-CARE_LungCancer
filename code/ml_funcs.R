@@ -303,8 +303,8 @@ vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', fea
   #' to display for feature abundance boxplots. Default is 6
   #' 
   #' Return
-  #' A list containing a summarized top feature table and two ggplot objects, feature
-  #' rank and abundance plots
+  #' A list containing summarized full and top feature tables and two ggplot objects,
+  #' feature rank and abundance plots
   
   if (ncol(featAnno) != 2) {
     stop("Column number of annotation data should be 2.")
@@ -411,7 +411,7 @@ vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', fea
     theme(strip.text = element_text(size = 13, face = 'bold'),
           axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
   
-  return(list(topFeatTab = topFeatTab, rank = p1, abun = p2))
+  return(list(fullFeatTab = medianRankedFeatImpoTab, topFeatTab = topFeatTab, rank = p1, abun = p2))
 }
 
 
@@ -876,8 +876,8 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
   #' to display for feature abundance boxplots. Default is 6
   #' 
   #' Return
-  #' A list containing a summarized top feature table and two ggplot objects, feature
-  #' pick rate and abundance plots
+  #' A list containing summarized full and top feature tables and two ggplot objects,
+  #' feature pick rate and abundance plots
   
   if (ncol(featAnno) != 2) {
     stop("Column number of annotation data should be 2.")
@@ -904,7 +904,7 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
                                       !Cluster %in% '' ~ Cluster))
   # Summarize feature selection results into pick rates, combined needed information,
   # and convert it to long table
-  ImpoFeatTab <- as.data.frame(coefTab) %>%
+  impoFeatTab <- as.data.frame(coefTab) %>%
     dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
                                                    .x == 0 ~ 0))) %>%
     tibble::rownames_to_column('Feature') %>%
@@ -917,16 +917,16 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
     dplyr::relocate(Cluster, .after = Feature)
   if (!is.null(featAnno)) {
     colnames(featAnno) <- c('Feature', 'Annotation')
-    ImpoFeatTab <- dplyr::left_join(ImpoFeatTab, featAnno, by = 'Feature') %>%
+    impoFeatTab <- dplyr::left_join(impoFeatTab, featAnno, by = 'Feature') %>%
       dplyr::mutate(Annotation = stringr::str_remove(Annotation, ';.+'),
                     Feature = stringr::str_remove(Feature, ';.+')) %>%
       dplyr::relocate(Annotation, .after = Feature)
   } else {
-    ImpoFeatTab <- dplyr::mutate(ImpoFeatTab, Feature = stringr::str_remove(Feature, ';.+'))
+    impoFeatTab <- dplyr::mutate(impoFeatTab, Feature = stringr::str_remove(Feature, ';.+'))
   }
   
   # Visualize top important features
-  topImpoFeatTab <- ImpoFeatTab[seq_len(num_p1TopFeats),]
+  topImpoFeatTab <- impoFeatTab[seq_len(num_p1TopFeats),]
   p1 <- ggplot(topImpoFeatTab, aes(x=PickRate, y=factor(Annotation, levels = rev(Annotation)))) +
     geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
     labs(x = 'Feature Pick Rate (~ 1000 models)', y = 'Feature') +
@@ -952,7 +952,7 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
     comparisons = list(c('Yes_Tumor', 'No_Tumor'), c('Yes_Normal', 'No_Normal'))
   }
   # Extract top important features and prepare needed information
-  topImpoFeats <- ImpoFeatTab[1:num_p2TopFeats,] %>%
+  topImpoFeats <- impoFeatTab[1:num_p2TopFeats,] %>%
     dplyr::select(Feature, Annotation) %>%
     dplyr::mutate(newFeat = paste0(Feature, ' (', Annotation, ')'),
                   newFeat = factor(newFeat, levels = unique(newFeat)))
@@ -976,7 +976,7 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
     theme(strip.text = element_text(size = 13, face = 'bold'),
           axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
   
-  return(list(topFeatTab = topFeatTab, pick = p1, abun = p2))
+  return(list(fullImpoFeatTab = impoFeatTab, topImpoFeatTab = topFeatTab, pick = p1, abun = p2))
 }
 
 

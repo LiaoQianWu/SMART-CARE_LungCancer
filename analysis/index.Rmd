@@ -109,15 +109,34 @@ AG Krijgsveld &rarr; DIA Tissue and Plasma Proteomics (2)
 
 ### 1. Data Preprocessing
 
-### 1.1 [Tissue and Plasma DIA Proteomics](Discovery_01_preprocessing_DIA.html)
+### 1.1 [Tissue and Plasma DIA Proteomics (Krijgsveld)](Discovery_01_preprocessing_DIA.html)
+### 1.2 [Tissue and Plasma Untargeted Lipidomics](Discovery_01_preprocessing_untargeted.html)
 
 ---
 
 ### 2. Preliminary (Single-Omics) Analysis
 
-### 2.1 [Tissue and Plasma DIA Proteomics](Discovery_02_soa_DIA.html)
+### 2.1 [Tissue and Plasma DIA Proteomics (Krijgsveld)](Discovery_02_soa_DIA.html)
+### 2.2 [Tissue and Plasma Untargeted Lipidomics](Discovery_02_soa_untargeted.html)
 
 ---
 
 ### 3. Cross-Cohort Analysis: [Tissue DIA Proteomics](CrossCohort_investigation.html)
 
+## Combined data
+
+### [Single-Omics Analysis of Tissue DIA Proteomics (Krijgsveld & Klingmüller)](Discovery_02_soa_DIA_combined.html)
+### [Trained MOFA Models](Discovery_mofa_downstream.html)
+We observed that PC1 in Normal Tissue DIA Proteomics from AG Klingmüller is significantly
+associated with recurrence, and enrichment analysis result of this PC1 shows that
+lipid metabolism is overrepresented. Therefore, we trained MOFA models on Normal
+Tissue DIA Proteomics and Tissue/Plasma Untargeted Lipidomics to see if there exist
+signals across different data modalities.\
+Reprogramming of lipid metabolism has been demonstrated to contribute to lung cancer
+development and chemoresistance. In our analysis, association between recurrence and
+adjuvant chemotherapy is not tested significant. Hence, story now could be healthy
+lung tissue cells with altered lipid metabolism have abnormal membrane dynamics,
+higher energy production, etc., which enables them to become cancerous cells with
+chemoresistance over time, even after surgical resection of primary lung tumors.
+
+### [Trained ML Models on Tissue DIA Proteomics (Krijgsveld & Klingmüller)](FeatSelection_ML.html)

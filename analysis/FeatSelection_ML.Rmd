@@ -194,9 +194,64 @@ featAnno <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Feature')
 
 topImpoFeatPlots <- vizTopImpoFeatsLR(lrRes, fullData = proTissue_Klin, trainData_smpType = 'Normal',
                                       featAnno = featAnno, num_p1TopFeats = 15)
-topImpoFeatPlots$topFeatTab
+topImpoFeatPlots$topImpoFeatTab
 topImpoFeatPlots$pick
 topImpoFeatPlots$abun
+
+topImpoFeatPlots$fullImpoFeatTab
+```
+
+```{r}
+# Prepare ranked gene list
+fullImpoFeatTab <- topImpoFeatPlots$fullImpoFeatTab
+dplyr::filter(fullImpoFeatTab, !is.na(Cluster))
+
+for (i in seq_len(nrow(fullImpoFeatTab))) {
+  
+}
+
+impoRes <- topImpoFeatPlots$fullImpoFeatTab %>%
+  dplyr::select(Feature, Stat) %>%
+  tibble::column_to_rownames('Feature')
+featAnno_Klin <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Protein') %>%
+  dplyr::rename(Gene = PG.Genes) %>%
+  tibble::column_to_rownames('Protein')
+rankedGeneList_Klin <- prepRankedFeatList(statRes = statRes_Klin, featAnno = featAnno_Klin, to_gene = T)
+
+# Hallmark gene sets
+# Retrieve annotated gene sets
+msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
+  dplyr::select(gs_name, human_gene_symbol)
+# Run GSEA
+gseaResH_tVal_Klin <- clusterProfiler::GSEA(geneList = rankedGeneList_Klin, TERM2GENE = msigTabH,
+                                            minGSSize = 10, maxGSSize = 500,
+                                            pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                            by = 'fgsea', eps = 0)
+
+# Plot enrichment analysis results
+gseaRes4Plot <- gseaResH_tVal_Klin@result %>%
+  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+  dplyr::arrange(p.adjust) %>%
+  dplyr::slice_head(n = 10) %>%
+  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                leading_edge = as.numeric(leading_edge),
+                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No'),
+                Description = stringr::str_remove(Description, 'HALLMARK_')) %>%
+  dplyr::rename(gene_ratio = leading_edge)
+midGrad <- mean(gseaRes4Plot$p.adjust)
+
+ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+  geom_bar(stat = 'identity', width = 0.7, size = 2) +
+  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
+  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+  labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16, face = 'bold'),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        title = element_text(face = 'bold', size = 12))
 ```
 
 ```{r}

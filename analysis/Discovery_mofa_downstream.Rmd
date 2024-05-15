@@ -70,7 +70,7 @@ dataList <- list(Comb_Tissue_Proteomics_Klin = comb_proTissue_Klin,
 # lapply(dataList, dim)
 
 # Prepare significant features for feature selection
-# soaRes <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin.rds')
+# soaRes <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin_SV1.rds')
 # sigFeats_comb_proNormal_Klin <- soaRes$sig.feat.tab$Var1
 # soaRes <- doSOA(dis_lipNormal_Hopf, meta_var = 'Recurrence', use_proDA = T)
 # sigFeats_dis_lipNormal_Hopf <- soaRes$featSigAssoRes$Var1
@@ -150,13 +150,54 @@ Display and visualize significant recurrence-related factors
 ```{r}
 # Display significant associations between learned factors (Var1) and cancer recurrence
 # (Var2) and visualize significant recurrence-related factors
-sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group', show_res = F)
+sigFactor$sigAssoRes
+
+facTab <- dplyr::mutate(sigFactor$tab4Plot,
+                        Recurrence = factor(Recurrence, levels = c('Yes', 'No')),
+                        Label = dplyr::case_when(Recurrence %in% 'Yes' & Factor1 > 0 ~ sample,
+                                                 Recurrence %in% 'No' & Factor1 < 0 ~ sample))
+
+ggplot(facTab, aes(x=Recurrence, y=Factor1, col=Recurrence, fill=Recurrence, label=Label)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 4, show.legend = F) +
+  geom_text_repel(show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                             size = 9, show.legend = F, hjust = 0.4, vjust = 1) +
+  scale_color_manual(values=c('#F8766D', '#00BFC4')) +
+  scale_fill_manual(values=c('#F8766D', '#00BFC4')) +
+  th +
+  theme(axis.title = element_text(size = 28),
+        axis.text = element_text(size = 16),
+        legend.title = element_text(size = 26), legend.text = element_text(size = 24))
+
+
+ggplot(facTab, aes(x=Recurrence, y=Factor4, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 4, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                             show.legend = F) +
+  scale_color_manual(values=c('#F8766D', '#00BFC4')) +
+  scale_fill_manual(values=c('#F8766D', '#00BFC4')) +
+  th
 
 ggplot(sigFactor$tab4Plot, aes(x=Factor1, y=Factor4, col=Recurrence)) +
   geom_point(size = 4) +
   scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
   th
+
+# Compute ROC-AUC score
+response <- ifelse(facTab$Recurrence == 'Yes', yes = '1', no = '0') %>%
+  factor(levels = c('1', '0'))
+predictor <- facTab$Factor1
+rocRes <- suppressMessages(
+  pROC::roc(response = response, predictor = predictor, plot = T,
+            legacy.axes = T, print.auc = T, print.auc.x = 0.4,
+            xlab = 'False positive rate', ylab = 'True positive rate',
+            main = 'ROC Curve for Factor1',
+            cex.lab = 1.2, cex.main = 1.1, col = '#377eb8', lwd = 4,
+            direction = '<')
+)
 ```
 => Factor1 is highly correlated with PC1 from Klin. NTP and explains variance also
 in MDev. NTL, but in Dis. NTL, which implies that significant features captured
@@ -173,7 +214,7 @@ facTab <- sigFactor$tab4Plot %>%
   dplyr::select(sample, Factor1, Recurrence) %>%
   dplyr::mutate(sample = stringr::str_replace(sample, '_B', '_NG'))
 # Prepare significant PC table
-proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin.rds')
+proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin_SV1.rds')
 # Show significant PCs
 # proNormalRes_Klin$sig.pc.tab
 pcTab <- proNormalRes_Klin$SOA.res$pcTab %>%
@@ -275,13 +316,17 @@ Discovery and MethodDev Untargeted Baseline Plasma Lipidomics
 
 # Load trained model
 mofaObject <- readRDS('./data/Discovery/mofa/sigFeats_CombDIANTPKlin_DisMDevUntBPL.rds')
+views_names(mofaObject) <- c('Dis. Unt. BPL', 'Comb. DIA NTP', 'MDev. Unt. BPL')
 ```
 
 Overview model\
 Note that samples in only one view were removed from model training
 ```{r}
 # Overview model
-MOFA2::plot_data_overview(mofaObject)
+MOFA2::plot_data_overview(mofaObject) #+
+  # theme(text = element_text(size = 28))
+# ggsave('./output/Discovery/2nd_TAC/mofa_data_UntBPL_combined_proNormal_Klin.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
 ```
 
 Quantify amount of variance explained by each factor in each data modality
@@ -290,14 +335,51 @@ Quantify amount of variance explained by each factor in each data modality
 # MOFA2::plot_factor_cor(mofaObject)
 
 # Perform variance dedecomposition analysis (coefficient of determination)
-MOFA2::plot_variance_explained(mofaObject, max_r2 = 15)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 15) #+
+# theme(axis.text.x = element_text(size = 22), axis.text.y = element_text(size =20),
+#       legend.title = element_text(size = 22), legend.text = element_text(size = 20))
+# ggsave('./output/Discovery/2nd_TAC/mofa_varExplain_UntBPL_combined_proNormal_Klin.png',
+       # device = 'png', dpi = 400, height = 8, width = 11)
 ```
 
 Display and visualize significant recurrence-related factors
 ```{r}
 # Display significant associations between learned factors (Var1) and cancer recurrence
 # (Var2) and visualize significant recurrence-related factors
-sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group')
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group', show_res = F)
+sigFactor$sigAssoRes
+
+facTab <- dplyr::mutate(sigFactor$tab4Plot,
+                        Recurrence = factor(Recurrence, levels = c('Yes', 'No')),
+                        Label = dplyr::case_when(Recurrence %in% 'Yes' & Factor1 > 0 ~ sample,
+                                                 Recurrence %in% 'No' & Factor1 < 0 ~ sample))
+
+ggplot(facTab, aes(x=Recurrence, y=Factor1, col=Recurrence, fill=Recurrence, label=Label)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 4, show.legend = F) +
+  geom_text_repel(show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                             size = 9, show.legend = F, hjust = 0.4, vjust = 1) +
+  scale_color_manual(values=c('#F8766D', '#00BFC4')) +
+  scale_fill_manual(values=c('#F8766D', '#00BFC4')) +
+  th +
+  theme(axis.title = element_text(size = 30), axis.text = element_text(size = 20),
+        legend.title = element_text(size = 28), legend.text = element_text(size = 26))
+# ggsave('./output/Discovery/2nd_TAC/mofa_fac1_UntBPL_combined_proNormal_Klin.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
+
+# Compute ROC-AUC score
+response <- ifelse(facTab$Recurrence == 'Yes', yes = '1', no = '0') %>%
+  factor(levels = c('1', '0'))
+predictor <- facTab$Factor1
+rocRes <- pROC::roc(response = response, predictor = predictor, plot = T,
+                    legacy.axes = T, print.auc = T, print.auc.x = 0.4,
+                    xlab = substitute(paste(bold('False positive rate'))),
+                    ylab = substitute(paste(bold('True positive rate'))),
+                    main = 'ROC Curve for Factor1',
+                    cex.lab = 1.8, cex.axis = 1.2, cex.main = 1.8, col = '#377eb8',
+                    lwd = 6, direction = '<', quiet = T)
+# pROC::ci.auc(rocRes)
 ```
 
 Compare Factor1 with recurrence-related PC1 learned from Combined Klin. Normal Tissue
@@ -309,21 +391,26 @@ facTab <- sigFactor$tab4Plot %>%
   dplyr::select(sample, Factor1, Recurrence) %>%
   dplyr::mutate(sample = stringr::str_replace(sample, '_B', '_NG'))
 # Prepare significant PC table
-proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin.rds')
+proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin_SV1.rds')
 # Show significant PCs
 # proNormalRes_Klin$sig.pc.tab
 pcTab <- proNormalRes_Klin$SOA.res$pcTab %>%
   dplyr::select(Sample, `PC1 (11.1%)`) %>%
   dplyr::rename(sample = Sample)
 # Combine all information
-combinedTab <- dplyr::left_join(facTab, pcTab, by = 'sample')
+combinedTab <- dplyr::left_join(facTab, pcTab, by = 'sample') %>%
+  dplyr::mutate(Recurrence = factor(Recurrence, levels = c('Yes', 'No')))
 # Make a plot and compute correlation
 ggplot(combinedTab, aes(x=Factor1, y=`PC1 (11.1%)`)) +
   geom_point(aes(col=Recurrence), size = 4) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
-  th
+  scale_color_manual(values=c('#F8766D', '#00BFC4')) +
+  scale_fill_manual(values=c('#F8766D', '#00BFC4')) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 9) +
+  th +
+  theme(axis.title = element_text(size = 30), axis.text = element_text(size = 20),
+        legend.title = element_text(size = 28), legend.text = element_text(size = 26))
+# ggsave('./output/Discovery/2nd_TAC/mofa_fac1_vs_pc1_UntBPL_combined_proNormal_Klin.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
 
 # Prepare significant factor tables
 facTab <- sigFactor$tab4Plot %>%
@@ -400,32 +487,3 @@ mofaObj2 <- readRDS('./data/Discovery/mofa/sigFeats_CombDIANTPKlin_DisMDevUntBPL
 
 MOFA2::compare_factors(list(NTL = mofaObj1, BPL = mofaObj2))
 ```
-
-
-
-
-```{r}
-sessionInfo()
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
