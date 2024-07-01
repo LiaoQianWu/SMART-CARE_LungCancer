@@ -72,7 +72,8 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
   # Visualize missingness of original data
   if (viz_miss) {
     exprMat <- SummarizedExperiment::assay(seOri)
-    oriMiss <- visdat::vis_miss(exprMat, cluster = T, sort_miss = T) +
+    oriMiss <- visdat::vis_miss(exprMat, cluster = T, sort_miss = T,
+                                warn_large_data = F) +
       labs(y = 'Features') +
       th4MissViz
   } else {
@@ -121,7 +122,8 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
     if (viz_miss) {
       # Visualize missingness of filtered data
       exprMat <- SummarizedExperiment::assay(seFilt)
-      filtMiss <- visdat::vis_miss(exprMat, cluster = T, sort_miss = T) +
+      filtMiss <- visdat::vis_miss(exprMat, cluster = T, sort_miss = T,
+                                   warn_large_data = F) +
         labs(y = 'Features') +
         th4MissViz
     } else {
