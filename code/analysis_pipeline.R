@@ -325,7 +325,11 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
                   use_limma = use_limma, use_proDA = use_proDA, unwantVar = soa_unwantVar)
   # Retrieve needed information (check return of 'doSOA' in misc.R for more details)
   # Data matrix and sample metadata for making plots
-  datMat <- soaRes$data
+  if (is.null(soa_unwantVar)) {
+    datMat <- soaRes$data
+  } else {
+    datMat <- soaRes$dataCorrect
+  }
   smpAnnoTab <- soaRes$smpMetadata
   # Univariate analysis results
   featAssoTab <- soaRes$featAssoRes

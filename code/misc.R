@@ -417,6 +417,8 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   #' Return
   #' A list containing the following components:
   #' data: A data matrix from the SE object
+  #' dataCorrect: A data matrix that is adjusted for unwanted variance according
+  #' to parameter 'unwantVar'
   #' smpMetadata: A table storing sample metadata, e.g., patient genders, ages, etc.
   #' pcaRes: A complete PCA result obtained using 'prcomp' or 'pcaMethods::pca'
   #' pcSigAssoRes: A table showing significant association test results between PCs
@@ -463,9 +465,39 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
       dplyr::select(-Sample) %>%
       dplyr::rename(Sample = tmp_Sample)
   }
+  # Correct data for unwanted variance
+  if (!is.null(unwantVar)) {
+    # Define design matrix to keep particular effects, e.g., treatments, and adjust
+    # unwanted effects
+    formu <- paste0('~', paste0(c(meta_var, unwantVar), collapse = '+')) %>%
+      as.formula()
+    design <- model.matrix(formu, data = smpMetadat)
+    # Determine number of columns that is of interest in design matrix
+    wantedColCount <- 0
+    for (i in seq_len(length(meta_var))) {
+      smpMetaVar <- smpMetadat[[meta_var[i]]]
+      clas <- class(smpMetaVar)
+      if (!is.numeric(clas)) {
+        wantedColCount <- wantedColCount + length(unique(smpMetaVar)) - 1
+      } else {
+        wantedColCount <- wantedColCount + 1
+      }
+    }
+    wantedDesign <- design[, seq_len(wantedColCount+1)] #+1 due to intercept term
+    unwantedDesign <- design[, -seq_len(wantedColCount+1)]
+    # Do correction
+    datMatCorrect <- limma::removeBatchEffect(datMat, design = wantedDesign,
+                                              covariates = unwantedDesign)
+  } else {
+    datMatCorrect <- NULL
+  }
   
   # Perform PCA
-  pcaRes <- doPCA(datMat, pca_method = pca_method, num_PCs = num_PCs)
+  if (is.null(unwantVar)) {
+    pcaRes <- doPCA(datMat, pca_method = pca_method, num_PCs = num_PCs)
+  } else {
+    pcaRes <- doPCA(datMatCorrect, pca_method = pca_method, num_PCs = num_PCs)
+  }
   # Conduct association test between PCs and factors
   if (pca_method == 'pca') {
     pcTab <- pcaRes$x %>%
@@ -519,9 +551,9 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
     featSigAssoRes <- NULL
   }
   
-  return(list(data = datMat, smpMetadata = smpMetadat, pcaRes = pcaRes,
-              pcSigAssoRes = pcSigAssoRes, pcTopFeatTab = pcTopFeatTab, pcTab = pcTab,
-              featSigAssoRes = featSigAssoRes, featAssoRes = featAssoRes))
+  return(list(data = datMat, dataCorrect = datMatCorrect, smpMetadata = smpMetadat,
+              pcaRes = pcaRes, pcSigAssoRes = pcSigAssoRes, pcTopFeatTab = pcTopFeatTab,
+              pcTab = pcTab, featSigAssoRes = featSigAssoRes, featAssoRes = featAssoRes))
 }
 
 
