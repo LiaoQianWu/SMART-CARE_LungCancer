@@ -200,7 +200,7 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
 }
 
 
-doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
+doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL, level_metaVar = NULL,
                                   num_sigFeats = 6, pca_method = 'pca', num_PCs = 20,
                                   num_PCfeats = NULL, use_limma = F, use_proDA = F,
                                   alpha = 0.05, pca_metaVar = 'all', feat_anno = NULL,
@@ -224,6 +224,13 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
   #' soa_unwantVar: A character or a vector of characters specifying the metadata
   #' variables that will be accounted for by linear models (regressing out). Default
   #' is NULL. Note that this is usable only for limma and proDA for now
+  #' level_metaVar: A vector of characters specifying the level of the variable
+  #' 'soa_metaVar' for determining the direction of a comparison and producing organized
+  #' visualizations. For example, cancer recurrence got two levels: Yes and No,
+  #' so 'level_metaVar' will accept c('Yes', 'No') when 'soa_metaVar' is 'Recurrence',
+  #' meaning that t-test compares recurrence vs non-recurrence patient groups (R. - NonR.),
+  #' and vice versa. For visualizations, recurrence group is displayed first in
+  #' plots. Default is NULL
   #' num_sigFeats: A numeric value specifying the number of top significant features
   #' to visualize through boxplots. Default is 6 and this parameter can be set to
   #' NULL if distribution of top significant features is not of interest
@@ -282,6 +289,11 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
   if (length(soa_metaVar) != 1) {
     stop("Argument for 'soa_metaVar' should be a character of length 1.")
   }
+  if (!is.null(level_metaVar)) {
+    if (!identical(sort(unique(colData(summ_exp)[[soa_metaVar]])), sort(level_metaVar))) {
+      stop("Levels specified in 'level_metaVar' should be included in 'soa_metaVar' metadata.")
+    }
+  }
   if (!all(pca_metaVar %in% 'all')) {
     if (!is(pca_metaVar, 'character') | !all(pca_metaVar %in% colnames(colData(summ_exp)))) {
       stop("Argument for 'pca_metaVar' should be class 'character' and included in sample metadata.")
@@ -322,12 +334,14 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
   # Perform main SOA
   soaRes <- doSOA(summ_exp, meta_var = soa_metaVar, pca_method = pca_method,
                   num_PCs = num_PCs, num_PCfeats = num_PCfeats, alpha = alpha,
-                  use_limma = use_limma, use_proDA = use_proDA, unwantVar = soa_unwantVar)
+                  use_limma = use_limma, use_proDA = use_proDA, unwantVar = soa_unwantVar,
+                  level_metaVar = level_metaVar)
   # Retrieve needed information (check return of 'doSOA' in misc.R for more details)
   # Data matrix and sample metadata for making plots
   if (is.null(soa_unwantVar)) {
     datMat <- soaRes$data
   } else {
+    # Use corrected data matrix if parameter 'soa_unwantVar' is specified
     datMat <- soaRes$dataCorrect
   }
   smpAnnoTab <- soaRes$smpMetadata
@@ -355,6 +369,12 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
   } else {
     pcTopFeatTab <- NULL
   }
+  # Level metadata variable of interest if parameter 'level_metaVar' is specified
+  # for organized visualizations
+  if (!is.null(level_metaVar)) {
+    smpAnnoTab[[soa_metaVar]] <- factor(smpAnnoTab[[soa_metaVar]], levels = level_metaVar)
+    pcTab[[soa_metaVar]] <- factor(pcTab[[soa_metaVar]], levels = level_metaVar)
+  }
   
   # Explore univariate analysis results
   # Plot molecular signatures in input data through heatmap
@@ -374,6 +394,17 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
   # Prepare sample annotation table
   smpAnno <- dplyr::select(smpAnnoTab, Sample, all_of(soa_metaVar)) %>%
     tibble::column_to_rownames('Sample')
+  ################
+  # This chunk is very specifically for coloring Recurrence patient in red
+  if (all(!is.null(level_metaVar), nlevels(smpAnno[[soa_metaVar]]) == 2)) {
+    annoCols <- c('#F8766D', '#00BFC4')
+    names(annoCols) <- levels(smpAnno[[soa_metaVar]])
+    smpAnnoCols <- list()
+    smpAnnoCols[[soa_metaVar]] <- annoCols
+  } else {
+    smpAnnoCols <- NA
+  }
+  ################
   # Make heatmap
   # Change parameter 'plot_title' from NULL to NA for pheatmap if NULL is specified
   if (is.null(plot_title)) {
@@ -383,11 +414,12 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
   }
   featSigHeat <- pheatmap(datMatSub, annotation_col = smpAnno, scale = 'row', #row scaling is across columns
                           color = colorRampPalette(c('navy', 'white', 'red'))(100),
-                          cluster_rows = F, cluster_cols = F, main = main, silent = T, ...) %>%
+                          annotation_colors = smpAnnoCols, cluster_rows = F, cluster_cols = F,
+                          main = main, silent = T, ...) %>%
     # Convert pheatmap object to ggplot object
     ggplotify::as.ggplot()
   
-  # Visualize data of top 6 significant features through boxplots
+  # Visualize data of top significant features through boxplots
   # Extract top significant features and needed information
   if (!is.null(num_sigFeats)) {
     if (!is.null(feat_anno) & feat_conv) {
@@ -412,10 +444,16 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
       geom_boxplot(alpha = 0.7, outlier.shape = NA) +
       geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
       labs(title = plot_title) +
-      scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-      scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
       facet_wrap(vars(newVar1), scales = 'free') +
       th + theme(strip.text = element_text(size = 13, face = 'bold'))
+    ################
+    # This chunk is very specifically for matching colors as heatmap above
+    if (all(is.null(level_metaVar), length(unique(smpAnnoTab[[soa_metaVar]])) == 2)) {
+      topFeatSigDist <- topFeatSigDist +
+        scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+        scale_fill_manual(values=c('#00BFC4', '#F8766D'))
+    }
+    ################
   } else {
     topFeatSigDist <- NULL
   }
@@ -430,17 +468,24 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
   # Explore multivariate analysis (PCA) results
   # Visualize significant PC(s) by boxplot
   pcSigDist <- lapply(pcSigAssoTab$Var1, function(pc) {
-    ggplot(pcTab, aes(x=.data[[soa_metaVar]], y=.data[[pc]],
-                      col=.data[[soa_metaVar]], fill=.data[[soa_metaVar]])) +
+    p <- ggplot(pcTab, aes(x=.data[[soa_metaVar]], y=.data[[pc]],
+                           col=.data[[soa_metaVar]], fill=.data[[soa_metaVar]])) +
       geom_boxplot(alpha = 0.7, outlier.shape = NA) +
       geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
       labs(title = plot_title) +
-      scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-      scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
       ggpubr::stat_compare_means(method = 't.test', paired = F,
                                  method.args = list(var.equal = T),
                                  size = 6, show.legend = F) +
       th
+    ################
+    # This chunk is very specifically for matching colors as heatmap above
+    if (all(is.null(level_metaVar), length(unique(smpAnnoTab[[soa_metaVar]])) == 2)) {
+      p <- p +
+        scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+        scale_fill_manual(values=c('#00BFC4', '#F8766D'))
+    }
+    ################
+    return(p)
   })
   names(pcSigDist) <- stringr::str_remove(pcSigAssoTab$Var1, ' \\(.+\\)')
   
@@ -459,8 +504,8 @@ doSingleOmicsAnalysis <- function(summ_exp, soa_metaVar, soa_unwantVar = NULL,
                                                warn_missing = F)
       }
       # Make heatmap
-      pheatmap(datMatSub, annotation_col = smpAnno, scale = 'row',
-               color = colorRampPalette(c('navy', 'white', 'red'))(100),
+      pheatmap(datMatSub, annotation_col = smpAnno, annotation_colors = smpAnnoCols,
+               scale = 'row', color = colorRampPalette(c('navy', 'white', 'red'))(100),
                cluster_rows = F, cluster_cols = F, main = main, silent = T) %>%
         # Convert pheatmap object to ggplot object
         ggplotify::as.ggplot()

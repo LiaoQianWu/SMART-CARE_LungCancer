@@ -373,7 +373,7 @@ testAssociation <- function(data, metadata, cmn_col, use_limma = F, use_proDA = 
 
 doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 0.05,
                   num_PCfeats = NULL, do_onlyPCA = F, use_limma = F, use_proDA = F,
-                  unwantVar = NULL, ...) {
+                  unwantVar = NULL, level_metaVar = NULL, ...) {
   # To-do: Expand function to e.g., MultiAssayExperiment object
   
   #' Perform single-omics analysis on preprocessed data stored in SE container to
@@ -411,6 +411,11 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   #' unwantVar: A character or a vector of characters specifying the metadata variables
   #' that will be accounted for by linear models (regressing out). Default is NULL.
   #' Note that this is usable only for limma and proDA for now
+  #' level_metaVar: A vector of characters specifying the level of the variable
+  #' 'meta_var' for determining the direction of a comparison. For example, cancer
+  #' recurrence got two levels: Yes and No, so 'level_metaVar' will accept c('Yes', 'No')
+  #' when 'meta_var' is 'Recurrence', meaning that t-test compares recurrence vs
+  #' non-recurrence patient groups (R. - NonR.), and vice versa. Default is NULL
   #' ...: Further arguments to be passed to 'testAssociation', e.g., correlation
   #' method 'cor_method'
   #' 
@@ -464,6 +469,11 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
     smpMetadat <- tibble::as_tibble(smpMetadat, rownames = 'tmp_Sample') %>%
       dplyr::select(-Sample) %>%
       dplyr::rename(Sample = tmp_Sample)
+  }
+  # Level metadata variable of interest if parameter 'level_metaVar' is specified
+  # for determining direction of comparison
+  if (!is.null(level_metaVar)) {
+    smpMetadat[[meta_var]] <- factor(smpMetadat[[meta_var]], levels = rev(level_metaVar))
   }
   # Correct data for unwanted variance
   if (!is.null(unwantVar)) {
@@ -549,6 +559,12 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   } else {
     featAssoRes <- NULL
     featSigAssoRes <- NULL
+  }
+  
+  # Convert metadata variable of interest (factor) back to character in output tables
+  if (!is.null(level_metaVar)) {
+    smpMetadat[[meta_var]] <- as.character(smpMetadat[[meta_var]])
+    pcTab[[meta_var]] <- as.character(pcTab[[meta_var]])
   }
   
   return(list(data = datMat, dataCorrect = datMatCorrect, smpMetadata = smpMetadat,
