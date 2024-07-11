@@ -4,7 +4,7 @@ library(visdat)
 library(ggplotify)
 library(pheatmap)
 
-doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NULL,
+doPreprocessing <- function(dat, feat, smp, val, featAnno = NULL, smpAnno = NULL,
                             do_featFilt = F, cutoff = 0.67, viz_miss = F, bins = 50,
                             save_path = NULL) {
   #' Preprocess tidy long data containing information about features and samples,
@@ -13,8 +13,9 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
   #' data and its metadata is stored in SummarizedExperiment object for further use.
   #' 
   #' Parameters
-  #' data: A tidy long table that must have three columns containing feature and
+  #' dat: A tidy long table that must have three columns containing feature and
   #' sample identifiers and feature abundances. Feature and sample metadata is optional.
+  #' Note that abundances must be raw intensities without log transformation.
   #' feat, smp, val: A character specifying the column in the tidy long table, which
   #' will be used as row and column identifiers and matrix values in an SE object.
   #' featAnno, smpAnno: A character or a vector of characters specifying the columns
@@ -65,7 +66,7 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
                       legend.text = element_text(size = 12, face = 'bold'))
   
   # Convert original long data to SE object
-  seOri <- df2SummExp(data, row_id = feat, col_id = smp, values = val,
+  seOri <- df2SummExp(dat, row_id = feat, col_id = smp, values = val,
                       row_anno = featAnno, col_anno = smpAnno)
   # Assign seOri to se, so that data for normalization can be up-to-date
   se <- seOri
@@ -80,14 +81,15 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
     oriMiss <- NULL
   }
   # Visualize distribution of original data
-  oriDist <- ggplot(data, aes(x=.data[[smp]], y=.data[[val]])) +
+  #### Fix column names of 'feat', 'smp', and 'val' to avoid data masking while using dplyr
+  oriDist <- ggplot(dat, aes(x=.data[[smp]], y=.data[[val]])) +
     geom_boxplot() +
     scale_y_log10() +
     labs(x = 'Sample', y = 'Abundance') +
     th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
   # Visualize sample mean-variance relationship of original data
   # Compute sample means and standard deviations
-  smpStats <- dplyr::group_by(data, .data[[smp]]) %>%
+  smpStats <- dplyr::group_by(dat, .data[[smp]]) %>%
     dplyr::summarise(Mean = mean(.data[[val]], na.rm = T), SD = sd(.data[[val]], na.rm = T))
   oriSmpMeanVar <- ggplot(smpStats, aes(x=Mean, y=SD)) +
     geom_point(size = 4) +
@@ -97,20 +99,21 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
   exprMat <- SummarizedExperiment::assay(seOri) %>%
     as.matrix()
   oriFeatMeanVar <- vsn::meanSdPlot(exprMat, ranks = T, bins = bins, plot = F)$gg +
+    scale_y_log10() +
     labs(x = 'Rank of mean', y = 'SD') +
     th
   
   # Do feature filtering
   if (do_featFilt) {
     # Remove features quantified in less than certain proportion of samples
-    rmFeats <- dplyr::group_by(data, .data[[feat]]) %>%
+    rmFeats <- dplyr::group_by(dat, .data[[feat]]) %>%
       # Compute proportion of observed data points of each group (feature)
       dplyr::summarise(frac_nonNA = round(sum(!is.na(.data[[val]])) / length(.data[[val]]), 2)) %>%
       dplyr::ungroup() %>%
       # Keep features observed in less than certain proportion of samples to remove
       dplyr::filter(frac_nonNA < cutoff) %>%
       dplyr::pull(.data[[feat]])
-    dataFilt <- dplyr::filter(data, !.data[[feat]] %in% rmFeats)
+    dataFilt <- dplyr::filter(dat, !.data[[feat]] %in% rmFeats)
     
     # Convert filtered long data to SE object
     seFilt <- suppressMessages(
@@ -175,8 +178,8 @@ doPreprocessing <- function(data, feat, smp, val, featAnno = NULL, smpAnno = NUL
   
   # Perform median normalization, for computing log2(FC) later
   exprMat <- as.matrix(SummarizedExperiment::assay(se)) %>%
-    limma::normalizeBetweenArrays(exprMat, method = 'scale') %>%
-    log2()
+    log2() %>%
+    limma::normalizeBetweenArrays(exprMat, method = 'scale')
   seMedi <- se
   SummarizedExperiment::assay(seMedi) <- exprMat
   
