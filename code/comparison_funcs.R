@@ -302,14 +302,21 @@ calcFeatCorr <- function(data1, data2, show_nFeats = F) {
   #' Systematically compute feature correlations between two PROTEOMICS (for now) datasets
   #' 
   #' Parameters
-  #' data1, data2: SummarizedExperiment objects that contain data matrices
+  #' data1, data2: SummarizedExperiment objects that contain data matrices or data matrices
   #' 
   #' Return
   #' corrRes: A table of correlations of overlapped features between two datasets
   
-  # Extract data matrix
-  dat1 <- SummarizedExperiment::assay(data1)
-  dat2 <- SummarizedExperiment::assay(data2)
+  if (all(is(data1, 'SummarizedExperiment'), is(data2, 'SummarizedExperiment'))) {
+    # Extract data matrix
+    dat1 <- SummarizedExperiment::assay(data1)
+    dat2 <- SummarizedExperiment::assay(data2)
+  } else if (all(is.matrix(data1), is.matrix(data2))) {
+    dat1 <- data1
+    dat2 <- data2
+  } else {
+    stop("Please input either SE objects containing data matrices or data matrices")
+  }
   
   # Make two matrices share same sample and feature spaces and in same row and column order
   # Keep only common samples
