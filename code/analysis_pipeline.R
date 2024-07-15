@@ -179,7 +179,7 @@ doPreprocessing <- function(dat, feat, smp, val, featAnno = NULL, smpAnno = NULL
   # Perform median normalization, for computing log2(FC) later
   exprMat <- as.matrix(SummarizedExperiment::assay(se)) %>%
     log2() %>%
-    limma::normalizeBetweenArrays(exprMat, method = 'scale')
+    limma::normalizeBetweenArrays(method = 'scale')
   seMedi <- se
   SummarizedExperiment::assay(seMedi) <- exprMat
   
