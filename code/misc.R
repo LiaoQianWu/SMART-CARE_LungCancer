@@ -1,6 +1,7 @@
 library(pcaMethods)
 library(limma)
 library(proDA)
+library(sva)
 library(SummarizedExperiment)
 library(tidyverse)
 
@@ -570,6 +571,136 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
   return(list(data = datMat, dataCorrect = datMatCorrect, smpMetadata = smpMetadat,
               pcaRes = pcaRes, pcSigAssoRes = pcSigAssoRes, pcTopFeatTab = pcTopFeatTab,
               pcTab = pcTab, featSigAssoRes = featSigAssoRes, featAssoRes = featAssoRes))
+}
+
+
+doSVA <- function(summExp, wantedVar, unwantedVar = NULL, numSV_method = 'be',
+                  asso_metaVar = NULL) {
+  #' Do surrogate variable analysis to identify latent factors that explain unknown
+  #' variance and correct data using identified SVs
+  
+  # Do sanity check
+  if (!is(summExp, 'SummarizedExperiment')) {
+    stop("This function takes only 'SummarizedExperiment' object for now.")
+  }
+  if (!is(wantedVar, 'character') | !all(wantedVar %in% colnames(colData(summExp)))) {
+    stop("Argument for 'wantedVar' should be class 'character' and included in sample metadata.")
+  }
+  if (!is.null(unwantedVar)) {
+    if (!is(unwantedVar, 'character') | !all(unwantedVar %in% colnames(colData(summExp)))) {
+      stop("Argument for 'unwantedVar' should be class 'character' and included in sample metadata.")
+    }
+  }
+  if (!is.null(asso_metaVar)) {
+    if (!is(asso_metaVar, 'character') | !all(asso_metaVar %in% colnames(colData(summExp)))) {
+      stop("Argument for 'asso_metaVar' should be class 'character' and included in sample metadata.")
+    }
+  }
+  
+  # Prepare data matrix and sample metadata table for creating model matrices
+  datMat <- as.matrix(assay(summExp))
+  # Keep only complete features
+  keptFeats <- apply(datMat, 1, function(featVec) {
+    !any(is.na(featVec))
+  })
+  datMat <- datMat[keptFeats,]
+  metadatTab <- colData(summExp) %>%
+    tibble::as_tibble(rownames = 'Sample')
+  # Create full model matrix including both adjustment variables and variables of interest
+  formu <- paste0('~', paste0(wantedVar, collapse = '+')) %>%
+    as.formula()
+  modelMat <- model.matrix(formu, data = metadatTab)
+  # Create null model matrix including only adjustment variables
+  if (is.null(unwantedVar)) {
+    modelMat0 <- model.matrix(~ 1, data = metadatTab)
+  } else {
+    formu <- paste0('~', paste0(unwantedVar, collapse = '+')) %>%
+      as.formula()
+    modelMat0 <- model.matrix(formu, data = metadatTab)
+  }
+  
+  # Perform SVA
+  # Identify number of latent factors that need to be estimated
+  numSV = sva::num.sv(datMat, modelMat, method = numSV_method)
+  if (numSV == 0) {
+    stop("No SV identified...")
+  }
+  spsUtil::quiet({
+    svObj = sva(datMat, modelMat, modelMat0, n.sv = numSV)
+  })
+  
+  # Prepare surrogate variable table
+  svTab <- svObj$sv
+  rownames(svTab) <- metadatTab$Sample
+  colnames(svTab) <- paste0('SV', seq_len(ncol(svTab)))
+  svTab <- tibble::as_tibble(svTab, rownames = 'Sample')
+  # Do association tests between SVs and patient metadata
+  if (!is.null(asso_metaVar)) {
+    # Prepare patient metadata table
+    metaTab <- dplyr::select(metadatTab, Sample, all_of(asso_metaVar))
+    # Do association tests
+    sigAssoTab <- testAsso(svTab, metaTab, cmn_col = 'Sample') %>%
+      dplyr::filter(pVal <= 0.05)
+  } else {
+    sigAssoTab <- NULL
+  }
+  
+  # Include surrogate variables into SE object
+  longTab <- summExp2df(summExp, row_id = 'Feature', col_id = 'Sample')
+  longTab <- dplyr::left_join(longTab, svTab, by = 'Sample')
+  summExp <- df2SummExp(longTab, row_id = 'Feature', col_id = 'Sample', values = 'Value',
+                        row_anno = colnames(rowData(summExp)),
+                        col_anno = c(colnames(colData(summExp)), paste0('SV', seq_len(ncol(svTab)-1))))
+  assay(summExp) <- as.matrix(assay(summExp))
+  
+  # Correct data using identified SVs
+  datMatCorrect <- doBatchCorrection(summExp, wantedVar = wantedVar,
+                                     unwantedVar = paste0('SV', seq_len(ncol(svTab)-1)))
+  
+  return(list(summExp_SVs = summExp, sigAssoTab = sigAssoTab, correctDatMat = datMatCorrect))
+}
+
+
+doBatchCorrection <- function(summExp, wantedVar, unwantedVar) {
+  #' Regress out unwanted effects from data using function limma::removeBatchEffect
+  
+  # Do sanity check
+  if (!is(summExp, 'SummarizedExperiment')) {
+    stop("This function takes only 'SummarizedExperiment' object for now.")
+  }
+  if (!is(wantedVar, 'character') | !all(wantedVar %in% colnames(colData(summExp)))) {
+    stop("Argument for 'wantedVar' should be class 'character' and included in sample metadata.")
+  }
+  if (!is(unwantedVar, 'character') | !all(unwantedVar %in% colnames(colData(summExp)))) {
+    stop("Argument for 'unwantedVar' should be class 'character' and included in sample metadata.")
+  }
+  
+  # Prepare data matrix
+  datMat <- as.matrix(assay(summExp))
+  # Define design matrix including wanted effects to preserve and unwanted effects to adjust
+  metadatTab <- colData(summExp) %>%
+    tibble::as_tibble(rownames = 'Sample')
+  formu <- paste0('~', paste0(c(wantedVar, unwantedVar), collapse = '+')) %>%
+    as.formula()
+  design <- model.matrix(formu, data = metadatTab)
+  # Determine number of columns that is of interest in design matrix
+  wantedColCount <- 0
+  for (i in seq_len(length(wantedVar))) {
+    smpMetaVar <- metadatTab[[wantedVar[i]]]
+    clas <- class(smpMetaVar)
+    if (!is.numeric(clas)) {
+      wantedColCount <- wantedColCount + length(unique(smpMetaVar)) - 1
+    } else {
+      wantedColCount <- wantedColCount + 1
+    }
+  }
+  wantedDesign <- design[, seq_len(wantedColCount+1)] #+1 due to intercept term
+  unwantedDesign <- design[, -seq_len(wantedColCount+1)]
+  # Do correction
+  datMatCorrect <- limma::removeBatchEffect(datMat, design = wantedDesign,
+                                            covariates = unwantedDesign)
+  
+  return(datMatCorrect)
 }
 
 
