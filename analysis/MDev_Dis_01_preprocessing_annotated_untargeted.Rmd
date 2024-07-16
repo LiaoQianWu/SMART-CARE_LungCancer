@@ -12,7 +12,12 @@ output:
 of Method Development and Discovery cohorts provided by Dr. Qiuqin Zhou from AG
 Hopf, including data cleansing, filtering (by RT, m/z, missing values, etc.), normalization
 (VSN), and batch correction if needed. All needed information was then stored in
-SummarizedExperiment objects for further analyses. </font>
+SummarizedExperiment objects for further analyses.
+
+For prediction of tumor recurrence, combined data with samples **PDIR55_NG**, **I0HVOL_TU**,
+**7EAOX7_TU**, **1NL5BV_TU**, and **125CII_TU** removed due to misclassification
+in metadata-assisted quality control (Tumor vs Normal, PC1) and low tumor purity
+is prepared. </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
@@ -731,6 +736,35 @@ ggplot(pcTab, aes(x=`PC1 (39.8%)`, y=`PC3 (11.9%)`, col=TumorPurity, shape=Condi
   th
 ```
 
+```{r eval=F}
+# Remove samples misclassified or with low tumor purity according to quality control
+# results of combined data
+smpRmLipTissue_Dis <- lipTissue_Dis
+smpRmLipTissue_Dis <- dplyr::filter(smpRmLipTissue_Dis, !Sample %in% c('7EAOX7_TU', 'I0HVOL_TU',
+                                                                       '1NL5BV_TU', '125CII_TU',
+                                                                       'PDIR55_NG'))
+# Preprocess data
+smpRmLipTissuePrepro <- doPreprocessing(smpRmLipTissue_Dis, feat = 'Feature', smp = 'Sample',
+                                        val = 'Abundance', featAnno = c('RT', 'CCS', 'MZ',
+                                                                        'Lipid', 'Formula', 'Flag'),
+                                        smpAnno = c(smpAnno, 'MissLevel'),
+                                        do_featFilt = T, cutoff = 0.5, viz_miss = T)
+                                        # save_path = paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+                                        #                    'Dis_smpRmLipTissue')
+# Show dimensions of data
+cat('Filtered data dimensions:', dim(smpRmLipTissuePrepro$filt.data)[2], 'samples and',
+    dim(smpRmLipTissuePrepro$filt.data)[1], 'features')
+
+# Visualize data distribution
+smpRmLipTissuePrepro$vsn.data.dist +
+  labs(y = 'Log(Abundance)', title = 'Distribution of filtered vsn normalized data') +
+  theme(axis.text.x = element_text(size = 6))
+
+# Visualize mean-sd relationship
+smpRmLipTissuePrepro$vsn.feat.mean.var +
+  labs(title = 'Feature mean-sd relationship after vsn normalization')
+```
+
 ## Combined data
 Method Dev + Discovery cohort
 
@@ -767,6 +801,7 @@ lipTissueVsn_Dis <- readRDS('./data/Discovery/AG_Hopf/partial_annotated/Dis_lipT
 lipids_MDev <- rowData(lipTissueVsnB123_MDev)$Lipid
 lipids_Dis <- rowData(lipTissueVsn_Dis)$Lipid
 cmnLipids <- intersect(lipids_MDev, lipids_Dis)
+cmnLipids <- cmnLipids[-which(is.na(cmnLipids))]
 # Subset datasets by common annotated features
 lipTissueVsnB123_MDev <- lipTissueVsnB123_MDev[!is.na(lipids_MDev) & lipids_MDev %in% cmnLipids,]
 lipTissueVsn_Dis <- lipTissueVsn_Dis[!is.na(lipids_Dis) & lipids_Dis %in% cmnLipids,]
@@ -815,8 +850,10 @@ datMat_BC <- limma::removeBatchEffect(datMat, design = wantedDesign, covariates 
 combLipTissueVsn_BC <- combLipTissueVsn
 assay(combLipTissueVsn_BC) <- datMat_BC
 # Save batch corrected data
-# saveRDS(combLipTissueVsn_BC, './data/Discovery/AG_Hopf/partial_annotated/Comb_Prepro_lipTissueVsn_Anno_MDevB123_BC.rds')
-# saveRDS(combLipTissueVsn, './data/Discovery/AG_Hopf/partial_annotated/Comb_Prepro_lipTissueVsn_Anno_MDevB123.rds')
+# saveRDS(combLipTissueVsn_BC, paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+#                                     'Comb_Prepro_lipTissueVsn_Anno_MDevB123_BC.rds'))
+# saveRDS(combLipTissueVsn, paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+#                                  'Comb_Prepro_lipTissueVsn_Anno_MDevB123.rds'))
 
 # Do single-omics analysis
 pcaRes <- doSOA(combLipTissueVsn_BC, meta_var = c('Condition', 'Cohort'), pca_method = 'ppca', do_onlyPCA = T)
@@ -832,6 +869,124 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (36.6%)`, col=Condition, fill=Condition)) 
   th
 
 ggplot(pcTab, aes(x=`PC1 (36.6%)`, y=`PC2 (18.3%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = 'Set2') +
+  scale_shape_manual(values = c(0, 16)) +
+  th
+```
+
+```{r eval=F}
+# Show reasons for removing some samples
+# Prepare data accounted for SVs for later visualizations
+# Do SVA
+combLipTissueSVA <- doSVA(combLipTissueVsn_BC, wantedVar = c('Condition', 'Recurrence'),
+                          numSV_method = 'be', asso_metaVar = c('Cohort', 'Condition',
+                                                                'Recurrence', 'Gender',
+                                                                'Age', 'Smoking', 'Stage',
+                                                                'Adjuvant', 'TumorPurity'))
+# Show significant associations between SVs and sample metadata variables
+# Sample condition accounts for large variance in data, so perhaps to preserve effects
+# of recurrence, some variance contributed from condition is eliminated.
+combLipTissueSVA$sigAssoTab
+# Perform single-omics analysis
+SVs <- grep('^SV\\d+$', colnames(colData(combLipTissueSVA$summExp_SVs)), value = T)
+pcaRes <- doSOA(combLipTissueSVA$summExp_SVs, meta_var = 'Condition', pca_method = 'ppca',
+                num_PCs = 20, do_onlyPCA = T, unwantVar = SVs)
+# Display significant associations
+pcaRes$pcSigAssoRes
+# Visualize PCs
+pcTab <- pcaRes$pcTab %>%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% c('7EAOX7_TU', 'I0HVOL_TU',
+                                                       '1NL5BV_TU', '125CII_TU',
+                                                       '1HTNWJ_TU', 'PDIR55_NG',
+                                                       '7EAOX7_NG', 'I0HVOL_NG',
+                                                       '1NL5BV_NG', '125CII_NG',
+                                                       '1HTNWJ_NG', 'PDIR55_TU') ~ Sample))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (50.2%)`, col=Condition, fill=Condition, label=Label)) +
+  geom_text_repel(show.legend = F) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  th
+
+# Show tumor purity of misclassified samples
+tibble::as_tibble(colData(combLipTissueVsn), rownames = 'Sample') %>%
+  dplyr::select(Sample, TumorPurity) %>%
+  dplyr::filter(Sample %in% c('7EAOX7_TU', 'I0HVOL_TU', '1NL5BV_TU', '125CII_TU',
+                              '1HTNWJ_TU'))
+```
+
+```{r eval=F}
+# Combine datasets where unwanted samples were removed from Discovery data
+# Load preprocessed data
+lipTissueVsnB123_MDev <- readRDS('./data/Discovery/AG_Hopf/partial_annotated/MDev_lipTissueVsn_Anno_B123.rds')
+smpRmLipTissueVsn_Dis <- readRDS('./data/Discovery/AG_Hopf/partial_annotated/Dis_smpRmLipTissueVsn.rds')
+# Prepare list of common annotated features
+lipids_MDev <- rowData(lipTissueVsnB123_MDev)$Lipid
+lipids_Dis <- rowData(smpRmLipTissueVsn_Dis)$Lipid
+cmnLipids <- intersect(lipids_MDev, lipids_Dis)
+cmnLipids <- cmnLipids[-which(is.na(cmnLipids))]
+# Subset datasets by common annotated features
+lipTissueVsnB123_MDev <- lipTissueVsnB123_MDev[!is.na(lipids_MDev) & lipids_MDev %in% cmnLipids,]
+smpRmLipTissueVsn_Dis <- smpRmLipTissueVsn_Dis[!is.na(lipids_Dis) & lipids_Dis %in% cmnLipids,]
+# Keep duplicated annotated features with maximal abundances
+annoLipTissueVsnB123_MDev <- rmDupLips(lipTissueVsnB123_MDev)
+annoSmpRmLipTissueVsn_Dis <- rmDupLips(smpRmLipTissueVsn_Dis)
+# Combine datasets
+combLipTissue <- dplyr::bind_rows(annoLipTissueVsnB123_MDev, annoSmpRmLipTissueVsn_Dis) %>%
+  dplyr::select(-MissLevel)
+# Convert long data to SE object
+combLipTissueVsn <- df2SummExp(combLipTissue, row_id = 'Lipid', col_id = 'Sample',
+                               values = 'Value', row_anno = c('Formula', 'Flag'),
+                               col_anno = smpAnno)
+
+# Do PCA
+pcaRes <- doSOA(combLipTissueVsn, meta_var = c('Cohort', 'Condition'),
+                pca_method = 'ppca', num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes$pcSigAssoRes
+# Visualize PCs
+pcTab <- pcaRes$pcTab %>%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c('MethodDev', 'Discovery')))
+ggplot(pcTab, aes(x=`PC1 (47.7%)`, y=`PC2 (20.7%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = 'Set2') +
+  scale_shape_manual(values = c(0, 16)) +
+  th
+
+# Perform batch correction to see if two cohorts can be merged
+# Extract data matrix from SE object
+datMat <- as.matrix(assay(combLipTissueVsn))
+# Define design matrix to keep particular effects, e.g., treatments
+smpAnnoTab <- as_tibble(colData(combLipTissueVsn), rownames = 'Sample')
+design <- model.matrix(~ Condition + Recurrence + Cohort, data = smpAnnoTab)
+wantedDesign <- design[, seq_len(3)]
+unwantedDesign <- design[, -seq_len(3)]
+# Do batch correction
+datMat_BC <- limma::removeBatchEffect(datMat, design = wantedDesign, covariates = unwantedDesign)
+combLipTissueVsn_BC <- combLipTissueVsn
+assay(combLipTissueVsn_BC) <- datMat_BC
+# Save batch corrected data
+# saveRDS(combLipTissueVsn_BC, paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+#                                     'Comb_Prepro_SmpRm_lipTissueVsn_Anno_MDevB123_BC.rds'))
+# saveRDS(combLipTissueVsn, paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+#                                  'Comb_Prepro_SmpRm_lipTissueVsn_Anno_MDevB123.rds'))
+
+# Do single-omics analysis
+pcaRes <- doSOA(combLipTissueVsn_BC, meta_var = c('Condition', 'Cohort'), pca_method = 'ppca', do_onlyPCA = T)
+pcaRes$pcSigAssoRes
+# Visualize PCs
+pcTab <- pcaRes$pcTab %>%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c('MethodDev', 'Discovery')))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (36.6%)`, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  th
+
+ggplot(pcTab, aes(x=`PC1 (36.6%)`, y=`PC2 (18.6%)`, col=Cohort, shape=Condition)) +
   geom_point(size = 4) +
   scale_color_brewer(palette = 'Set2') +
   scale_shape_manual(values = c(0, 16)) +
