@@ -1,0 +1,574 @@
+---
+title: "Single-omics analysis: Annotated Untargeted Lipidomics (Discovery + MethodDev)"
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+---
+
+<font size='4'> Description: Conduct univariate (t-test) and multivariate (PCA)
+analyses on Method Development, Discovery, and combined annotated Untargeted Tissue
+Lipidomics from AG Hopf to have overview of data and take initial look at data power
+in terms of predicting patient cancer recurrence. </font>
+
+**Metadata variables**\
+Patients who got Tissue samples (n = 85):\
+Recurrence -> Cancer recurrences, Yes:No = 29:56\
+Gender -> Female:Male = 36:49\
+Age -> Diagnosis ages ranging from 51 to 84\
+Smoking -> Smoker:Ex-smoker:Non-Smoker = 18:56:11\
+Stage -> Pathological stages, IB:IIA:IIB = 50:17:18\
+Adjuvant -> Adjuvant chemotherapy, True:False = 26:59\
+Samples:\
+Condition -> Tumor:Normal = 81:84
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F, message = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer')
+```
+
+Load libraries
+```{r library loading, message = F}
+library('pcaMethods')
+library('sva')
+library('limma')
+library('proDA')
+library('pheatmap')
+library('ggplotify')
+library('ggrepel')
+library('ggvenn')
+library('AnnotationDbi')
+library('org.Hs.eg.db')
+# This annotation object is accessed using AnnotationDbi:select()
+hs <- org.Hs.eg.db
+library('msigdbr')
+library('clusterProfiler')
+library(spsUtil)
+library('SummarizedExperiment')
+library('tidyverse')
+# Load user-defined functions
+source('./code/analysis_pipeline.R')
+source('./code/misc.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+    theme(axis.title = element_text(face = 'bold'),
+          axis.text = element_text(face = 'bold'),
+          axis.ticks = element_line(linewidth = 0.8),
+          legend.text = element_text(size = 15))
+```
+
+Display associations between cancer recurrence and the other patient metadata variables
+to identify potential predictors (or confounders)
+```{r}
+# Test associations between cancer recurrence and the other patient metadata variables
+# Prepare patient metadata
+lipTissue <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+                            'Comb_Prepro_lipTissueVsn_Anno_MDevB123.rds'))
+patientMetadat <- tibble::as_tibble(colData(lipTissue)) %>%
+  dplyr::filter(!duplicated(Patient)) %>%
+  dplyr::select(Patient, Recurrence, Gender, Age, Smoking, Stage, Adjuvant)
+patientRecur <- dplyr::select(patientMetadat, Patient, Recurrence)
+patientMetadat <- dplyr::select(patientMetadat, -Recurrence)
+testAsso(patientMetadat, patientRecur, cmn_col = 'Patient') %>%
+  dplyr::select(-Stat)
+```
+
+# Tissue Lipidomics
+
+## Sample Condition
+Tumor vs Normal
+
+### Discovery cohort
+
+<font size='4'> **Preprocessed data without correction** </font>
+```{r}
+# Load preprocessed data
+lipTissueVsn_Dis <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+                                   'Dis_lipTissueVsn_Anno.rds'))
+# Subset data by annotated features
+lipTissueVsn_Dis <- lipTissueVsn_Dis[!is.na(rowData(lipTissueVsn_Dis)$Lipid),]
+# Perform single-omics analysis
+# lipTissueRes_Dis <- doSOA(lipTissueVsn_Dis, meta_var = 'Condition', pca_method = 'ppca',
+#                           num_PCs = 20, use_proDA = T, level_metaVar = c('Tumor', 'Normal'))
+# saveRDS(lipTissueRes_Dis, paste0('./data/Discovery/AG_Hopf/partial_annotated/soaRes/',
+#                                  'lipTissueRes_Condi_OnlyAnno_Dis.rds'))
+lipTissueRes_Dis <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/soaRes/',
+                                   'lipTissueRes_Condi_OnlyAnno_Dis.rds'))
+# Show significant associations between PCs and sample conditions
+lipTissueRes_Dis$pcSigAssoRes
+# Visualize PCs
+pcTab <- lipTissueRes_Dis$pcTab
+ggplot(pcTab, aes(x=`PC1 (37.9%)`, y=`PC2 (16%)`, col=Condition)) +
+  geom_point(size = 2.5) +
+  scale_color_brewer(palette = 'Dark2') +
+  th
+```
+
+<font size='4'> **Preprocessed data corrected for SVs (unwanted variance)** </font>
+```{r}
+# Do SVA
+lipTissueVsnSVA_Dis <- doSVA(lipTissueVsn_Dis, wantedVar = 'Condition', numSV_method = 'be',
+                             asso_metaVar = c('Condition', 'Recurrence', 'Gender', 'Age',
+                                              'Smoking', 'Stage', 'Adjuvant', 'TumorPurity'))
+# Show significant associations between SVs and sample metadata variables
+lipTissueVsnSVA_Dis$sigAssoTab
+lipTissueVsnSVs_Dis <- lipTissueVsnSVA_Dis$summExp_SVs
+
+# Perform single-omics analysis
+# lipTissueResSVs_Dis <- doSOA(lipTissueVsnSVs_Dis, meta_var = 'Condition', pca_method = 'ppca',
+#                              num_PCs = 20, use_proDA = T, level_metaVar = c('Tumor', 'Normal'),
+#                              unwantVar = grep('^SV\\d+$', colnames(colData(lipTissueVsnSVs_Dis)), value = T))
+# saveRDS(lipTissueResSVs_Dis, paste0('./data/Discovery/AG_Hopf/partial_annotated/soaRes/',
+#                                     'lipTissueResSVs_Condi_OnlyAnno_Dis.rds'))
+lipTissueResSVs_Dis <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/soaRes/',
+                                      'lipTissueResSVs_Condi_OnlyAnno_Dis.rds'))
+# Show significant associations between PCs and sample conditions
+lipTissueResSVs_Dis$pcSigAssoRes
+# Visualize PCs
+pcTab <- lipTissueResSVs_Dis$pcTab %>%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% c('7EAOX7_TU', 'I0HVOL_TU',
+                                                       '1NL5BV_TU', 'NG1IWD_TU',
+                                                       '1QFJ7P_TU', '125CII_TU',
+                                                       '13XAAY_TU', 'PDIR55_NG') ~ Sample))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (43.4%)`, col=Condition, fill=Condition, label=Label)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  geom_text_repel(show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  th
+
+# Show tumor purity of misclassified samples
+tibble::as_tibble(colData(lipTissueVsn_Dis), rownames = 'Sample') %>%
+  dplyr::select(Sample, TumorPurity) %>%
+  dplyr::filter(Sample %in% c('7EAOX7_TU', 'I0HVOL_TU', '1NL5BV_TU', 'NG1IWD_TU',
+                              '1QFJ7P_TU', '125CII_TU', '13XAAY_TU'))
+```
+
+<font size='4'> **Volcano plot of SV-corrected data** </font>
+```{r}
+# Compute log2(FC) using median normalized data
+# Load preprocessed data
+lipTissueMedi_Dis <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+                                    'Dis_lipTissueMedi_Anno.rds'))
+# Subset data by annotated features
+lipTissueMedi_Dis <- lipTissueMedi_Dis[!is.na(rowData(lipTissueMedi_Dis)$Lipid),]
+# Do SVA
+lipTissueMediSVA_Dis <- doSVA(lipTissueMedi_Dis, wantedVar = 'Condition', numSV_method = 'be',
+                              asso_metaVar = c('Condition', 'Recurrence', 'Gender', 'Age',
+                                               'Smoking', 'Stage', 'Adjuvant', 'TumorPurity'))
+# Show significant associations between SVs and sample metadata variables
+lipTissueMediSVA_Dis$sigAssoTab
+lipTissueMediSVs_Dis <- lipTissueMediSVA_Dis$summExp_SVs
+
+# Compute log2(FC) using proDA
+# Prepare data matrix and sample metadata table for creating model matrices
+datMat <- assay(lipTissueMediSVs_Dis)
+metadatTab <- tibble::as_tibble(colData(lipTissueMediSVs_Dis), rownames = 'Sample') %>%
+  # Make comparison Tumor vs Normal
+  dplyr::mutate(Condition = factor(Condition, levels = c('Normal', 'Tumor')))
+formu <- paste0('~Condition+', paste0(grep('^SV\\d+$', colnames(colData(lipTissueMediSVs_Dis)),
+                                           value = T), collapse = '+')) %>%
+  as.formula()
+design <- model.matrix(formu, data = metadatTab)
+
+# fit <- proDA(datMat, design = design)
+# diffTerm <- proDA::result_names(fit)[2]
+# lipTissueLog2FC_SVs_Dis <- proDA::test_diff(fit, contrast = diffTerm)
+# saveRDS(lipTissueLog2FC_SVs_Dis, paste0('./data/Discovery/AG_Hopf/partial_annotated/soaRes/',
+#                                         'lipTissueLog2FC_SVs_Condi_OnlyAnno_Dis.rds'))
+lipTissueLog2FC_SVs_Dis <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/soaRes/',
+                                          'lipTissueLog2FC_SVs_Condi_OnlyAnno_Dis.rds'))
+
+
+####
+# featInterest <- c('PC 34:1', 'PC 34:2', 'PC 32:0', 'PC 38:5', 'PC 36:4', 'PC 36:2',
+#                   'PC 38:4', 'PC 36:1', 'PC 30:0', 'PC 34:0', 'PC O-36:5', 'PC 32:1')
+# c('PC 32:1', 'PC 36:1', 'PC O-36:5', 'PC 19:2_19:2', 'PC 15:0_15:0', 'PC 17:0_17:0',
+#   'PC 16:0_20:4', 'PC 8:0_30:4', 'PC 18:1_18:1', 'PC 16:1_22:4', 'PC 18:0_20:4',
+#   'PC 16:0_16:1', 'PC 8:0_28:4', 'PC 20:0_16:4')
+featInterest <- c('PC 14:0_18:0', 'PC 16:0_18:1', 'PC 17:1_17:1')
+
+# grep('^PC', volcanoTab$Lipid, value = T)
+# grep('^PC \\d+:\\d+$', volcanoTab$Lipid, value = T) %>%
+#   stringr::str_remove_all('^PC |:\\d+$')
+# grep('^PC \\d+:\\d+_\\d+:\\d+', volcanoTab$Lipid, value = T)
+# grep('^PC O-\\d+:\\d+$', volcanoTab$Lipid, value = T)
+# grep('^PC\\(.+\\)$', volcanoTab$Lipid, value = T)
+
+# Make volcano plot
+# Prepare needed information
+pValTab <- lipTissueResSVs_Dis$featAssoRes %>%
+  dplyr::select(Var1, pVal, pValAdj) %>%
+  dplyr::rename(Feature = Var1)
+log2FCTab <- dplyr::select(lipTissueLog2FC_SVs_Dis, name, diff) %>%
+  dplyr::rename(Feature = name, log2FC = diff)
+featAnnoTab <- tibble::as_tibble(rowData(lipTissueVsn_Dis), rownames = 'Feature') %>%
+  dplyr::select(Feature, Lipid, Flag)
+# Specify cutoff for log2(FC)
+fcCutoff <- 1
+# Combine all needed information
+volcanoTab <- dplyr::left_join(pValTab, log2FCTab, by = 'Feature') %>%
+  dplyr::left_join(featAnnoTab, by = 'Feature') %>%
+  # Remove unannotated features
+  # dplyr::filter(!is.na(Lipid)) %>%
+  # Pinpoint significant features
+  dplyr::mutate(DiffExp = dplyr::case_when(pVal <= 0.05 & log2FC >= fcCutoff ~ 'More in Tumor',
+                                           pVal <= 0.05 & log2FC <= -fcCutoff ~ 'More in Normal'),
+                DiffExp = dplyr::case_when(is.na(DiffExp) ~ 'Not significant',
+                                           !is.na(DiffExp) ~ DiffExp),
+                DiffExp = factor(DiffExp, levels = c('More in Tumor', 'More in Normal', 'Not significant')),
+                Label = dplyr::case_when(Lipid %in% featInterest ~ Lipid)
+                # Label = dplyr::case_when(!DiffExp %in% 'Not significant' & grepl('^PC|^PC O', Lipid) ~ Lipid)
+  )
+
+ggplot(volcanoTab, aes(x=log2FC, y=-log10(pVal), col=DiffExp, label=Label)) +
+  geom_point(size = 2, alpha = 0.9) +
+  geom_hline(yintercept = -log10(0.05), linewidth = 0.2) +
+  geom_vline(xintercept = c(-fcCutoff, fcCutoff), linewidth = 0.2) +
+  geom_text_repel(size = 4, show.legend = F) +
+  scale_color_manual(name = '', values = c('red', 'navy', 'grey')) +
+  labs(x = 'log2(FC)') +
+  th
+```
+
+<font size='4'> **Volcano plot of preprocessed data without correction** </font>
+```{r}
+# Compute log2(FC) using median normalized data
+# Load preprocessed data
+lipTissueMedi_Dis <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+                                    'Dis_lipTissueMedi_Anno.rds'))
+# Subset data by annotated features
+lipTissueMedi_Dis <- lipTissueMedi_Dis[!is.na(rowData(lipTissueMedi_Dis)$Lipid),]
+
+# Compute log2(FC) using proDA
+# Prepare data matrix and sample metadata table for creating model matrices
+datMat <- assay(lipTissueMedi_Dis)
+metadatTab <- tibble::as_tibble(colData(lipTissueMedi_Dis), rownames = 'Sample') %>%
+  # Make comparison Tumor vs Normal
+  dplyr::mutate(Condition = factor(Condition, levels = c('Normal', 'Tumor')))
+design <- model.matrix(~ Condition, data = metadatTab)
+
+# fit <- proDA(datMat, design = design)
+# diffTerm <- proDA::result_names(fit)[2]
+# lipTissueLog2FC_Dis <- proDA::test_diff(fit, contrast = diffTerm)
+# saveRDS(lipTissueLog2FC_Dis, paste0('./data/Discovery/AG_Hopf/partial_annotated/soaRes/',
+#                                     'lipTissueLog2FC_Condi_OnlyAnno_Dis.rds'))
+lipTissueLog2FC_Dis <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/soaRes/',
+                                      'lipTissueLog2FC_Condi_OnlyAnno_Dis.rds'))
+
+
+####
+featInterest <- c('PC 14:0_18:0', 'PC 16:0_18:1', 'PC 17:1_17:1')
+
+# Make volcano plot
+# Prepare needed information
+pValTab <- lipTissueRes_Dis$featAssoRes %>%
+  dplyr::select(Var1, pVal, pValAdj) %>%
+  dplyr::rename(Feature = Var1)
+log2FCTab <- dplyr::select(lipTissueLog2FC_Dis, name, diff) %>%
+  dplyr::rename(Feature = name, log2FC = diff)
+featAnnoTab <- tibble::as_tibble(rowData(lipTissueVsn_Dis), rownames = 'Feature') %>%
+  dplyr::select(Feature, Lipid, Flag)
+# Specify cutoff for log2(FC)
+fcCutoff <- 1
+# Combine all needed information
+volcanoTab <- dplyr::left_join(pValTab, log2FCTab, by = 'Feature') %>%
+  dplyr::left_join(featAnnoTab, by = 'Feature') %>%
+  # Remove unannotated features
+  # dplyr::filter(!is.na(Lipid)) %>%
+  # Pinpoint significant features
+  dplyr::mutate(DiffExp = dplyr::case_when(pVal <= 0.05 & log2FC >= fcCutoff ~ 'More in Tumor',
+                                           pVal <= 0.05 & log2FC <= -fcCutoff ~ 'More in Normal'),
+                DiffExp = dplyr::case_when(is.na(DiffExp) ~ 'Not significant',
+                                           !is.na(DiffExp) ~ DiffExp),
+                DiffExp = factor(DiffExp, levels = c('More in Tumor', 'More in Normal', 'Not significant')),
+                Label = dplyr::case_when(Lipid %in% featInterest ~ Lipid)
+                # Label = dplyr::case_when(!DiffExp %in% 'Not significant' & grepl('^PC|^PC O', Lipid) ~ Lipid)
+  )
+
+ggplot(volcanoTab, aes(x=log2FC, y=-log10(pVal), col=DiffExp, label=Label)) +
+  geom_point(size = 2, alpha = 0.9) +
+  geom_hline(yintercept = -log10(0.05), linewidth = 0.2) +
+  geom_vline(xintercept = c(-fcCutoff, fcCutoff), linewidth = 0.2) +
+  geom_text_repel(size = 4, show.legend = F) +
+  scale_color_manual(name = '', values = c('red', 'navy', 'grey')) +
+  labs(x = 'log2(FC)') +
+  th
+```
+
+## Patient Recurrence
+Recurrence vs Nonrecurrence\
+Discovery + MethodDev
+
+<font size='4'> **Metadata-assisted quality control: Tumor vs Normal samples** </font>\
+**Data corrected for Cohort using limma::removeBatchEffect**
+```{r}
+# Load preprocessed data
+lipTissue <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+                            'Comb_Prepro_lipTissueVsn_Anno_MDevB123.rds'))
+lipTissue_BC <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/',
+                               'Comb_Prepro_lipTissueVsn_Anno_MDevB123_BC.rds'))
+# Perform single-omics analysis
+lipTissueRes <- doSOA(lipTissue_BC, meta_var = 'Condition', pca_method = 'ppca',
+                      num_PCs = 20, do_onlyPCA = T)
+# Display significant associations
+# lipTissueRes$pcSigAssoRes
+# Visualize PCs
+pcTab <- lipTissueRes$pcTab %>%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c('MethodDev', 'Discovery')))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (36.6%)`, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  th
+
+# ggplot(pcTab, aes(x=`PC1 (36.6%)`, y=`PC2 (18.3%)`, col=Cohort, shape=Condition)) +
+#   geom_point(size = 4) +
+#   scale_color_brewer(palette = 'Set2') +
+#   scale_shape_manual(values = c(0, 16)) +
+#   th
+```
+
+**Cohort-corrected data accounted for SVs identified using sva**\
+Perform SVA on cohort-corrected data because SVs identified from uncorrected data
+cannot effectively capture sources of unwanted variance (e.g., cohort)
+```{r}
+# Prepare data accounted for SVs for later visualizations
+# Do SVA
+lipTissueSVA <- doSVA(lipTissue_BC, wantedVar = c('Condition', 'Recurrence'), numSV_method = 'be',
+                      asso_metaVar = c('Cohort', 'Condition', 'Recurrence', 'Gender',
+                                       'Age', 'Smoking', 'Stage', 'Adjuvant', 'TumorPurity'))
+# Show significant associations between SVs and sample metadata variables
+# Sample condition accounts for large variance in data, so perhaps to preserve effects
+# of recurrence, some variance contributed from condition is eliminated.
+lipTissueSVA$sigAssoTab
+# Perform single-omics analysis
+SVs <- grep('^SV\\d+$', colnames(colData(lipTissueSVA$summExp_SVs)), value = T)
+lipTissueRes4Viz <- doSOA(lipTissueSVA$summExp_SVs, meta_var = 'Condition', pca_method = 'ppca',
+                          num_PCs = 20, do_onlyPCA = T, unwantVar = SVs)
+# Display significant associations
+# lipTissueRes4Viz$pcSigAssoRes
+# Visualize PCs
+pcTab <- lipTissueRes4Viz$pcTab
+ggplot(pcTab, aes(x=Condition, y=`PC1 (50.2%)`, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = 'Dark2') +
+  scale_fill_brewer(palette = 'Dark2') +
+  th
+```
+
+### Normal samples
+
+```{r message=F}
+# Performing SOA on uncorrected data and specifying cohort as unwanted variance
+# results in insufficient statistical power, so does performing SOA on cohort-corrected data
+# Subset certain samples
+lipNormal <- lipTissue_BC[, which(colData(lipTissue_BC)$Condition == 'Normal')]
+# Prepare feature annotation table
+featAnnoTab <- tibble::as_tibble(rowData(lipNormal), rownames = 'Lipid') %>%
+  dplyr::select(Lipid, Flag) %>%
+  tibble::column_to_rownames('Lipid')
+
+# Append identified SVs from all tissue samples
+SVs <- colData(lipTissueSVA$summExp_SVs) %>%
+  tibble::as_tibble(rownames = 'Sample') %>%
+  dplyr::filter(Condition %in% 'Normal') %>%
+  dplyr::select(Sample, contains('SV'))
+lipNormalSVs <- summExp2df(lipNormal, row_id = 'Feature', col_id = 'Sample') %>%
+  dplyr::left_join(SVs, by = 'Sample') %>%
+  df2SummExp(row_id = 'Feature', col_id = 'Sample', values = 'Value', row_anno = c('Formula', 'Flag'),
+             col_anno = c('Patient', 'SmpType', 'TimePoint', 'Date', 'Cohort', 'Condition',
+                          'Recurrence', 'Gender', 'Age', 'Smoking', 'Stage', 'Adjuvant',
+                          'TumorPurity', grep('^SV\\d+$', colnames(SVs), value = T)))
+
+# Perform single-omics analysis
+# lipNormalRes <- doSingleOmicsAnalysis(lipNormalSVs, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+#                                       pca_method = 'ppca', num_PCs = 20, num_PCfeats = 30,
+#                                       use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
+#                                       feat_conv = F, plot_title = NULL, show_rownames = T,
+#                                       pca_metaVar = c('Recurrence', 'Gender', 'Age',
+#                                                       'Smoking', 'Stage', 'Adjuvant',
+#                                                       'Cohort'),
+#                                       soa_unwantVar = grep('^SV\\d+$', colnames(colData(lipNormalSVs)),
+#                                                            value = T),
+#                                       level_metaVar = c('Yes', 'No'),
+#                                       fontsize_col = 6)
+# saveRDS(lipNormalRes, './data/Discovery/AG_Hopf/partial_annotated/soaRes/lipNormalResSVs_Recur_Comb.rds')
+lipNormalRes <- readRDS('./data/Discovery/AG_Hopf/partial_annotated/soaRes/lipNormalResSVs_Recur_Comb.rds')
+```
+
+Display significant associations between PCs (Var1) and sample metadata variables
+(Var2) to overview sources of variance in data
+```{r}
+lipNormalRes$data.var.source
+```
+
+Display significant associations between features (Var1) and cancer recurrence (Var2)
+```{r}
+dplyr::select(lipNormalRes$sig.feat.tab, -Test)
+```
+
+Visualize molecular signatures of significant features in data. Note that features
+in rows are ordered by t-statistics.
+```{r}
+lipNormalRes$sig.feat.heat
+```
+
+Visualize top significant features identified in Normal samples (ns: p > 0.05,
+$*$: p <= 0.05, $**$: p <= 0.01, $***$: p <= 0.001)
+```{r}
+# Prepare data matrix and metadata including both Tumor and Normal samples
+datMat <- lipTissueRes4Viz$dataCorrect
+smpAnnoTab <- lipTissueRes4Viz$smpMetadata
+# Prepare significant feature table
+featSigAssoTab <- lipNormalRes$sig.feat.tab
+num_sigFeats <- 6
+# Extract top significant features and prepare needed information
+topSigFeats <- featSigAssoTab$Var1[1:num_sigFeats]
+topSigFeatDat <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+  tidyr::pivot_longer(cols = -'Feature', names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
+  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats),
+                Condition = factor(Condition, levels = c('Normal', 'Tumor')),
+                Recurrence = factor(Recurrence, levels = c('Yes', 'No')))
+# Visualize top significant features
+ggplot(topSigFeatDat, aes(x=Condition, y=Abundance, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, linewidth = 1, outlier.color = 'grey50') +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                             label = 'p.signif', size = 7, vjust = 0.5) +
+  labs(x = 'Sample condition', y = 'Log(Abundance)') +
+  scale_fill_manual(values = c('#F8766D', '#00BFC4')) +
+  facet_wrap(vars(Feature), scales = 'free') +
+  geom_vline(xintercept = 1.5, size = 0.3) +
+  th +
+  theme(strip.text = element_text(size = 18, face = 'bold'),
+        axis.title = element_text(size = 22),
+        axis.text.x = element_text(size = 18),
+        legend.title = element_text(size = 24), legend.text = element_text(size = 22))
+```
+
+Assess data power by p-value histogram
+```{r}
+lipNormalRes$pval.hist
+```
+
+Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+```{r}
+lipNormalRes$sig.pc.tab
+```
+
+Visualize significant PCs and display their top features with greatest absolute loadings
+```{r}
+lipNormalRes$sig.pc.dist$PC2
+lipNormalRes$sig.pc.dist$PC5
+```
+
+### Tumor samples
+
+```{r message=F}
+# Subset certain samples
+lipTumor <- lipTissue_BC[, which(colData(lipTissue_BC)$Condition == 'Tumor')]
+# Prepare feature annotation table
+featAnnoTab <- tibble::as_tibble(rowData(lipTumor), rownames = 'Lipid') %>%
+  dplyr::select(Lipid, Flag) %>%
+  tibble::column_to_rownames('Lipid')
+
+# Append identified SVs from all tissue samples
+SVs <- colData(lipTissueSVA$summExp_SVs) %>%
+  tibble::as_tibble(rownames = 'Sample') %>%
+  dplyr::filter(Condition %in% 'Tumor') %>%
+  dplyr::select(Sample, contains('SV'))
+lipTumorSVs <- summExp2df(lipTumor, row_id = 'Feature', col_id = 'Sample') %>%
+  dplyr::left_join(SVs, by = 'Sample') %>%
+  df2SummExp(row_id = 'Feature', col_id = 'Sample', values = 'Value', row_anno = c('Formula', 'Flag'),
+             col_anno = c('Patient', 'SmpType', 'TimePoint', 'Date', 'Cohort', 'Condition',
+                          'Recurrence', 'Gender', 'Age', 'Smoking', 'Stage', 'Adjuvant',
+                          'TumorPurity', grep('^SV\\d+$', colnames(SVs), value = T)))
+
+# Perform single-omics analysis
+# lipTumorRes <- doSingleOmicsAnalysis(lipTumorSVs, soa_metaVar = 'Recurrence', num_sigFeats = 6,
+#                                      pca_method = 'ppca', num_PCs = 20, num_PCfeats = 30,
+#                                      use_limma = F, use_proDA = T, feat_anno = featAnnoTab,
+#                                      feat_conv = F, plot_title = NULL, show_rownames = T,
+#                                      pca_metaVar = c('Recurrence', 'Gender', 'Age',
+#                                                      'Smoking', 'Stage', 'Adjuvant',
+#                                                      'Cohort'),
+#                                      soa_unwantVar = grep('^SV\\d+$', colnames(colData(lipTumorSVs)),
+#                                                           value = T),
+#                                      level_metaVar = c('Yes', 'No'),
+#                                      fontsize_col = 6)
+# saveRDS(lipTumorRes, './data/Discovery/AG_Hopf/partial_annotated/soaRes/lipTumorResSVs_Recur_Comb.rds')
+lipTumorRes <- readRDS('./data/Discovery/AG_Hopf/partial_annotated/soaRes/lipTumorResSVs_Recur_Comb.rds')
+```
+
+Display significant associations between PCs (Var1) and sample metadata variables
+(Var2) to overview sources of variance in data
+```{r}
+lipTumorRes$data.var.source
+```
+
+Display significant associations between features (Var1) and cancer recurrence (Var2)
+```{r}
+dplyr::select(lipTumorRes$sig.feat.tab, -Test)
+```
+
+Visualize molecular signatures of significant features in data. Note that features
+in rows are ordered by t-statistics.
+```{r}
+lipTumorRes$sig.feat.heat
+```
+
+Visualize top significant features identified in Normal samples (ns: p > 0.05,
+$*$: p <= 0.05, $**$: p <= 0.01, $***$: p <= 0.001)
+```{r}
+# Prepare data matrix and metadata including both Tumor and Normal samples
+datMat <- lipTissueRes4Viz$dataCorrect
+smpAnnoTab <- lipTissueRes4Viz$smpMetadata
+# Prepare significant feature table
+featSigAssoTab <- lipTumorRes$sig.feat.tab
+num_sigFeats <- 6
+# Extract top significant features and prepare needed information
+topSigFeats <- featSigAssoTab$Var1[1:num_sigFeats]
+topSigFeatDat <- tibble::as_tibble(datMat[topSigFeats,], rownames = 'Feature') %>%
+  tidyr::pivot_longer(cols = -'Feature', names_to = 'Sample', values_to = 'Abundance') %>%
+  dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
+  dplyr::mutate(Feature = factor(Feature, levels = topSigFeats),
+                Condition = factor(Condition, levels = c('Tumor', 'Normal')),
+                Recurrence = factor(Recurrence, levels = c('Yes', 'No')))
+# Visualize top significant features
+ggplot(topSigFeatDat, aes(x=Condition, y=Abundance, fill=Recurrence)) +
+  geom_boxplot(alpha = 1, linewidth = 1, outlier.color = 'grey50') +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                             label = 'p.signif', size = 7, vjust = 0.5) +
+  labs(x = 'Sample condition', y = 'Log(Abundance)') +
+  scale_fill_manual(values = c('#F8766D', '#00BFC4')) +
+  facet_wrap(vars(Feature), scales = 'free') +
+  geom_vline(xintercept = 1.5, size = 0.3) +
+  th +
+  theme(strip.text = element_text(size = 9, face = 'bold'),
+        axis.title = element_text(size = 22),
+        axis.text.x = element_text(size = 18),
+        legend.title = element_text(size = 24), legend.text = element_text(size = 22))
+```
+
+Assess data power by p-value histogram
+```{r}
+lipTumorRes$pval.hist
+```
+
+Display significant associations between PCs (Var1) and cancer recurrence (Var2)
+```{r}
+lipTumorRes$sig.pc.tab
+```
+
+Visualize significant PCs and display their top features with greatest absolute loadings
+```{r}
+lipTumorRes$sig.pc.dist$PC19
+lipTumorRes$sig.pc.dist$PC2
+```
