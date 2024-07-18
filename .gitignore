@@ -9,3 +9,9 @@ analysis/*png
 analysis/*html
 analysis/*_cache
 analysis/site_libs
+
+# Exclude all files in certain folders, except README.md
+data/*
+!data/README.md
+output/*
+!output/README.md
