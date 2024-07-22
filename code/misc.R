@@ -578,6 +578,29 @@ doSVA <- function(summExp, wantedVar, unwantedVar = NULL, numSV_method = 'be',
                   asso_metaVar = NULL) {
   #' Do surrogate variable analysis to identify latent factors that explain unknown
   #' variance and correct data using identified SVs
+  #' 
+  #' Parameters
+  #' summExp: An input SummarizedExperiment object containing the data matrix to
+  #' do SVA and sample metadata to do association tests (optional)
+  #' wantedVar: A character or a vector of characters indicating the variable(S)
+  #' in the sample metadata from an SE object, the sources of variation to keep
+  #' unwantedVar: A character or a vector of characters indicating the variable(S)
+  #' in the sample metadata from an SE object, the sources of variation to adjust.
+  #' Default is NULL, which adjusts all identified sources of variation, except
+  #' variance of interest specified by the parameter 'wantedVar'
+  #' numSV_method: A character specifying the approach to estimate the number of
+  #' SVs, which should be 'be' (default) or 'leek'
+  #' asso_metaVar: A character or a vector of characters indicating the variable(S)
+  #' in the sample metadata from an SE object for association tests between SVs
+  #' and sample metadata variables. Default is NULL
+  #' 
+  #' Return
+  #' A list containing the following components:
+  #' summExp_SVs: A SummarizedExperiment object identical to the input SE object,
+  #' besides identified SVs also included in the sample metadata slot
+  #' sigAssoTab: A table showing significant associations between SVs and sample
+  #' metadata variables
+  #' correctDatMat: A data matrix accounted for SVs
   
   # Do sanity check
   if (!is(summExp, 'SummarizedExperiment')) {
@@ -663,6 +686,16 @@ doSVA <- function(summExp, wantedVar, unwantedVar = NULL, numSV_method = 'be',
 
 doBatchCorrection <- function(summExp, wantedVar, unwantedVar) {
   #' Regress out unwanted effects from data using function limma::removeBatchEffect
+  #' 
+  #' Parameters
+  #' summExp: An input SummarizedExperiment object containing the data matrix to correct
+  #' wantedVar: A character or a vector of characters indicating the variable(S)
+  #' in the sample metadata from an SE object, the sources of variation to keep
+  #' unwantedVar: A character or a vector of characters indicating the variable(S)
+  #' in the sample metadata from an SE object, the sources of variation to adjust
+  #' 
+  #' Return
+  #' A data matrix corrected for unwanted variance
   
   # Do sanity check
   if (!is(summExp, 'SummarizedExperiment')) {
@@ -890,6 +923,69 @@ prepRankedFeatList <- function(statRes, featAnno = NULL, to_gene = F) {
   names(rankedList) <- rownames(statRes)[order(statRes[[1]], decreasing = T)]
   
   return(rankedList)
+}
+
+
+doEA <- function(rankedList, categoryDB, subcategoryDB = NULL, numSigGS = 10, rmPrefixGS = NULL) {
+  #' Do human gene set enrichment analysis. Visualization in this function is specific
+  #' to recurrence prediction task for now, assuming positive ES score corresponds
+  #' to recurrence patient group
+  #' 
+  #' Parameters
+  #' rankedList: A named vector in which features are ranked (descending), which
+  #' can be the return of the function 'prepRankedFeatList'
+  #' categoryDB: A character specifying the MSigDB collection, e.g., 'H'
+  #' subcategoryDB: A character specifying the subcategory in the specified MSigDB
+  #' collection by the parameter 'categoryDB', e.g., 'GO:BP' in C5. Default is NULL
+  #' numSigGS: A numeric value specifying the number of overrepresented terms shown
+  #' in the output plot. Default is 10
+  #' rmPrefixGS: A regular expression specifying the prefix(es) of terms to remove
+  #' for better visualization, e.g., '^HALLMARK_' for H or '^GOCC_|^GOMF_' for C5.
+  #' Default is NULL
+  #' 
+  #' Return
+  #' A list containing the following components:
+  #' gseaRes: A gseaResult object returned by 'clusterProfiler::GSEA'
+  #' gseaRes4Plot: A table containing overrepresented terms, normalized enrichment
+  #' scores, adjusted p-values, etc. for visualization
+  #' plotTopSigGS: A ggplot object visualizing overrepresented terms
+  
+  # Retrieve annotated gene sets
+  msigTab <- msigdbr(species = 'Homo sapiens', category = categoryDB, subcategory = subcategoryDB) %>%
+    dplyr::select(gs_name, human_gene_symbol)
+  # Run GSEA
+  gseaRes <- clusterProfiler::GSEA(geneList = rankedList, TERM2GENE = msigTab,
+                                   minGSSize = 10, maxGSSize = 500,
+                                   pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                   by = 'fgsea', eps = 0)
+  
+  # Plot enrichment analysis results
+  if (nrow(gseaRes@result) != 0) {
+    gseaRes4Plot <- dplyr::select(gseaRes@result, Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
+      dplyr::arrange(p.adjust) %>%
+      dplyr::slice_head(n = numSigGS) %>%
+      dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
+                    leading_edge = as.numeric(leading_edge),
+                    Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+      dplyr::rename(gene_ratio = leading_edge)
+    #
+    if (!is.null(rmPrefixGS)) {
+      gseaRes4Plot <- dplyr::mutate(gseaRes4Plot, Description = stringr::str_remove_all(Description, rmPrefixGS))
+    }
+    midGrad <- mean(gseaRes4Plot$p.adjust)
+    
+    plotTopSigGS <- ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
+      geom_bar(stat = 'identity', width = 0.7, size = 2) +
+      scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900',
+                           midpoint = midGrad, name = 'Adjusted pVal') +
+      scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+      labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
+      theme_minimal()
+  } else {
+    stop("No gene sets overrepresented...")
+  }
+  
+  return(list(gseaRes = gseaRes, gseaRes4Plot = gseaRes4Plot, plotTopSigGS = plotTopSigGS))
 }
 
 
