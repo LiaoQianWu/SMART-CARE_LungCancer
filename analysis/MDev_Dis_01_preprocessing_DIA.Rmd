@@ -13,11 +13,9 @@ Tissue DIA Proteomics generated from AG Klingmüller and AG Krijgsveld, includin
 data cleansing, filtering, normalization (VSN), and data merging. All needed information
 was then stored in SummarizedExperiment objects for further analyses.
 
-For Klin. data: Sample **Q89YQK_NG** were removed due to high level of missingness
-(71%) and potential outlier according to PC2. Samples **125CII_TU**, **1TK71I_TU**,
-**1LJXIN_TU**, **NG1IWD_TU**, **I0HVOL_TU**, and **7EAOX7_TU** were removed due
-to low tumor purity and misclassification in metadata-assisted quality control (Tumor
-vs Normal, PC1).
+For Klin. data: Sample **Q89YQK_NG**, **1TK71I_TU**, **NG1IWD_TU**, **125CII_TU**,
+**1LJXIN_TU**, **I0HVOL_TU**, and **7EAOX7_TU** were excluded. (Check Section
+'**Show reasons for removing samples**' for more details)
 
 For Krij. data: Those 44 extra samples where Tumor samples are of low tumor purity
 in Discovery cohort are not included yet. </font>
@@ -201,7 +199,9 @@ proTissueTab <- dplyr::filter(proTissueTab, !Sample %in% c('Q89YQK_NG', '125CII_
                                                            '7EAOX7_TU'))
 ```
 
-<font size='4'> **Overview original data** </font>
+<font size='4'> **Overview original data** </font>\
+6 Tumor samples and 1 Normal sample have been excluded before preprocessing. Check
+**Show reasons for removing samples** for more details
 ```{r}
 # Preprocess data
 proTissuePrepro <- doPreprocessing(proTissueTab, feat = 'Feature', smp = 'Sample',
@@ -244,7 +244,7 @@ proTissuePrepro$vsn.feat.mean.var +
   labs(title = 'Feature mean-sd relationship after vsn normalization')
 ```
 
-<font size='4'> **Do metadata-assisted quality control: Tumor vs Normal samples** </font>\
+<font size='4'> **Do metadata-assisted quality control: Tumor vs Normal samples** </font>
 ```{r}
 # Do PCA
 pcaRes <- doSOA(proTissuePrepro$vsn.data, meta_var = 'Condition', #'TumorPurity', 'MissLevel'
@@ -260,10 +260,17 @@ pcTab <- pcaRes$pcTab %>%
                                          !Sample %in% badSmps ~ 'No'))
 ggplot(pcTab, aes(x=Condition, y=`PC1 (33.8%)`, col=Condition, fill=Condition)) +
   geom_boxplot(alpha = 0.7, outliers = F) +
-  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  geom_jitter(position = position_jitter(0.3), size = 4, show.legend = F) +
   scale_color_brewer(palette = 'Dark2') +
   scale_fill_brewer(palette = 'Dark2') +
   th
+#   theme(axis.title = element_text(size = 22),
+#         axis.text.x = element_text(size = 18),
+#         axis.text.y = element_text(size = 14),
+#         legend.title = element_text(size = 22),
+#         legend.text = element_text(size = 20))
+# ggsave('./output/Discovery/25.07.24_LGM/QC_combined_proTissue_Klin_PC1_rmSmps.png',
+#        device = 'png', dpi = 400, height = 8, width = 10)
 
 # Check quality of those extra normal samples whose tumor counterparts were removed
 # ggplot(pcTab, aes(x=`PC1 (33.8%)`, y=`PC2 (14.3%)`, col=Condition, shape=Extra)) +
@@ -285,17 +292,25 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (33.8%)`, col=Condition, fill=Condition)) 
 #   th
 ```
 
-```{r message=F, eval=F}
-# Show reasons for removing some samples
+<font size='4'> **Show reasons for removing samples** </font>\
+Samples '1TK71I_TU', 'NG1IWD_TU', '125CII_TU', and '1LJXIN_TU' are removed due to
+low tumor purity and misclassification in metadata-assisted quality control (Tumor
+vs Normal, PC1). Samples 'I0HVOL_TU' and '7EAOX7_TU' got decent tumor purity but
+still got removed due to misclassification and similar molecular signature as normal
+samples (PC1, clustering). Sample 'Q89YQK_NG' is removed due to high level of missingness
+(71%) and potential outlier (PC2).
+
+**PCA**
+```{r}
 # Prepare preprocessed data containing all samples
 allProTissueVsn <- doPreprocessing(allProTissueTab, feat = 'Feature', smp = 'Sample',
                                    val = 'Abundance', smpAnno = c(smpAnno, 'MissLevel'),
                                    featAnno = 'Gene', do_featFilt = T, cutoff = 0.5)$vsn.data
 # Do PCA
-pcaRes <- doSOA(allProTissueVsn, meta_var = c('Condition', 'TumorPurity', 'MissLevel'),
-                pca_method = 'ppca', num_PCs = 20, do_onlyPCA = T)
+pcaRes <- doSOA(allProTissueVsn, meta_var = 'Condition', pca_method = 'ppca', num_PCs = 20,
+                do_onlyPCA = T)
 # Show significant associations between PCs and sample conditions
-# pcaRes$pcSigAssoRes
+pcaRes$pcSigAssoRes
 # Visualize PCs
 pcTab <- pcaRes$pcTab %>%
   dplyr::mutate(Label = dplyr::case_when(Sample %in% c('I0HVOL_TU', 'I0HVOL_NG',
@@ -305,31 +320,108 @@ pcTab <- pcaRes$pcTab %>%
                 Label2 = dplyr::case_when(Sample %in% 'Q89YQK_NG' ~ Sample))
 ggplot(pcTab, aes(x=Condition, y=`PC1 (29.9%)`, col=Condition, fill=Condition, label=Label)) +
   geom_boxplot(alpha = 0.7, outliers = F) +
-  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
-  geom_text_repel(show.legend = F) +
+  geom_jitter(position = position_jitter(0.3), size = 4, show.legend = F) +
+  geom_text_repel(size = 6, show.legend = F) +
   scale_color_brewer(palette = 'Dark2') +
   scale_fill_brewer(palette = 'Dark2') +
   th
+#   theme(axis.title = element_text(size = 22),
+#         axis.text.x = element_text(size = 18),
+#         axis.text.y = element_text(size = 14),
+#         legend.title = element_text(size = 22),
+#         legend.text = element_text(size = 20))
+# ggsave('./output/Discovery/25.07.24_LGM/QC_combined_proTissue_Klin_PC1_allSmps.png',
+#        device = 'png', dpi = 400, height = 8, width = 10)
 
 # Check missing levels of samples
 ggplot(pcTab, aes(x=`PC1 (29.9%)`, y=`PC2 (14%)`, col=MissLevel*100, shape=Condition, label=Label2)) +
-  geom_point(size = 2.5) +
-  geom_text_repel(size = 4, show.legend = F) +
-  scale_color_continuous(name = 'Missing level (%)', type = 'viridis') +
+  geom_point(size = 5) +
+  geom_text_repel(size = 7, show.legend = F) +
+  scale_color_continuous(name = 'Missing level (%)') +
   th
+  # theme(axis.title = element_text(size = 22),
+  #       axis.text = element_text(size = 14),
+  #       legend.title = element_text(size = 22),
+  #       legend.text = element_text(size = 20))
+# ggsave('./output/Discovery/25.07.24_LGM/QC_combined_proTissue_Klin_PC1&2_allSmps.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
+```
+
+**Hierarchical clustering**\
+Top 100 significant features between Tumor and Normal samples are used, of which
+Bad-quality samples were excluded for significance testing. Features (rows) are
+ordered by t-statistics.
+```{r message=F}
+# Check if potential bad-quality Tumor samples get condition-associated molecular
+# signature identified in good-quality samples
+# Prepare top significant features between Tumor and Normal samples
+# proTissueTab <- dplyr::filter(allProTissueTab, !Sample %in% badSmps_Dis)
+# proTissueVsn <- doPreprocessing(proTissueTab, feat = 'Feature', smp = 'Sample',
+#                                 val = 'Abundance', smpAnno = c(smpAnno, 'MissLevel'),
+#                                 featAnno = 'Gene', do_featFilt = T, cutoff = 0.5)$vsn.data
+# soaRes <- doSOA(proTissueVsn, meta_var = 'Condition', pca_method = 'ppca',
+#                 num_PCs = 20, use_proDA = T, level_metaVar = c('Tumor', 'Normal'))
+# saveRDS(soaRes, './data/Discovery/AG_Klingmueller/soaRes/proTissueRes_rmBadSmps.rds')
+soaRes <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proTissueRes_rmBadSmps.rds')
+topSigFeatIdx <- order(abs(soaRes$featSigAssoRes$Stat), decreasing = T)[1:100]
+topSigFeats <- soaRes$featSigAssoRes$Var1[topSigFeatIdx]
+# Order top significant features by t-statistics
+topSigFeatStats <- soaRes$featSigAssoRes$Stat[topSigFeatIdx]
+featOrder <- topSigFeats[order(topSigFeatStats, decreasing = T)]
+# Prepare abundance matrix including only top significant features
+datMat <- dplyr::select(allProTissueTab, Feature, Sample, Abundance) %>%
+  tidyr::pivot_wider(names_from = 'Sample', values_from = 'Abundance') %>%
+  dplyr::filter(Feature %in% topSigFeats) %>%
+  tibble::column_to_rownames('Feature')
+# Cluster samples by sample conditions
+normalSmpIdx <- grep('_NG' ,colnames(datMat))
+smpOrder <- c(colnames(datMat)[-normalSmpIdx], colnames(datMat)[normalSmpIdx])
+# Prepare sample annotation table
+smpAnnoTab <- dplyr::select(allProTissueTab, Sample, Condition) %>%
+  dplyr::filter(!duplicated(Sample)) %>%
+  tibble::column_to_rownames('Sample')
+# Color sample groups as same as in PC plots
+annoCols <- c('#1B9E77', '#D95F02')
+names(annoCols) <- c('Normal', 'Tumor')
+smpAnnoCols <- list()
+smpAnnoCols[['Condition']] <- annoCols
+
+# View molecular signature of all samples
+datMat <- datMat[featOrder, smpOrder]
+pheatmap(datMat, scale = 'row', annotation_col = smpAnnoTab, annotation_colors = smpAnnoCols,
+         color = colorRampPalette(c('navy', 'white', 'red'))(100), clustering_method = 'ward.D2',
+         cluster_rows = F, cluster_cols = F, show_rownames = F, fontsize_col = 5,
+         main = 'All samples (170)')
+
+# View molecular signature of bad-quality samples
+# rmSmps <- c('NG1IWD_TU', '1LJXIN_TU', '1TK71I_TU', '125CII_TU', '7EAOX7_TU', 'I0HVOL_TU',
+#             'NG1IWD_NG', '1LJXIN_NG', '1TK71I_NG', '125CII_NG', '7EAOX7_NG', 'I0HVOL_NG')
+badSmps <- gsub('_TU', '_NG', badSmps_Dis)
+badSmps <- c(badSmps, badSmps_Dis, c('1LJXIN_TU', '7EAOX7_TU', 'I0HVOL_TU', '1LJXIN_NG',
+                                     '7EAOX7_NG', 'I0HVOL_NG'))
+datMatSub <- datMat[, colnames(datMat) %in% badSmps]
+pheatmap(datMatSub, scale = 'row', annotation_col = smpAnnoTab, annotation_colors = smpAnnoCols,
+         color = colorRampPalette(c('navy', 'white', 'red'))(100), clustering_method = 'ward.D2',
+         cluster_rows = F, show_rownames = F,
+         main = 'Potential bad-quality samples and corresponding normal samples')
+
 
 # Display tumor purity and missing levels of misclassified samples and potential outlier
 dplyr::distinct(allProTissueTab, Sample, .keep_all = T) %>%
   dplyr::select(Sample, TumorPurity, MissLevel) %>%
   dplyr::filter(Sample %in% c('I0HVOL_TU', '7EAOX7_TU', '1LJXIN_TU', '125CII_TU',
-                              '1TK71I_TU', 'NG1IWD_TU', 'Q89YQK_NG'))
-# => Mean of sample tumor cell contents is 67%, ranging from 10% to 100%.
+                              '1TK71I_TU', 'NG1IWD_TU', 'Q89YQK_NG')) %>%
+  as.data.frame()
 ```
+=> Mean of sample tumor cell contents is 67%, ranging from 10% to 100%.\
+=> Mean of sample missing levels is 31%, ranging from 21% to 71%.
+
+
 
 
 </br>
 </br>
-<font size='4'> **Check data reproducibility by comparing New and Old Proteomics** </font>\
+<font size='5'> **Check data reproducibility by comparing New and Old Proteomics** </font>\
 Note that only common samples between two datasets are considered.
 ```{r}
 # Prepare preprocessed data sharing same sample space
@@ -349,7 +441,7 @@ proTissueSVs_New <- svaRes_New$summExp_SVs
 proTissueSVs_Old <- svaRes_Old$summExp_SVs
 ```
 
-```{r message=F, eval=F}
+```{r message=F, include=F, eval=F}
 # <font size='4'> **Raw intensity data** </font>\
 # **Feature correlations (data1: New data, data2: Old data)**
 
@@ -428,9 +520,13 @@ corrRes <- calcFeatCorr(proTissue_New, proTissue_Old, show_nFeats = T)
 # Plot feature correlations
 ggplot(corrRes, aes(x=Correlation)) +
   geom_histogram(binwidth = 0.1) +
-  scale_x_continuous(breaks = c(seq(-1, 1, 0.1))) +
+  scale_x_continuous(breaks = c(seq(-1, 1, 0.2))) +
   labs(y = 'Frequency', title = 'Feature Correlations: New vs Old Proteomics (Uncorrected)') +
   th
+  # theme(axis.title = element_text(size = 22),
+  #       axis.text = element_text(size = 18))
+# ggsave('./output/Discovery/25.07.24_LGM/compFeatCorr_combined_proTissue_Klin_new_vs_old.png',
+#        device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 **log(FC) between Tumor and Normal samples**
@@ -449,16 +545,22 @@ condiFeatAssoTabs <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/New_vs_Old
 
 # Plot log(FC)
 ggplot(condiFeatAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
-  geom_point(size = 2) +
+  geom_point(size = 3) +
   ggpubr::stat_cor(data = condiFeatAssoTabs$tbl_logFC,
                    aes(x=logFC_dat1, y=logFC_dat2, col=NULL,
                        label=paste(..rr.label.., ..p.label.., sep = "~`,`~")),
-                   size = 6, show.legend = F) +
+                   size = 7, show.legend = F) +
   geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
   scale_color_manual(values = c('red', 'navy', 'grey')) +
   labs(x = 'log(FC) of New data', y = 'log(FC) of Old data',
        title = 'log(FC): Tumor vs Normal (Uncorrected)') +
   th
+  # theme(axis.title = element_text(size = 22),
+  #       axis.text = element_text(size = 14),
+  #       legend.title = element_text(size = 22),
+  #       legend.text = element_text(size = 20))
+# ggsave('./output/Discovery/25.07.24_LGM/compLogFC_combined_proTissue_Klin_new_vs_old_condi.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
 ```
 
 **p-values (Tumor vs Normal samples, alpha = 0.05)**
@@ -535,6 +637,8 @@ ggplot(condiFeatAssoTabs_SVs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_da
   th
 ```
 => SV-corrected data does not give rise to better result consistency.
+</br>
+</br>
 </br>
 </br>
 
