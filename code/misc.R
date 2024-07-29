@@ -966,7 +966,8 @@ doEA <- function(rankedList, categoryDB, subcategoryDB = NULL, numSigGS = 10, rm
       dplyr::slice_head(n = numSigGS) %>%
       dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
                     leading_edge = as.numeric(leading_edge),
-                    Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No')) %>%
+                    Recurrence = ifelse(test = NES > 0, yes = 'Up', no = 'Down'),
+                    Recurrence = factor(Recurrence, levels = c('Up', 'Down'))) %>%
       dplyr::rename(gene_ratio = leading_edge)
     #
     if (!is.null(rmPrefixGS)) {
@@ -978,7 +979,7 @@ doEA <- function(rankedList, categoryDB, subcategoryDB = NULL, numSigGS = 10, rm
       geom_bar(stat = 'identity', width = 0.7, size = 2) +
       scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900',
                            midpoint = midGrad, name = 'Adjusted pVal') +
-      scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
+      scale_color_manual(values = c(Up = 'red', Down = 'darkblue')) +
       labs(x = 'Normalized Enrichment Score', y = 'Pathway') +
       theme_minimal()
   } else {
