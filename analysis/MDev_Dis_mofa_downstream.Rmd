@@ -42,18 +42,18 @@ th <- theme_bw(base_size = 15) +
 ```
 
 # Comp. Klin. Pro. + Anno. Hopf Lip.
-Complete DIA Proteomics from AG Klingmüller + Annotated Untargeted Lipidomics from AG Hopf
+Complete DIA Proteomics from AG Klingmüller + Annotated Untargeted Lipidomics from
+AG Hopf (MethodDev + Discovery)
 
 ```{r message=F}
 # Prepare data tables to train MOFA models
 # Load normalized datasets
 comb_proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
 comb_proNormal_Klin <- comb_proTissue_Klin[, colData(comb_proTissue_Klin)$Condition == 'Normal']
+comb_proTumor_Klin <- comb_proTissue_Klin[, colData(comb_proTissue_Klin)$Condition == 'Tumor']
 comb_lipTissue_Hopf <- readRDS(paste0('./data/Discovery/AG_Hopf/partial_annotated/',
                                       'Comb_Prepro_lipTissueVsn_Anno_MDevB123_BC.rds'))
 comb_lipNormal_Hopf <- comb_lipTissue_Hopf[, colData(comb_lipTissue_Hopf)$Condition == 'Normal']
-
-comb_proTumor_Klin <- comb_proTissue_Klin[, colData(comb_proTissue_Klin)$Condition == 'Tumor']
 comb_lipTumor_Hopf <- comb_lipTissue_Hopf[, colData(comb_lipTissue_Hopf)$Condition == 'Tumor']
 
 # Sanity check dimensionality of each dataset (Feature x Sample)
@@ -102,9 +102,8 @@ smps_CombNTP <- stringr::str_replace(colnames(comb_proNormal_Klin), '_NG', '_B')
 smps_CombNTL <- stringr::str_replace(colnames(comb_lipNormal_Hopf), '_NG', '_B')
 ```
 
-## NTP + NTL (Correct, SigFeats)
-Combined DIA Normal Tissue Proteomics (MethodDev + Discovery) + Combined Annotated
-Untargeted Normal Tissue Lipidomics\
+## NTP + NTL (Semi-Super, Correct)
+DIA Normal Tissue Proteomics + Untargeted Normal Tissue Lipidomics\
 **Note that NTP was corrected for Pathological Stage and NTL was corrected for SVs,**
 **and only statistically significant recurrence-related features were used to train**
 **a MOFA model. Check SOA results for more details**
@@ -229,44 +228,15 @@ tidyWeiMat <- mofa_keepUniFeats(mofaObject, factor = 1, view = 'Combined DIA Nor
 # Rank feature weights
 rankedGeneList <- mofa_rankFeatList(tidyWeiMat, factor = 1)
 
-# Do enrichment analysis - Hallmark gene sets (H)
-# Retrieve annotated gene sets
-msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
-  dplyr::select(gs_name, human_gene_symbol)
-# Run GSEA
-gseaResH <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabH,
-                                  minGSSize = 10, maxGSSize = 500,
-                                  pvalueCutoff = 0.05, pAdjustMethod = 'BH',
-                                  by = 'fgsea', eps = 0)
-
-# Plot enrichment analysis results
-gseaRes4Plot <- gseaResH@result %>%
-  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
-  dplyr::arrange(p.adjust) %>%
-  dplyr::slice_head(n = 8) %>%
-  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
-                leading_edge = as.numeric(leading_edge),
-                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No'),
-                Description = stringr::str_remove(Description, 'HALLMARK_')) %>%
-  dplyr::rename(gene_ratio = leading_edge)
-midGrad <- mean(gseaRes4Plot$p.adjust)
-
-ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
-  geom_bar(stat = 'identity', width = 0.6, size = 2) +
-  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
-  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
-  labs(x = 'Normalized Enrichment Score', y = 'Pathway', title = 'MSigDB:H - Factor1') +
-  theme_minimal() +
-  theme(axis.title = element_text(size = 16, face = 'bold'),
-        axis.text.x = element_text(size = 12),
-        axis.text.y = element_text(size = 10, face = 'bold'),
-        legend.title = element_text(size = 12),
-        legend.text = element_text(size = 12))
+# Do GSEA
+# Hallmark gene sets
+gseaRes_H <- doEA(rankedGeneList, categoryDB = 'H', numSigGS = 20, rmPrefixGS = '^HALLMARK_')
+gseaRes_H$plotTopSigGS +
+  labs(title = 'Hallmark: Factor1')
 ```
 
-## NTP + NTL (Correct, AllFeats)
-Combined DIA Normal Tissue Proteomics (MethodDev + Discovery) + Combined Annotated
-Untargeted Normal Tissue Lipidomics\
+## NTP + NTL (Un-Super, Correct)
+DIA Normal Tissue Proteomics + Untargeted Normal Tissue Lipidomics\
 **Note that NTP was corrected for Pathological Stage and NTL was corrected for SVs,**
 **and all features were used to train a MOFA model. Check SOA results for more details**
 
@@ -298,39 +268,11 @@ tidyWeiMat <- mofa_keepUniFeats(mofaObject, factor = 1, view = 'Combined DIA Nor
 # Rank feature weights
 rankedGeneList <- mofa_rankFeatList(tidyWeiMat, factor = 1)
 
-# Do enrichment analysis - Hallmark gene sets (H)
-# Retrieve annotated gene sets
-msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
-  dplyr::select(gs_name, human_gene_symbol)
-# Run GSEA
-gseaResH <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabH,
-                                  minGSSize = 10, maxGSSize = 500,
-                                  pvalueCutoff = 0.05, pAdjustMethod = 'BH',
-                                  by = 'fgsea', eps = 0)
-
-# Plot enrichment analysis results
-gseaRes4Plot <- gseaResH@result %>%
-  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
-  dplyr::arrange(p.adjust) %>%
-  dplyr::slice_head(n = 8) %>%
-  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
-                leading_edge = as.numeric(leading_edge),
-                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No'),
-                Description = stringr::str_remove(Description, 'HALLMARK_')) %>%
-  dplyr::rename(gene_ratio = leading_edge)
-midGrad <- mean(gseaRes4Plot$p.adjust)
-
-ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
-  geom_bar(stat = 'identity', width = 0.6, size = 2) +
-  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
-  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
-  labs(x = 'Normalized Enrichment Score', y = 'Pathway', title = 'MSigDB:H - Factor1') +
-  theme_minimal() +
-  theme(axis.title = element_text(size = 16, face = 'bold'),
-        axis.text.x = element_text(size = 12),
-        axis.text.y = element_text(size = 10, face = 'bold'),
-        legend.title = element_text(size = 12),
-        legend.text = element_text(size = 12))
+# Do GSEA
+# Hallmark gene sets
+gseaRes_H <- doEA(rankedGeneList, categoryDB = 'H', numSigGS = 20, rmPrefixGS = '^HALLMARK_')
+gseaRes_H$plotTopSigGS +
+  labs(title = 'Hallmark: Factor1')
 ```
 
 ```{r message=F}
@@ -344,210 +286,52 @@ tidyWeiMat <- mofa_keepUniFeats(mofaObject, factor = 7, view = 'Combined DIA Nor
 # Rank feature weights
 rankedGeneList <- mofa_rankFeatList(tidyWeiMat, factor = 7)
 
-# Do enrichment analysis - Hallmark gene sets (H)
-# Retrieve annotated gene sets
-msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
-  dplyr::select(gs_name, human_gene_symbol)
-# Run GSEA
-gseaResH <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabH,
-                                  minGSSize = 10, maxGSSize = 500,
-                                  pvalueCutoff = 0.05, pAdjustMethod = 'BH',
-                                  by = 'fgsea', eps = 0)
-
-# Plot enrichment analysis results
-gseaRes4Plot <- gseaResH@result %>%
-  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
-  dplyr::arrange(p.adjust) %>%
-  dplyr::slice_head(n = 8) %>%
-  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
-                leading_edge = as.numeric(leading_edge),
-                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No'),
-                Description = stringr::str_remove(Description, 'HALLMARK_')) %>%
-  dplyr::rename(gene_ratio = leading_edge)
-midGrad <- mean(gseaRes4Plot$p.adjust)
-
-ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
-  geom_bar(stat = 'identity', width = 0.6, size = 2) +
-  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
-  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
-  labs(x = 'Normalized Enrichment Score', y = 'Pathway', title = 'MSigDB:H - Factor7') +
-  theme_minimal() +
-  theme(axis.title = element_text(size = 16, face = 'bold'),
-        axis.text.x = element_text(size = 12),
-        axis.text.y = element_text(size = 10, face = 'bold'),
-        legend.title = element_text(size = 12),
-        legend.text = element_text(size = 12))
+# Do GSEA
+# Hallmark gene sets
+gseaRes_H <- doEA(rankedGeneList, categoryDB = 'H', numSigGS = 20, rmPrefixGS = '^HALLMARK_')
+gseaRes_H$plotTopSigGS +
+  labs(title = 'Hallmark: Factor7')
 ```
 
-```{r include=F, eval=F}
+```{r}
 # Compare factors learned from different MOFA models
 mofaObj1 <- readRDS('./data/Discovery/mofa/correct_sigFeats_CombDIANTPKlin_CombAnnoUntNTL.rds')
 mofaObj2 <- readRDS('./data/Discovery/mofa/correct_allFeats_CombDIANTPKlin_CombAnnoUntNTL.rds')
-mofaObj3 <- readRDS('./data/Discovery/mofa/sigFeats_CombDIANTPKlin_CombAnnoUntNTL.rds')
-mofaObj4 <- readRDS('./data/Discovery/mofa/allFeats_CombDIANTPKlin_CombAnnoUntNTL.rds')
-
-MOFA2::plot_variance_explained(mofaObj1, max_r2 = 10) +
-  labs(title = 'Correct, SigFeats: Factor1&2 Sig.')
-MOFA2::plot_variance_explained(mofaObj2, max_r2 = 10) +
-  labs(title = 'Correct, AllFeats: Factor1&7 Sig.')
-MOFA2::plot_variance_explained(mofaObj3, max_r2 = 10) +
-  labs(title = 'SigFeats: Factor2 Sig.')
-MOFA2::plot_variance_explained(mofaObj4, max_r2 = 10) +
-  labs(title = 'AllFeats: Factor3&8 Sig.')
-MOFA2::get_variance_explained(mofaObj2)
-
-MOFA2::compare_factors(list(CorSigFeats = mofaObj1, CorAllFeats = mofaObj2,
-                            SigFeats = mofaObj3, AllFeats = mofaObj4))
-```
-
-## NTP + TTP + NTL (Correct, SigFeats)
-Combined DIA Normal and Tumor Tissue Proteomics (MethodDev + Discovery) + Combined
-Annotated Untargeted Normal Tissue Lipidomics\
-**Note that NTP was corrected for Pathological Stage and TTP and NTL was corrected**
-**for SVs, and only statistically significant recurrence-related features were used**
-**to train a MOFA model. Check SOA results for more details**
-
-```{r}
-# Train MOFA model
-# Prepare training data, e.g., removing unwanted samples, using significant features
-# tmp_comb_proNormalTab_Klin <- dplyr::filter(correct_comb_proNormalTab_Klin,
-#                                             feature %in% sigFeats_comb_proNormal_Klin)
-# tmp_comb_lipNormalTab_Hopf <- dplyr::filter(correct_comb_lipNormalTab_Hopf,
-#                                             feature %in% sigFeats_comb_lipNormal_Hopf)
-# 
-# tmp_comb_proTumorTab_Klin <- dplyr::filter(correct_comb_proTumorTab_Klin,
-#                                            feature %in% sigFeats_comb_proTumor_Klin)
-# 
-# mofaObject <- trainMOFA(list(tmp_comb_proNormalTab_Klin, tmp_comb_lipNormalTab_Hopf,
-#                              tmp_comb_proTumorTab_Klin),
-#                         view_data = T, train_mofa = T, num_factors = 10,
-#                         save_path = paste0('./data/Discovery/mofa/correct_sigFeats_',
-#                                            'CombDIANTPKlin_CombAnnoUntNTL_TTP'))
-
-# Load trained model
-mofaObject <- readRDS(paste0('./data/Discovery/mofa/correct_sigFeats_',
-                             'CombDIANTPKlin_CombAnnoUntNTL_TTP.rds'))
-# Overview model
-MOFA2::plot_data_overview(mofaObject)
-# Do sanity check for factor correlations
-# MOFA2::plot_factor_cor(mofaObject)
-# Perform variance dedecomposition analysis (coefficient of determination)
-MOFA2::plot_variance_explained(mofaObject, max_r2 = 10)
-
-# Display significant associations between learned factors (Var1) and cancer recurrence
-# (Var2) and visualize significant recurrence-related factors
-sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group', show_res = F)
-sigFactor$sigAssoRes
-# Visualize significant recurrence-related factors
-sigFactor$plotList$Factor4
-sigFactor$plotList$Factor1
-sigFactor$plotList$Factor2
-```
-
-```{r message=F}
-# Prepare ranked feature list
-# Tidy up weight matrix and feature metadata to reduce information loss
-proGeneTab <- rowData(comb_proTumor_Klin) %>%
-  tibble::as_tibble(rownames = 'Proteins') %>%
-  tibble::column_to_rownames('Proteins')
-tidyWeiMat <- mofa_keepUniFeats(mofaObject, factor = 4, view = 'Combined DIA Tumor Proteomics',
-                                feat_anno = proGeneTab, to_genes = T)
-# Rank feature weights
-rankedGeneList <- mofa_rankFeatList(tidyWeiMat, factor = 4)
-
-# Do enrichment analysis - Hallmark gene sets (H)
-# Retrieve annotated gene sets
-msigTabH <- msigdbr(species = 'Homo sapiens', category = 'H', subcategory = NULL) %>%
-  dplyr::select(gs_name, human_gene_symbol)
-# Run GSEA
-gseaResH <- clusterProfiler::GSEA(geneList = rankedGeneList, TERM2GENE = msigTabH,
-                                  minGSSize = 10, maxGSSize = 500,
-                                  pvalueCutoff = 0.05, pAdjustMethod = 'BH',
-                                  by = 'fgsea', eps = 0)
-
-# Plot enrichment analysis results
-gseaRes4Plot <- gseaResH@result %>%
-  dplyr::select(Description, setSize, NES, pvalue, p.adjust, leading_edge) %>%
-  dplyr::arrange(p.adjust) %>%
-  dplyr::slice_head(n = 8) %>%
-  dplyr::mutate(leading_edge = stringr::str_extract(leading_edge, '\\d\\d'),
-                leading_edge = as.numeric(leading_edge),
-                Recurrence = ifelse(test = NES > 0, yes = 'Yes', no = 'No'),
-                Description = stringr::str_remove(Description, 'HALLMARK_')) %>%
-  dplyr::rename(gene_ratio = leading_edge)
-midGrad <- mean(gseaRes4Plot$p.adjust)
-
-ggplot(gseaRes4Plot, aes(x=NES, y=reorder(Description, NES), fill=p.adjust, col=Recurrence)) +
-  geom_bar(stat = 'identity', width = 0.6, size = 2) +
-  scale_fill_gradient2(low='#5B1C00', high='#FFFCA5', mid = '#E86900', midpoint = midGrad, name = 'Adjusted pVal') +
-  scale_color_manual(values = c(Yes = 'red', No = 'darkblue')) +
-  labs(x = 'Normalized Enrichment Score', y = 'Pathway', title = 'MSigDB:H - Factor4') +
-  theme_minimal() +
-  theme(axis.title = element_text(size = 16, face = 'bold'),
-        axis.text.x = element_text(size = 12),
-        axis.text.y = element_text(size = 10, face = 'bold'),
-        legend.title = element_text(size = 12),
-        legend.text = element_text(size = 12))
-```
-
-Compare factors learned from different MOFA models
-```{r}
-# Compare factors learned from different MOFA models
-mofaObj1 <- readRDS('./data/Discovery/mofa/correct_sigFeats_CombDIANTPKlin_CombAnnoUntNTL.rds')
-mofaObj2 <- readRDS(paste0('./data/Discovery/mofa/correct_sigFeats_',
-                           'CombDIANTPKlin_CombAnnoUntNTL_TTP.rds'))
+# mofaObj3 <- readRDS('./data/Discovery/mofa/sigFeats_CombDIANTPKlin_CombAnnoUntNTL.rds')
+# mofaObj4 <- readRDS('./data/Discovery/mofa/allFeats_CombDIANTPKlin_CombAnnoUntNTL.rds')
 
 # MOFA2::plot_variance_explained(mofaObj1, max_r2 = 10) +
-#   labs(title = 'Correct, SigFeats: Factor1&2 Sig.')
+#   labs(title = 'Semi-Super, Correct: Factor1&2 Sig.')
 # MOFA2::plot_variance_explained(mofaObj2, max_r2 = 10) +
-#   labs(title = 'Correct, AllFeats: Factor4&1&2 Sig.')
+#   labs(title = 'Un-Super, Correct: Factor1&7 Sig.')
+# MOFA2::plot_variance_explained(mofaObj3, max_r2 = 10) +
+#   labs(title = 'Semi-Super: Factor2 Sig.')
+# MOFA2::plot_variance_explained(mofaObj4, max_r2 = 10) +
+#   labs(title = 'Un-Super: Factor3&8 Sig.')
+# MOFA2::get_variance_explained(mofaObj2)
 
-MOFA2::compare_factors(list(CorSigFeats = mofaObj1, CorSigFeats_TTP = mofaObj2))
+MOFA2::compare_factors(list(Cor_Semi_Sup = mofaObj1, Cor_Un_Sup = mofaObj2))
+                            # Semi_Sup = mofaObj3, Un_Sup = mofaObj4
+
+# => Differences in factors from models trained on corrected and uncorrected data
+# depends on associated views and how data was corrected. For example, two models
+# either trained on uncorrected NTP or corrected NTP for Stage both got Factor1
+# associated with recurrence. Relationship of two Factor1 is high, but one learned
+# from corrected data performs better. As similar concept, supposed we trained two
+# models on uncorrected NTL and corrected NTL for SVs. Since data adjustment is
+# more complicated, significant Factor2 from corrected data and insignificant Factor6
+# from uncorrected data are mildly correlated.
+
+# => Both semi- and un-supervised models can capture significant Factor1 explaining,
+# variance in NTP, but semi-supervised one performs better. It might be because
+# NTP is more homogeneous. On other hand, semi-supervised model can capture Factor2
+# explaining variance in NTL, but un-supervised one. It might be that NTL data without
+# adjustment is too noisy.
 ```
 
-Compare Factors with recurrence-related PCs from SOA results
-```{r}
-# Visualize correlation between significant factor (MOFA) and significant PC (PCA)
-# Prepare significant factor table
-facTab <- sigFactor$tab4Plot %>%
-  dplyr::select(sample, Factor4, Recurrence)
-# Prepare significant PC table
-proTumorRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proTumorRes_SVs.rds')
-# Show significant PCs
-# proTumorRes_Klin$sig.pc.tab
-pcTab <- proTumorRes_Klin$SOA.res$pcTab %>%
-  dplyr::select(Sample, `PC1 (54.3%)`, `PC5 (1.8%)`, `PC2 (21.3%)`, `PC9 (1.3%)`) %>%
-  dplyr::rename(sample = Sample) %>%
-  dplyr::mutate(sample = stringr::str_replace_all(sample, '_TG|_TU', '_B'))
-# Combine all information
-combinedTab <- dplyr::left_join(facTab, pcTab, by = 'sample')
-# Make a plot and compute correlation
-ggplot(combinedTab, aes(x=Factor4, y=`PC1 (54.3%)`)) +
-  geom_point(aes(col=Recurrence), size = 4) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
-  th
-
-ggplot(combinedTab, aes(x=Factor4, y=`PC5 (1.8%)`)) +
-  geom_point(aes(col=Recurrence), size = 4) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
-  th
-
-ggplot(combinedTab, aes(x=Factor4, y=`PC2 (21.3%)`)) +
-  geom_point(aes(col=Recurrence), size = 4) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
-  th
-```
-
-## NTP + TTP + NTL + TTL (Correct, SigFeats)
-Combined DIA Normal and Tumor Tissue Proteomics (MethodDev + Discovery) + Combined
-Annotated Untargeted Normal and Tumor Tissue Lipidomics\
-**Note that NTP was corrected for Pathological Stage and TTP and NTL was corrected**
+## NTP + TTP + NTL + TTL (Semi-Super, Correct)
+DIA Normal and Tumor Tissue Proteomics + Untargeted Normal and Tumor Tissue Lipidomics\
+**Note that NTP was corrected for Pathological Stage and TTP, NTL, and TTL was corrected**
 **for SVs, and only statistically significant recurrence-related features were used**
 **to train a MOFA model. Check SOA results for more details**
 
@@ -574,21 +358,205 @@ Annotated Untargeted Normal and Tumor Tissue Lipidomics\
 mofaObject <- readRDS(paste0('./data/Discovery/mofa/correct_sigFeats_',
                              'CombDIANTPKlin_CombAnnoUntNTL_TTP_TTL.rds'))
 # Overview model
-MOFA2::plot_data_overview(mofaObject)
+a <- MOFA2::plot_data_overview(mofaObject)
+a$data$view_label <- factor(a$data$view_label, levels = c('Combined Untargeted Tumor Lipidomics\nD=21',
+                                                          'Combined Untargeted Normal Lipidomics\nD=38',
+                                                          'Combined DIA Tumor Proteomics\nD=438',
+                                                          'Combined DIA Normal Proteomics\nD=736'))
+a #+ theme(text = element_text(size = 22, face = 'bold'))
+# ggsave('./output/Discovery/25.07.24_LGM/mofa_data_combined_NTP_TTP_Klin_NTL_TTL_Hopf.png',
+#        device = 'png', dpi = 400, height = 8, width = 10)
+
 # Do sanity check for factor correlations
 # MOFA2::plot_factor_cor(mofaObject)
 # Perform variance dedecomposition analysis (coefficient of determination)
-MOFA2::plot_variance_explained(mofaObject, max_r2 = 10) +
-  theme(axis.text.x = element_text(angle = 20, hjust = 1, vjust = 1, face = 'bold'))
+a <- MOFA2::plot_variance_explained(mofaObject, max_r2 = 10)
+a$data$view <- stringr::str_remove(a$data$view, '^Combined ') %>%
+  factor(levels = c('DIA Normal Proteomics', 'DIA Tumor Proteomics',
+                    'Untargeted Normal Lipidomics', 'Untargeted Tumor Lipidomics'))
+a #+ theme(axis.text.x = element_text(size = 16, angle = 30, vjust = 1, hjust = 1, face = 'bold'),
+#           axis.text.y = element_text(size = 18, face = 'bold'),
+#           legend.title = element_text(size = 18),
+#           legend.text = element_text(size = 16))
+# ggsave('./output/Discovery/25.07.24_LGM/mofa_varExplained_combined_NTP_TTP_Klin_NTL_TTL_Hopf.png',
+#        device = 'png', dpi = 400, height = 12, width = 9)
 
 # Display significant associations between learned factors (Var1) and cancer recurrence
 # (Var2) and visualize significant recurrence-related factors
 sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group', show_res = F)
 sigFactor$sigAssoRes
 # Visualize significant recurrence-related factors
-sigFactor$plotList$Factor3
+facTab <- dplyr::mutate(sigFactor$tab4Plot, Recurrence = factor(Recurrence, levels = c('Yes', 'No')))
+ggplot(facTab, aes(x=Recurrence, y=Factor3, col=Recurrence, fill=Recurrence)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.2), size = 4, show.legend = F) +
+  ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                             size = 8, show.legend = F, hjust = 0.4, vjust = 1) +
+  scale_color_manual(values=c('#F8766D', '#00BFC4')) +
+  scale_fill_manual(values=c('#F8766D', '#00BFC4')) +
+  th +
+  theme(axis.title = element_text(size = 22),
+        axis.text = element_text(size = 14),
+        legend.title = element_text(size = 22),
+        legend.text = element_text(size = 20))
+# ggsave('./output/Discovery/25.07.24_LGM/mofa_sigFac3_combined_NTP_TTP_Klin_NTL_TTL_Hopf.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
+
 sigFactor$plotList$Factor1
 sigFactor$plotList$Factor2
+
+# View top features with highest absolute weights
+# a <- plot_top_weights(mofaObject, view = 'Combined Untargeted Tumor Lipidomics',
+#                  factors = 3)
+# modFeatIDs <- stringr::str_remove(a$data$feature, '_Combined Untargeted Tumor Lipidomics')
+# a$data$feature_id <- factor(modFeatIDs, levels = rev(modFeatIDs))
+# a + theme(strip.text = element_text(size = 20, face = 'bold'),
+#           axis.text.y = element_text(size = 18, face = 'bold'),
+#           axis.title.x = element_text(size = 18),
+#           axis.text.x = element_text(size = 14))
+# ggsave('./output/Discovery/25.07.24_LGM/mofa_topFeatsFac3_combined_NTP_TTP_Klin_NTL_TTL_Hopf.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
+```
+
+Show enrichment analysis results
+```{r message=F}
+# Prepare ranked feature list
+# Tidy up weight matrix and feature metadata to reduce information loss
+proGeneTab <- rowData(comb_proTumor_Klin) %>%
+  tibble::as_tibble(rownames = 'Proteins') %>%
+  tibble::column_to_rownames('Proteins')
+tidyWeiMat <- mofa_keepUniFeats(mofaObject, factor = 3, view = 'Combined DIA Tumor Proteomics',
+                                feat_anno = proGeneTab, to_genes = T)
+# Rank feature weights
+rankedGeneList <- mofa_rankFeatList(tidyWeiMat, factor = 3)
+
+# Do GSEA
+# Hallmark gene sets
+gseaRes_H <- doEA(rankedGeneList, categoryDB = 'H', numSigGS = 20, rmPrefixGS = '^HALLMARK_')
+gseaRes_H$plotTopSigGS +
+  labs(title = 'Hallmark: Factor3')
+```
+
+## NTP + TTP + NTL + TTL (Un-Super, Correct)
+DIA Normal and Tumor Tissue Proteomics + Untargeted Normal and Tumor Tissue Lipidomics\
+**Note that NTP was corrected for Pathological Stage and TTP, NTL, and TTL was corrected**
+**for SVs, and all features were used to train a MOFA model. Check SOA results for more details**
+
+```{r}
+# Load trained model
+mofaObject <- readRDS(paste0('./data/Discovery/mofa/correct_allFeats_',
+                             'CombDIANTPKlin_CombAnnoUntNTL_TTP_TTL.rds'))
+
+# Overview model
+MOFA2::plot_data_overview(mofaObject)
+
+# Do sanity check for factor correlations
+# MOFA2::plot_factor_cor(mofaObject)
+# Perform variance dedecomposition analysis (coefficient of determination)
+MOFA2::plot_variance_explained(mofaObject, max_r2 = 10) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1))
+
+# Display significant associations between learned factors (Var1) and cancer recurrence
+# (Var2) and visualize significant recurrence-related factors
+sigFactor <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group', show_res = F)
+sigFactor$sigAssoRes
+# Visualize significant recurrence-related factors
+sigFactor$plotList$Factor1
+sigFactor$plotList$Factor9
+```
+
+Show enrichment analysis results
+```{r message=F}
+# Prepare ranked feature list
+# Tidy up weight matrix and feature metadata to reduce information loss
+proGeneTab <- rowData(comb_proNormal_Klin) %>%
+  tibble::as_tibble(rownames = 'Proteins') %>%
+  tibble::column_to_rownames('Proteins')
+tidyWeiMat <- mofa_keepUniFeats(mofaObject, factor = 1, view = 'Combined DIA Normal Proteomics',
+                                feat_anno = proGeneTab, to_genes = T)
+# Rank feature weights
+rankedGeneList <- mofa_rankFeatList(tidyWeiMat, factor = 1)
+
+# Do GSEA
+# Hallmark gene sets
+gseaRes_H <- doEA(rankedGeneList, categoryDB = 'H', numSigGS = 20, rmPrefixGS = '^HALLMARK_')
+gseaRes_H$plotTopSigGS +
+  labs(title = 'Hallmark: Factor1')
+```
+
+Compare factors learned from different MOFA models\
+**Cor_Semi_Sup: Semi-supervised model trained on corrected NTP and NTL (1st model)**\
+**Cor_Semi_Sup_TTP_TTL: Semi-supervised model trained on corrected NTP, NTL, TTP, and TTL (3rd model)**\
+**Cor_Un_Sup_TTP_TTL: Un-supervised model trained on corrected NTP, NTL, TTP, and TTL (4th model)**
+```{r}
+# Compare factors learned from different MOFA models
+mofaObj1 <- readRDS('./data/Discovery/mofa/correct_sigFeats_CombDIANTPKlin_CombAnnoUntNTL.rds')
+mofaObj2 <- readRDS(paste0('./data/Discovery/mofa/correct_sigFeats_',
+                           'CombDIANTPKlin_CombAnnoUntNTL_TTP_TTL.rds'))
+mofaObj3 <- readRDS(paste0('./data/Discovery/mofa/correct_allFeats_',
+                           'CombDIANTPKlin_CombAnnoUntNTL_TTP_TTL.rds'))
+
+# MOFA2::plot_variance_explained(mofaObj1, max_r2 = 10) +
+#   labs(title = 'Semi-Super, Correct: Factor1&2 Sig.')
+# MOFA2::plot_variance_explained(mofaObj2, max_r2 = 10) +
+#   labs(title = 'Semi-Super, Correct (TTP+TTL): Factor3&1&2 Sig.')
+# MOFA2::plot_variance_explained(mofaObj3, max_r2 = 10) +
+#   labs(title = 'Un-Super, Correct (TTP+TTL): Factor1&9 Sig.')
+
+MOFA2::compare_factors(list(Cor_Semi_Sup = mofaObj1, Cor_Semi_Sup_TTP_TTL = mofaObj2,
+                            Cor_Un_Sup_TTP_TTL = mofaObj3))
+```
+=> All Factor1 mostly explain variance in NTP, and semi-supervised models perform
+better than un-supervised model.
+=> Both Factor2 from semi-supervised models are not correlated with PC2 and PC5
+from NTL SOA results.
+=> Factor3 from semi- and un-supervised models are correlated, but former one got
+much more powerful in predicting recurrence, which might be due to heterogeneous
+tumore data.
+
+```{r include=F, eval=F}
+# Compare Factors with recurrence-related PCs from SOA results
+# Prepare significant Factor table
+mofaObject <- readRDS(paste0('./data/Discovery/mofa/correct_sigFeats_',
+                             'CombDIANTPKlin_CombAnnoUntNTL_TTP_TTL.rds'))
+facTab <- mofa_vizSigFactor(mofaObject, smpGroup = 'Baseline Group', show_res = F)$tab4Plot %>%
+  dplyr::select(sample, Factor2, Recurrence)
+
+# Prepare significant PC table
+# Tumor Proteomics
+proTumorRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proTumorRes_SVs.rds')
+pcTab <- proTumorRes_Klin$SOA.res$pcTab %>%
+  dplyr::select(Sample, `PC1 (54.3%)`, `PC5 (1.8%)`, `PC2 (21.3%)`, `PC9 (1.3%)`) %>%
+  dplyr::rename(sample = Sample) %>%
+  dplyr::mutate(sample = stringr::str_replace_all(sample, '_TG|_TU', '_B'))
+# Normal Proteomics
+proNormalRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proNormalRes_Stage.rds')
+pcTab <- proNormalRes_Klin$SOA.res$pcTab %>%
+  dplyr::select(Sample, `PC1 (14.3%)`, `PC10 (3.6%)`) %>%
+  dplyr::rename(sample = Sample) %>%
+  dplyr::mutate(sample = stringr::str_replace_all(sample, '_NG', '_B'))
+# Tumor Lipidomics
+lipTumorRes_Hopf <- readRDS('./data/Discovery/AG_Hopf/partial_annotated/soaRes/lipTumorResSVs_Recur_Comb.rds')
+pcTab <- lipTumorRes_Hopf$SOA.res$pcTab %>%
+  dplyr::select(Sample, `PC19 (1.9%)`, `PC2 (11.5%)`) %>%
+  dplyr::rename(sample = Sample) %>%
+  dplyr::mutate(sample = stringr::str_replace_all(sample, '_TG|_TU', '_B'))
+# Tumor Lipidomics
+lipNormalRes_Hopf <- readRDS('./data/Discovery/AG_Hopf/partial_annotated/soaRes/lipNormalResSVs_Recur_Comb.rds')
+pcTab <- lipNormalRes_Hopf$SOA.res$pcTab %>%
+  dplyr::select(Sample, `PC2 (10.9%)`, `PC5 (7%)`) %>%
+  dplyr::rename(sample = Sample) %>%
+  dplyr::mutate(sample = stringr::str_replace_all(sample, '_NG', '_B'))
+
+# Combine all information
+combinedTab <- dplyr::left_join(facTab, pcTab, by = 'sample')
+# Make a plot and compute correlation
+ggplot(combinedTab, aes(x=Factor2, y=`PC5 (7%)`)) +
+  geom_point(aes(col=Recurrence), size = 4) +
+  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
+  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+  ggpubr::stat_cor(aes(label=after_stat(r.label)), method = 'pearson', size = 7) +
+  th
 ```
 
 
@@ -627,7 +595,7 @@ dataList <- list(Comb_Tissue_Proteomics_Klin = comb_proTissue_Klin,
 # lapply(dataList, dim)
 
 # Prepare significant features for feature selection
-# soaRes <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin_SV1.rds')
+# soaRes <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin_BC_SV1.rds')
 # sigFeats_comb_proNormal_Klin <- soaRes$sig.feat.tab$Var1
 # soaRes <- doSOA(dis_lipNormal_Hopf, meta_var = 'Recurrence', use_proDA = T)
 # sigFeats_dis_lipNormal_Hopf <- soaRes$featSigAssoRes$Var1
@@ -772,7 +740,7 @@ facTab <- sigFactor$tab4Plot %>%
   dplyr::select(sample, Factor1, Recurrence) %>%
   dplyr::mutate(sample = stringr::str_replace(sample, '_B', '_NG'))
 # Prepare significant PC table
-proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin_SV1.rds')
+proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin_BC_SV1.rds')
 # Show significant PCs
 # proNormalRes_Klin$sig.pc.tab
 pcTab <- proNormalRes_Klin$SOA.res$pcTab %>%
@@ -951,7 +919,7 @@ facTab <- sigFactor$tab4Plot %>%
   dplyr::select(sample, Factor1, Recurrence) %>%
   dplyr::mutate(sample = stringr::str_replace(sample, '_B', '_NG'))
 # Prepare significant PC table
-proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin_SV1.rds')
+proNormalRes_Klin <- readRDS('./data/Discovery/potential_proteins/Combined_proNormalRes_Klin_BC_SV1.rds')
 # Show significant PCs
 # proNormalRes_Klin$sig.pc.tab
 pcTab <- proNormalRes_Klin$SOA.res$pcTab %>%
