@@ -133,18 +133,18 @@ Method Development + Discovery
 
 ### 1. Data Preprocessing
 
-### 1.1 [Tissue DIA Proteomics (Klingmüller & Krijgsveld)](MDev_Dis_01_preprocessing_DIA.Rmd)
-### 1.2 [Partially Annotated Tissue Untargeted Lipidomics](MDev_Dis_01_preprocessing_annotated_untargeted.Rmd)
+### 1.1 [Tissue DIA Proteomics (Klingmüller & Krijgsveld)](MDev_Dis_01_preprocessing_DIA.html)
+### 1.2 [Partially Annotated Tissue Untargeted Lipidomics](MDev_Dis_01_preprocessing_annotated_untargeted.html)
 
 ---
 
 ### 2. Preliminary (Single-Omics) Analysis
 
-### 2.1 [Tissue DIA Proteomics (Klingmüller & Krijgsveld)](MDev_Dis_02_soa_DIA.Rmd)
+### 2.1 [Tissue DIA Proteomics (Klingmüller & Krijgsveld)](MDev_Dis_02_soa_DIA.html)
 
 ---
 
-### 3. [MOFA Models](MDev_Dis_mofa_downstream.Rmd)
+### 3. [MOFA Models](MDev_Dis_mofa_downstream.html)
 Reprogramming of lipid metabolism has been demonstrated to contribute to lung cancer
 development and chemoresistance. (Whether receiving adjuvant chemotherapy lowers
 chance of developing tumor recurrence?) For now, story could be tumor-free lung
