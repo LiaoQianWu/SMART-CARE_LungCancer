@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Qian-Wu Liao" />
+
+
+<title>Preprocessing: Annotated Untargeted Lipidomics of Method Dev and Discovery cohorts</title>
+
+<script src="site_libs/header-attrs-2.27/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/htmltools-fill-0.5.8.1/fill.css" rel="stylesheet" />
+<script src="site_libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
+<link href="site_libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet" />
+<script src="site_libs/datatables-binding-0.33/datatables.js"></script>
+<link href="site_libs/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="site_libs/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="site_libs/dt-core-1.13.6/js/jquery.dataTables.min.js"></script>
+<link href="site_libs/crosstalk-1.2.1/css/crosstalk.min.css" rel="stylesheet" />
+<script src="site_libs/crosstalk-1.2.1/js/crosstalk.min.js"></script>
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">SMART-CARE: Lung Cancer</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Preprocessing: Annotated Untargeted
+Lipidomics of Method Dev and Discovery cohorts</h1>
+<h4 class="author">Qian-Wu Liao</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2024-07-30
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong> <code>SMART-CARE_LungCancer/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20230425code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20230425)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20230425code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20230425)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
+</p>
+</div>
+<div id="strongFilepathsstrongabsolute" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Using absolute paths to the files within your workflowr project makes it
+difficult for you and others to run your code on a different machine.
+Change the absolute path(s) below to the suggested relative path(s) to
+make your code more reproducible.
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+absolute
+</th>
+<th style="text-align:left;">
+relative
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+/Users/qianwu/Desktop/SMART-CARE_LungCancer
+</td>
+<td style="text-align:left;">
+.
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree282daae0fdbb7078dd8d66521af4c5d654c63cfbtargetblank282daaea">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/282daae0fdbb7078dd8d66521af4c5d654c63cfb" target="_blank">282daae</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree282daae0fdbb7078dd8d66521af4c5d654c63cfbtargetblank282daaea"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/282daae0fdbb7078dd8d66521af4c5d654c63cfb" target="_blank">282daae</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    analysis/.DS_Store
+    Ignored:    code/.DS_Store
+    Ignored:    data/.DS_Store
+    Ignored:    data/Discovery/
+    Ignored:    data/MethodDev/
+    Ignored:    data/aliquot_metadata.xlsx
+    Ignored:    data/metadata_latest/
+    Ignored:    data/patient_metadata.xlsx
+    Ignored:    data/sample_metadata.xlsx
+    Ignored:    output/.DS_Store
+    Ignored:    output/Discovery/
+    Ignored:    output/MethodDev/
+    Ignored:    output/SC_meeting/
+
+Untracked files:
+    Untracked:  analysis/CrossCohort_investigation_EXP.Rmd
+    Untracked:  code/archive/
+    Untracked:  code/data_availability.Rmd
+    Untracked:  code/dataset_list.R
+    Untracked:  code/workflowr_commands.R
+
+Unstaged changes:
+    Modified:   analysis/FeatSelection_ML.Rmd
+    Modified:   analysis/MDev_Dis_02_soa_annotated_untargeted.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd</code>)
+and HTML
+(<code>docs/MDev_Dis_01_preprocessing_annotated_untargeted.html</code>)
+files. If you’ve configured a remote Git repository (see
+<code>?wflow_git_remote</code>), click on the hyperlinks in the table
+below to view the files as they were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/7fd2bc4cc13f421e758ea17a4171b134b7a2db48/analysis/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd" target="_blank">7fd2bc4</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-16
+</td>
+<td>
+Generate combined annotated untargeted data where potential bad-quality
+samples are removed for recurrence prediction task
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/3e8927d048731af54476c795de5d2bf7d3e8bb80/analysis/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd" target="_blank">3e8927d</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-15
+</td>
+<td>
+Directly combine preprocessed Method Dev and Discovery annotated tissue
+untargeted lipidomics
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/fffa3cd744be3265938a5f016e18ee570bf2c1aa/analysis/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd" target="_blank">fffa3cd</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-08
+</td>
+<td>
+Preprocess partially annotated untargeted lipidomics and merge two
+cohort datasets
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<p><font size='4'> Description: Preprocess and merge Annotated Tissue
+Untargeted Lipidomics of Method Development and Discovery cohorts
+provided by Dr. Qiuqin Zhou from AG Hopf, including data cleansing,
+filtering (by RT, m/z, missing values, etc.), normalization (VSN), and
+batch correction if needed. All needed information was then stored in
+SummarizedExperiment objects for further analyses.</p>
+<p>For prediction of tumor recurrence, combined data with samples
+<strong>PDIR55_NG</strong>, <strong>I0HVOL_TU</strong>,
+<strong>7EAOX7_TU</strong>, <strong>1NL5BV_TU</strong>, and
+<strong>125CII_TU</strong> removed due to misclassification in
+metadata-assisted quality control (Tumor vs Normal, PC1) and low tumor
+purity is prepared. </font></p>
+<p>Load libraries</p>
+<pre class="r"><code>library(readr)
+library(readxl)
+library(vsn)
+library(limma)
+library(sva)
+library(visdat)
+library(ggrepel)
+library(ggvenn)
+library(SummarizedExperiment)
+library(tidyverse)
+# Load user-defined functions
+source(&#39;./code/analysis_pipeline.R&#39;)
+source(&#39;./code/misc.R&#39;)
+source(&#39;./code/comparison_funcs.R&#39;)
+
+# Set plot theme
+th &lt;- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = &#39;bold&#39;),
+        axis.text = element_text(face = &#39;bold&#39;),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
+th4MissViz &lt;- theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0,
+                                               size = 11, face = &#39;bold&#39;),
+                    axis.text.y = element_blank(),
+                    axis.title.y = element_text(size = 13, face = &#39;bold&#39;),
+                    legend.text = element_text(size = 12, face = &#39;bold&#39;))</code></pre>
+<pre class="r"><code># Load sample metadata
+smpMetadat &lt;- readxl::read_excel(&#39;./data/metadata_latest/sample_metadata.xlsx&#39;)
+colnames(smpMetadat) &lt;- smpMetadat[3,, drop = F]
+smpMetadat &lt;- dplyr::slice(smpMetadat, -c(1:3)) %&gt;%
+  dplyr::select(c(Code, Parents, Visit, `Material submitted`, `Date and time of collection or surgery`,
+                  `SMART-CARE cohort identifier`)) %&gt;%
+  dplyr::rename(Sample = Code, Patient = Parents, TimePoint = Visit, SmpType = `Material submitted`,
+                Date = `Date and time of collection or surgery`, Cohort = `SMART-CARE cohort identifier`) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove_all(Sample, &#39;^SC_T_S_|^SC_DIS_S_|^SC_VAL_S_|^SC_S_|_P&#39;),
+                Patient = stringr::str_remove(Patient, &#39;^/THRX_SPACE/THRX_DB/&#39;),
+                TimePoint = dplyr::case_when(TimePoint == &#39;PRETHERAPEUTIC&#39; ~ &#39;Baseline&#39;,
+                                             TimePoint == &#39;FOLLOW-UP&#39; ~ &#39;Follow-up&#39;,
+                                             TimePoint == &#39;RECURRENCE&#39; ~ &#39;Recurrence&#39;),
+                SmpType = dplyr::case_when(SmpType == &#39;EDTA_PLASMA&#39; ~ &#39;Plasma&#39;,
+                                           SmpType == &#39;FRESH_FROZEN_TISSUE&#39; ~ &#39;Tissue&#39;),
+                Condition = dplyr::case_when(grepl(&#39;_TU|_TG&#39;, Sample) ~ &#39;Tumor&#39;,
+                                             grepl(&#39;_NG&#39;, Sample) ~ &#39;Normal&#39;,
+                                             !grepl(&#39;_TU|_TG|_NG&#39;, Sample) ~ TimePoint),
+                TimePoint = dplyr::case_when(TimePoint %in% &#39;Recurrence&#39; ~ &#39;Follow-up&#39;,
+                                             !TimePoint %in% &#39;Recurrence&#39; ~ TimePoint),
+                Date = stringr::str_extract(Date, &#39;^\\d+-\\d+-\\d+&#39;),
+                Cohort = dplyr::case_when(Cohort == &#39;DISCOVERY_COHORT&#39; ~ &#39;Discovery&#39;,
+                                          Cohort == &#39;METHOD_DEVELOPMENT_COHORT&#39; ~ &#39;MethodDev&#39;,
+                                          Cohort == &#39;VALIDATION_COHORT&#39; ~ &#39;Validation&#39;),
+                Date = as.Date(Date, format = &#39;%Y-%m-%d&#39;))
+
+# Load patient metadata
+patientMetadat &lt;- readxl::read_excel(&#39;./data/metadata_latest/patient_metadata.xlsx&#39;)
+colnames(patientMetadat) &lt;- patientMetadat[3,, drop = F]
+patientMetadat &lt;- dplyr::slice(patientMetadat, -c(1:3)) %&gt;%
+  dplyr::select(c(Code, Gender, `Age at diagnosis`, `Pathological stage`, `Smoking status`,
+                  `Adjuvant chemotherapy`, Nutrition)) %&gt;%
+  dplyr::rename(Patient = Code, Age = `Age at diagnosis`, Stage = `Pathological stage`,
+                Smoking = `Smoking status`, Adjuvant = `Adjuvant chemotherapy`) %&gt;%
+  dplyr::mutate(Gender = dplyr::case_when(Gender == &#39;MALE&#39; ~ &#39;Male&#39;,
+                                          Gender == &#39;FEMALE&#39; ~ &#39;Female&#39;),
+                Smoking = dplyr::case_when(Smoking == &#39;SMOKER&#39; ~ &#39;Smoker&#39;,
+                                           Smoking == &#39;EX-SMOKER&#39; ~ &#39;Ex-smoker&#39;,
+                                           Smoking == &#39;NON-SMOKER&#39; ~ &#39;Non-smoker&#39;),
+                Adjuvant = dplyr::case_when(Adjuvant == &#39;true&#39; ~ &#39;True&#39;,
+                                            Adjuvant == &#39;false&#39; ~ &#39;False&#39;),
+                Age = as.numeric(Age),
+                Nutrition = dplyr::case_when(Nutrition == &#39;WHOLE_FOOD&#39; ~ &#39;Whole_food&#39;))
+# Include patient recurrence information in patient metadata
+recurPats &lt;- dplyr::filter(smpMetadat, Condition == &#39;Recurrence&#39;) %&gt;%
+  dplyr::pull(Patient)
+patientMetadat &lt;- dplyr::mutate(patientMetadat, Recurrence = dplyr::case_when(Patient %in% recurPats ~ &#39;Yes&#39;,
+                                                                              !Patient %in% recurPats ~ &#39;No&#39;))
+
+# Load aliquot metadata
+aliquotMetadat &lt;- readxl::read_excel(&#39;./data/metadata_latest/aliquot_metadata.xlsx&#39;)
+colnames(aliquotMetadat) &lt;- aliquotMetadat[3,, drop = F]
+aliquotMetadat &lt;- dplyr::slice(aliquotMetadat, -c(1:3)) %&gt;%
+  dplyr::select(Code, Parents, `Tumor Cell Content (%)`, `Cohort Identifier`, `Submission to`,
+                `Delivered?`) %&gt;%
+  dplyr::rename(Aliquot = Code, Sample = Parents, TumorPurity = `Tumor Cell Content (%)`,
+                Cohort = `Cohort Identifier`, To = `Submission to`, Delivered = `Delivered?`) %&gt;%
+  dplyr::mutate(Sample = stringr::str_remove_all(Sample, &#39;^/THRX_SPACE/THRX_DB/SC_T_S_|_P&#39;),
+                Sample = stringr::str_remove(Sample, &#39;^/THRX_SPACE/THRX_DB/SC_DIS_S_&#39;),
+                Sample = stringr::str_remove(Sample, &#39;^/THRX_SPACE/THRX_DB/SC_S_&#39;),
+                Sample = stringr::str_remove(Sample, &#39;^/THRX_SPACE/THRX_DB/SC_DIS_&#39;),
+                Sample = stringr::str_remove(Sample, &#39;^/THRX_SPACE/THRX_DB/SC_VAL_S_&#39;),
+                Sample = stringr::str_remove(Sample, &#39;^/THRX_SPACE/THRX_DB/SC_VAL_&#39;),
+                Cohort = dplyr::case_when(Cohort == &#39;method establishment&#39; ~ &#39;MethodDev&#39;,
+                                          Cohort == &#39;DISCOVERY_COHORT&#39; ~ &#39;Discovery&#39;,
+                                          Cohort == &#39;VALIDATION_COHORT&#39; ~ &#39;Validation&#39;),
+                TumorPurity = as.numeric(TumorPurity),
+                TumorPurity = dplyr::case_when(grepl(&#39;_TU|_TG&#39;, Sample) ~ TumorPurity),
+                # Mislabeling??
+                Sample = case_when(Sample %in% &#39;SDIR55_NG&#39; ~ &#39;PDIR55_NG&#39;,
+                                   Sample %in% &#39;SDIR55_TU&#39; ~ &#39;PDIR55_TU&#39;,
+                                   Sample %in% &#39;SD4ADT_NG&#39; ~ &#39;PD4ADT_NG&#39;,
+                                   Sample %in% &#39;SD4ADT_TU&#39; ~ &#39;PD4ADT_TU&#39;,
+                                   !Sample %in% c(&#39;SDIR55_NG&#39;, &#39;SDIR55_TU&#39;,
+                                                  &#39;SD4ADT_NG&#39;, &#39;SD4ADT_TU&#39;) ~ Sample)) %&gt;%
+  dplyr::filter(To %in% &#39;HOPF&#39;)
+# Prepare tumor purity information
+tumorPurityInfo &lt;- dplyr::select(aliquotMetadat, Sample, TumorPurity)
+
+# Combine all needed metadata
+# summMetadat &lt;- dplyr::left_join(smpMetadat, patientMetadat, by = &#39;Patient&#39;) %&gt;%
+#   dplyr::left_join(tumorPurityInfo, by = &#39;Sample&#39;)
+summMetadat &lt;- dplyr::select(aliquotMetadat, Aliquot, Sample, TumorPurity) %&gt;%
+  dplyr::left_join(smpMetadat, by = &#39;Sample&#39;) %&gt;%
+  dplyr::left_join(patientMetadat, by = &#39;Patient&#39;)
+
+# List sample annotations to keep in SE objects
+smpAnno &lt;- c(&#39;Patient&#39;, &#39;SmpType&#39;, &#39;TimePoint&#39;, &#39;Date&#39;, &#39;Cohort&#39;, &#39;Condition&#39;,
+             &#39;Recurrence&#39;, &#39;Gender&#39;, &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;, &#39;Adjuvant&#39;,
+             &#39;Nutrition&#39;, &#39;TumorPurity&#39;)</code></pre>
+<div id="tissue-lipidomics" class="section level1">
+<h1>Tissue Lipidomics</h1>
+<div id="method-dev-cohort" class="section level2">
+<h2>Method Dev cohort</h2>
+<div id="replicate123" class="section level3">
+<h3>Replicate1&amp;2&amp;3</h3>
+<pre class="r"><code># Load data
+lipTissue_MDev &lt;- readxl::read_excel(paste0(&#39;./data/Discovery/AG_Hopf/partial_annotated/&#39;,
+                                            &#39;Method development cohort tissue lipidomics&#39;,
+                                            &#39;_CH_with partial annotation_20240618.xlsx&#39;))
+# Assign column names
+colnames(lipTissue_MDev) &lt;- lipTissue_MDev[9,]
+lipTissue_MDev &lt;- lipTissue_MDev[-seq_len(9),]
+# Tidy up data table, define features, and filter features based on RT and m/z
+lipTissue_MDev &lt;- dplyr::select(lipTissue_MDev, `RT [min]`, `CCS (Å²)`, `m/z meas.`,
+                                Name, `Molecular Formula`, Flags, contains(&#39;Sample&#39;)) %&gt;%
+  dplyr::rename(RT = `RT [min]`, CCS = `CCS (Å²)`, MZ = `m/z meas.`, Lipid = Name,
+                Formula = `Molecular Formula`, Flag = Flags) %&gt;%
+  dplyr::mutate(across(contains(&#39;Sample&#39;), as.numeric),
+                RT = as.numeric(RT),
+                CCS = as.numeric(CCS),
+                MZ = as.numeric(MZ),
+                Feature = paste0(RT, &#39;/&#39;, CCS, &#39;/&#39;, MZ),
+                Flag = stringr::str_remove_all(Flag, &#39;\\[|\\]&#39;)) %&gt;%
+  # SOME METABOLITES (?) WHOSE M/Z IS SMALLER THAN 250 ARE REMOVED?
+  dplyr::filter(RT &gt;= 0.3, RT &lt;= 9, MZ &gt;= 250) %&gt;%
+  dplyr::relocate(Feature)
+
+# Convert data into long data and combine it with summarized metadata
+# Prepare sample ID mapping table for mapping vial numbers to aliquot IDs
+smpIdMappingTab &lt;- readxl::read_excel(&#39;./data/Discovery/AG_Hopf/partial_annotated/MDev_TISSUE.Sample IDs.xlsx&#39;) %&gt;%
+  dplyr::select(`Code from OpenBis`, `Number on MS vials`) %&gt;%
+  dplyr::rename(Aliquot = `Code from OpenBis`, Vial = `Number on MS vials`) %&gt;%
+  dplyr::mutate(Vial = as.character(Vial))
+lipTissue_MDev &lt;- tidyr::pivot_longer(lipTissue_MDev, cols = -c(&#39;Feature&#39;, &#39;RT&#39;, &#39;CCS&#39;, &#39;MZ&#39;,
+                                                                &#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                                      names_to = &#39;Vial&#39;, values_to = &#39;Abundance&#39;) %&gt;%
+  dplyr::mutate(Vial = stringr::str_remove_all(Vial, &#39;Sample _|_lipids|_pos.+&#39;),
+                Batch = stringr::str_extract(Vial, &#39;_batch\\d$&#39;),
+                Batch = dplyr::case_when(is.na(Batch) ~ &#39;Batch1&#39;,
+                                         Batch == &#39;_batch2&#39; ~ &#39;Batch2&#39;,
+                                         Batch == &#39;_batch3&#39; ~ &#39;Batch3&#39;),
+                Vial = stringr::str_remove(Vial, &#39;_batch\\d$&#39;),
+                Abundance = replace(Abundance, Abundance == 0, NA)) %&gt;%
+  dplyr::left_join(smpIdMappingTab, by = &#39;Vial&#39;) %&gt;%
+  dplyr::left_join(summMetadat, by = &#39;Aliquot&#39;) %&gt;%
+  dplyr::select(-c(Vial, Aliquot)) %&gt;%
+  dplyr::mutate(Sample_Batch = paste0(Sample, &#39;_&#39;, Batch))</code></pre>
+<p><font size='4'> <strong>Overview data before filtered by
+missingness</strong> </font></p>
+<pre class="r"><code># Overview data
+lipTissueOriTab &lt;- lipTissue_MDev
+# Normalize data
+lipTissuePrepro &lt;- doPreprocessing(lipTissueOriTab, feat = &#39;Feature&#39;, smp = &#39;Sample_Batch&#39;,
+                                   val = &#39;Abundance&#39;, featAnno = c(&#39;RT&#39;, &#39;CCS&#39;, &#39;MZ&#39;,
+                                                                   &#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                                   smpAnno = c(&#39;Sample&#39;, smpAnno, &#39;Batch&#39;), do_featFilt = F)
+# Prepare data for visualization
+lipTissueOri &lt;- lipTissuePrepro$ori.data
+lipTissueVsn &lt;- lipTissuePrepro$vsn.data
+lipTissueVsnTab &lt;- summExp2df(lipTissueVsn, assay = &#39;Abundance&#39;, row_id = &#39;Feature&#39;, col_id = &#39;Sample_Batch&#39;)
+# Show dimensions of data
+cat(&#39;Data dimensions:&#39;, dim(lipTissueVsn)[2], &#39;samples (triplicates) and&#39;, dim(lipTissueVsn)[1], &#39;features&#39;)</code></pre>
+<pre><code>Data dimensions: 120 samples (triplicates) and 2854 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+visdat::vis_miss(as.data.frame(assay(lipTissueOri)), cluster = T, sort_miss = T) +
+  labs(y = &#39;Features&#39;, title = &#39;Missingness of unfiltered original data&#39;) +
+  th4MissViz + theme(axis.text.x = element_text(size = 7))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-2-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data distribution
+ggplot(lipTissueOriTab, aes(x=Sample_Batch, y=Abundance)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(title = &#39;Distribution of unfiltered original data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 6))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-2-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(lipTissueVsnTab, aes(x=Sample_Batch, y=Value)) +
+  geom_boxplot() +
+  labs(y = &#39;Log(Abundance)&#39;, title = &#39;Distribution of unfiltered vsn normalized data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 6))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-2-3.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize mean-sd relationship
+vsn::meanSdPlot(assay(lipTissueVsn), ranks = T, plot = F, bins = 30)$gg +
+  labs(x = &#39;Rank of mean&#39;, y = &#39;SD&#39;, title = &#39;Feature mean-sd relationship after normalization&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-2-4.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Check whether there exists replicate
+effect</strong> </font><br />
+<strong>Hierarchical clustering</strong></p>
+<pre class="r"><code># Compute sample euclidean distances using top variable features
+abunMat &lt;- assay(lipTissueVsn)
+featSDs &lt;- rowSds(abunMat, na.rm = T)
+topVarFeats &lt;- names(sort(featSDs, decreasing = T)[1:1000])
+abunMatSub &lt;- abunMat[rownames(abunMat) %in% topVarFeats,]
+d &lt;- dist(t(abunMatSub), method = &#39;euclidean&#39;)
+
+# Visualize sample distances by heatmap with clustering
+colAnno &lt;- dplyr::select(lipTissueVsnTab, Sample_Batch, Condition, Batch) %&gt;%
+  dplyr::filter(!duplicated(Sample_Batch)) %&gt;%
+  tibble::column_to_rownames(&#39;Sample_Batch&#39;) %&gt;%
+  dplyr::mutate(Batch = dplyr::case_when(Batch %in% &#39;Batch1&#39; ~ &#39;Replicate1&#39;,
+                                         Batch %in% &#39;Batch2&#39; ~ &#39;Replicate2&#39;,
+                                         Batch %in% &#39;Batch3&#39; ~ &#39;Replicate3&#39;))
+pheatmap(as.matrix(d), annotation_col = colAnno, scale = &#39;row&#39;, #row scaling is across columns
+         color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
+         cluster_cols = T, cluster_rows = F, show_rownames = F,
+         clustering_method = &#39;ward.D2&#39;, fontsize_col = 6,
+         annotation_colors = list(Batch = c(Replicate1 = &#39;grey30&#39;, Replicate2 = &#39;grey60&#39;, Replicate3 = &#39;grey90&#39;),
+                                  Condition = c(Tumor = &#39;#d95f02&#39;, Normal = &#39;#1b9e77&#39;)))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-3-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Do hierarchical clustering
+# hc &lt;- hclust(d, method = &#39;ward.D2&#39;)
+# Plot clustering result
+# plot(hc, hang = 0.04, cex = 0.5, frame.plot = T, main = NULL)</code></pre>
+<p>-&gt; ‘H03Y07RT_TG’ got tumor purity of 91%, but misclassified.</p>
+<p><strong>PCA</strong></p>
+<pre class="r"><code># Do PCA
+lipTissueVsnSub &lt;- lipTissueVsn[rownames(lipTissueVsn) %in% topVarFeats,]
+pcaRes &lt;- doSOA(lipTissueVsnSub, meta_var = &#39;Batch&#39;, pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and batches
+pcaRes$pcSigAssoRes %&gt;%
+  dplyr::mutate(Var2 = &#39;Replicate&#39;)</code></pre>
+<pre><code>          Var1      Var2     pVal  pValAdj  Stat  Test
+1  PC18 (1.8%) Replicate 2.56e-11 5.12e-10 30.30 ANOVA
+2  PC16 (2.1%) Replicate 3.19e-06 3.19e-05 14.10 ANOVA
+3    PC13 (3%) Replicate 1.50e-04 9.98e-04  9.50 ANOVA
+4  PC12 (3.2%) Replicate 9.96e-04 4.98e-03  7.34 ANOVA
+5  PC14 (2.6%) Replicate 1.47e-03 5.89e-03  6.90 ANOVA
+6  PC10 (3.9%) Replicate 9.52e-03 3.17e-02  4.84 ANOVA
+7  PC15 (2.5%) Replicate 1.40e-02 3.67e-02  4.43 ANOVA
+8    PC17 (2%) Replicate 1.47e-02 3.67e-02  4.38 ANOVA
+9  PC19 (1.5%) Replicate 3.30e-02 7.33e-02  3.51 ANOVA
+10 PC20 (0.5%) Replicate 3.80e-02 7.60e-02  3.36 ANOVA</code></pre>
+<p><font size='4'> <strong>Overview merged data before filtered by
+missingness</strong> </font><br />
+Merging triplicates can mitigate data missingness.</p>
+<pre class="r"><code># Merge triplicates
+# Prepare sample and feature metadata
+smpAnnoTab &lt;- tibble::as_tibble(colData(lipTissueVsn)) %&gt;%
+  dplyr::select(-Batch) %&gt;%
+  dplyr::distinct(Sample, .keep_all = T)
+featAnnoTab &lt;- tibble::as_tibble(rowData(lipTissueVsn), rownames = &#39;Feature&#39;)
+# Take means of triplicates
+merge_lipTissueVsnTab &lt;- dplyr::group_by(lipTissueVsnTab, Feature, Sample) %&gt;%
+  dplyr::summarise(Value = mean(Value, na.rm = T)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::left_join(smpAnnoTab, by = &#39;Sample&#39;) %&gt;%
+  dplyr::left_join(featAnnoTab, by = &#39;Feature&#39;)
+# Prepare data for visualization
+merge_lipTissueVsn &lt;- df2SummExp(merge_lipTissueVsnTab, row_id = &#39;Feature&#39;, col_id = &#39;Sample&#39;,
+                                 values = &#39;Value&#39;, row_anno = c(&#39;RT&#39;, &#39;CCS&#39;, &#39;MZ&#39;,
+                                                                &#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                                 col_anno = smpAnno)
+
+# Visualize data distribution
+ggplot(merge_lipTissueVsnTab, aes(x=Sample, y=Value)) +
+  geom_boxplot() +
+  labs(y = &#39;Log(Abundance)&#39;, title = &#39;Distribution of unfiltered merged normalized data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-5-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data missingness
+visdat::vis_miss(as.data.frame(assay(merge_lipTissueVsn)), cluster = T, sort_miss = T) +
+  labs(y = &#39;Features&#39;, title = &#39;Missingness of unfiltered merged normalized data&#39;) +
+  th4MissViz</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-5-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Remove features quantified in less than half
+of samples</strong> </font></p>
+<pre class="r"><code># Remove features quantified in less than certain percent of samples
+rmFeats &lt;- dplyr::group_by(merge_lipTissueVsnTab, Feature) %&gt;%
+  # Compute proportion of observed data points of each group
+  dplyr::summarise(frac_nonNA = round(sum(!is.na(Value)) / length(Value), 2)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::filter(frac_nonNA &lt; 0.5) %&gt;%
+  dplyr::pull(Feature)
+merge_lipTissueFiltVsnTab &lt;- dplyr::filter(merge_lipTissueVsnTab, !Feature %in% rmFeats)
+
+# Convert long data to SE object
+lipTissueFiltVsn &lt;- df2SummExp(merge_lipTissueFiltVsnTab, row_id = &#39;Feature&#39;, col_id = &#39;Sample&#39;,
+                               values = &#39;Value&#39;, row_anno = c(&#39;RT&#39;, &#39;CCS&#39;, &#39;MZ&#39;,
+                                                              &#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                               col_anno = smpAnno)
+saveRDS(lipTissueFiltVsn, &#39;./data/Discovery/AG_Hopf/partial_annotated/MDev_lipTissueVsn_Anno_B123.rds&#39;)
+# Show dimensions of data
+cat(&#39;Data dimensions:&#39;, dim(lipTissueFiltVsn)[2], &#39;samples and&#39;, dim(lipTissueFiltVsn)[1], &#39;features&#39;)</code></pre>
+<pre><code>Data dimensions: 40 samples and 2420 features</code></pre>
+<pre class="r"><code># Visualize data distribution
+ggplot(merge_lipTissueFiltVsnTab, aes(x=Sample, y=Value)) +
+  geom_boxplot() +
+  labs(y = &#39;Log(Abundance)&#39;, title = &#39;Distribution of filtered merged normalized data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-6-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data missingness
+visdat::vis_miss(as.data.frame(assay(lipTissueFiltVsn)), cluster = T, sort_miss = T) +
+  labs(y = &#39;Features&#39;, title = &#39;Missingness of filtered merged normalized data&#39;) +
+  th4MissViz</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-6-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p>The following annotated lipids are filtered out:<br />
+(GREEN - Based on MS2; YELLOW - Based on MS1, other candidates
+possible)</p>
+<pre class="r"><code># Show identified lipids that are filtered out
+featAnnoTab &lt;- rowData(lipTissueVsn) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature&#39;)
+rmLipids &lt;- featAnnoTab[featAnnoTab$Feature %in% rmFeats, c(&#39;Lipid&#39;, &#39;Flag&#39;)] %&gt;%
+  dplyr::filter(!is.na(Lipid))
+as.data.frame(rmLipids)</code></pre>
+<pre><code>                                                       Lipid   Flag
+1                                                  PC O-45:8  GREEN
+2                                                 LPE O-24:2  GREEN
+3                                              BMP 18:1_18:1  GREEN
+4                                                  DG O-30:6  GREEN
+5                                               LPC 40:5-SN2  GREEN
+6                                               DG 18:0_20:3  GREEN
+7                                             HexCer 42:2;O2  GREEN
+8                                          TG 10:0_16:1_18:1  GREEN
+9                                          TG 14:1_16:1_18:1  GREEN
+10                                         TG 18:1_22:4_22:5  GREEN
+11                                              LPC 18:0-SN2  GREEN
+12                                              PG 16:0_22:6  GREEN
+13                                               PC 8:0_28:4  GREEN
+14                                                   CE 16:1  GREEN
+15                                             CE(22:1(13Z)) YELLOW
+16                                          3&#39;-Sialyllactose YELLOW
+17                                                 Adenosine YELLOW
+18                                                Metoprolol YELLOW
+19                                                  Phygrine YELLOW
+20                                                Amlodipine YELLOW
+21                                   N1,N12-Diacetylspermine YELLOW
+22                               2-Hydroxymyristoylcarnitine YELLOW
+23                                               Linoleamide YELLOW
+24                                    DG(14:0/22:1(13Z)/0:0) YELLOW
+25 N-(2R-Hydroxydocosanoyl)-2S-amino-1,3S,4R-octadecanetriol YELLOW
+26                                           Plastoquinone 9 YELLOW
+27                                              Ubiquinol-10 YELLOW</code></pre>
+<p><font size='4'> <strong>Do metadata-assisted quality control</strong>
+</font><br />
+<strong>Tumor vs Normal samples</strong></p>
+<pre class="r"><code># Do PCA
+abunMat &lt;- as.matrix(assay(lipTissueFiltVsn))
+featSDs &lt;- rowSds(abunMat, na.rm = T)
+topVarFeats &lt;- names(sort(featSDs, decreasing = T)[1:1000])
+lipTissueFiltVsnSub &lt;- lipTissueFiltVsn[rownames(lipTissueFiltVsn) %in% topVarFeats,]
+pcaRes &lt;- doSOA(lipTissueFiltVsnSub, meta_var = &#39;Condition&#39;, pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj Stat   Test
+1 PC1 (13.6%) Condition 2.84e-09 5.68e-08 -7.7 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes$pcTab
+ggplot(pcTab, aes(x=Condition, y=`PC1 (13.6%)`, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="replicate1" class="section level3">
+<h3>Replicate1</h3>
+<p><font size='4'> <strong>Overview original data</strong> </font></p>
+<pre class="r"><code># Extract Replicate1 data
+lipTissueB1_MDev &lt;- dplyr::filter(lipTissue_MDev, Batch == &#39;Batch1&#39;) %&gt;%
+  dplyr::select(-c(Sample_Batch, Batch))
+# Preprocess data
+lipTissueOriTab &lt;- lipTissueB1_MDev
+lipTissuePrepro &lt;- doPreprocessing(lipTissueOriTab, feat = &#39;Feature&#39;, smp = &#39;Sample&#39;,
+                                   val = &#39;Abundance&#39;, featAnno = c(&#39;RT&#39;, &#39;CCS&#39;, &#39;MZ&#39;,
+                                                                   &#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                                   smpAnno = smpAnno, do_featFilt = T,
+                                   cutoff = 0.5, viz_miss = T)
+# saveRDS(lipTissuePrepro$vsn.data, &#39;./data/Discovery/AG_Hopf/partial_annotated/MDev_lipTissueVsn_Anno_B1.rds&#39;)
+# saveRDS(lipTissuePrepro$medi.data, &#39;./data/Discovery/AG_Hopf/partial_annotated/MDev_lipTissueMedi_Anno_B1.rds&#39;)
+# Show dimensions of data
+cat(&#39;Data dimensions:&#39;, dim(lipTissuePrepro$ori.data)[2], &#39;samples and&#39;, dim(lipTissuePrepro$ori.data)[1], &#39;features&#39;)</code></pre>
+<pre><code>Data dimensions: 40 samples and 2854 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+lipTissuePrepro$ori.data.miss +
+  labs(title = &#39;Missingness of original data&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-10-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data distribution
+lipTissuePrepro$ori.data.dist +
+  labs(title = &#39;Distribution of original data&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-10-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Overview filtered vsn normalized
+data</strong> </font><br />
+Features quantified in less than half of samples are removed.</p>
+<pre class="r"><code># Show dimensions of data
+cat(&#39;Filtered data dimensions:&#39;, dim(lipTissuePrepro$filt.data)[2], &#39;samples and&#39;,
+    dim(lipTissuePrepro$filt.data)[1], &#39;features&#39;)</code></pre>
+<pre><code>Filtered data dimensions: 40 samples and 2201 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+lipTissuePrepro$filt.data.miss +
+  labs(title = &#39;Missingness of filtered data&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-11-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data distribution
+lipTissuePrepro$vsn.data.dist +
+  labs(y = &#39;Log(Abundance)&#39;, title = &#39;Distribution of filtered vsn normalized data&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-11-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize mean-sd relationship
+lipTissuePrepro$vsn.feat.mean.var +
+  labs(title = &#39;Feature mean-sd relationship after vsn normalization&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-11-3.png" width="960" style="display: block; margin: auto;" /></p>
+<p>The following annotated lipids are filtered out:<br />
+(GREEN - Based on MS2; YELLOW - Based on MS1, other candidates
+possible)</p>
+<pre class="r"><code># Show identified lipids that are filtered out
+oriFeatSpace &lt;- rownames(lipTissuePrepro$ori.data)
+filtFeatSpace &lt;- rownames(lipTissuePrepro$filt.data)
+rmFeats &lt;- oriFeatSpace[!oriFeatSpace %in% filtFeatSpace]
+featAnnoTab &lt;- rowData(lipTissuePrepro$ori.data) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature&#39;)
+rmLipids &lt;- featAnnoTab[featAnnoTab$Feature %in% rmFeats, c(&#39;Lipid&#39;, &#39;Flag&#39;)] %&gt;%
+  dplyr::filter(!is.na(Lipid))
+DT::datatable(rmLipids)</code></pre>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-7c7f594df363f94bf9a2" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-7c7f594df363f94bf9a2">{"x":{"filter":"none","vertical":false,"data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55"],["PI 36:3","PC O-45:8","LPC 18:1-SN2","LPC 19:1-SN2","LPE O-24:2","PC 29:0","BMP 18:1_18:1","PC 32:1","DG O-30:6","PE O-18:1_18:2","PC 36:1","PC 8:0_32:3","PE O-18:1_20:3","DG 18:0/18:0","LPC O-20:1","LPE 22:1","PS 36:2","PE O-16:1_22:4","PE O-17:1_22:4","DG 18:0_20:4","LPC 40:5-SN2","LPC 40:1-SN2","DG 18:0_20:3","HexCer 42:2;O2","TG 10:0_16:1_18:1","TG 14:1_16:1_18:1","TG 14:0_16:1_18:1","TG 18:1_22:4_22:5","TG 13:0_16:0_20:4","TG 18:1_18:1_22:4","SM 20:1;2O/14:0","LPC 18:0-SN2","PG 16:0_22:6","PC 8:0_28:4","CE 18:3","CE 16:1","2-[4,6-dihydroxy-3-(4-hydroxy-3-methylbut-2-en-1-yl)-2-methoxyphenyl]acetic acid","CE(22:1(13Z))","Nervonoylacetone","3'-Sialyllactose","Adenosine","Metoprolol","Phygrine","Amlodipine","N1,N12-Diacetylspermine","2-Hydroxymyristoylcarnitine","Linoleamide","3D,7D,11D-Phytanic acid","MG(0:0/18:1(11Z)/0:0)","DG(14:0/22:1(13Z)/0:0)","N-(2R-Hydroxydocosanoyl)-2S-amino-1,3S,4R-octadecanetriol","DG(18:2n6/0:0/22:2n6)","Plastoquinone 9","Ubiquinol-10","TG(14:0/14:0/20:4(5Z,8Z,11Z,14Z))"],["GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Lipid<\/th>\n      <th>Flag<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"orderable":false,"targets":0},{"name":" ","targets":0},{"name":"Lipid","targets":1},{"name":"Flag","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<p><font size='4'> <strong>Do metadata-assisted quality control</strong>
+</font><br />
+<strong>Tumor vs Normal samples</strong></p>
+<pre class="r"><code># Do PCA
+lipTissueFiltVsn &lt;- lipTissuePrepro$vsn.data
+abunMat &lt;- as.matrix(assay(lipTissueFiltVsn))
+featSDs &lt;- rowSds(abunMat, na.rm = T)
+topVarFeats &lt;- names(sort(featSDs, decreasing = T)[1:1000])
+lipTissueFiltVsnSub &lt;- lipTissueFiltVsn[rownames(lipTissueFiltVsn) %in% topVarFeats,]
+pcaRes &lt;- doSOA(lipTissueFiltVsnSub, meta_var = &#39;Condition&#39;, pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj  Stat   Test
+1 PC1 (14.2%) Condition 5.41e-07 1.08e-05 -6.02 T-test
+2  PC7 (5.2%) Condition 8.11e-03 8.11e-02  2.79 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes$pcTab
+ggplot(pcTab, aes(x=Condition, y=`PC1 (14.2%)`, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="discovery-cohort" class="section level2">
+<h2>Discovery cohort</h2>
+<pre class="r"><code># Load data
+lipTissue_Dis &lt;- readxl::read_excel(paste0(&#39;./data/Discovery/AG_Hopf/partial_annotated/&#39;,
+                                           &#39;Discovery cohort_tissue lipidomics&#39;,
+                                           &#39;_CH_with partial annotation_20240618_QZ.xlsx&#39;))
+# Assign column names
+lipTissue_Dis &lt;- lipTissue_Dis[, -seq_len(2)]
+colnames(lipTissue_Dis) &lt;- lipTissue_Dis[8,]
+lipTissue_Dis &lt;- lipTissue_Dis[-seq_len(9),]
+# Tidy up data table, define features, and filter features based on RT and m/z
+lipTissue_Dis &lt;- dplyr::select(lipTissue_Dis, -c(Ions, `ΔCCS [%]`, AQ, `Δm/z [ppm]`,
+                                                 `M meas.`, `MS/MS`, `MS/MS score`,
+                                                 `Mob. 1/K0`, contains(&#39;Pooled QC&#39;),
+                                                 contains(&#39;Processed blank&#39;))) %&gt;%
+  dplyr::rename(RT = `RT [min]`, CCS = `CCS (Å²)`, MZ = `m/z meas.`, Lipid = Name,
+                Formula = `Molecular Formula`, Flag = Flags) %&gt;%
+  dplyr::mutate(across(contains(&#39;SC_&#39;), as.numeric),
+                RT = as.numeric(RT),
+                CCS = as.numeric(CCS),
+                MZ = as.numeric(MZ),
+                Feature = paste0(RT, &#39;/&#39;, CCS, &#39;/&#39;, MZ),
+                Flag = stringr::str_remove_all(Flag, &#39;\\[|\\]&#39;)) %&gt;%
+  # RT &lt;= 9 IS NOT USED DUE TO GREEN ANNOTATED LIPIDS
+  dplyr::filter(RT &gt;= 0.3, MZ &gt;= 250, !is.na(MZ), Flag != &#39;RED, GREEN&#39;) %&gt;% #RT &lt;= 9
+  dplyr::relocate(Feature)
+
+# Convert data into long data and combine it with summarized metadata
+lipTissue_Dis &lt;- tidyr::pivot_longer(lipTissue_Dis, cols = -c(&#39;Feature&#39;, &#39;RT&#39;, &#39;CCS&#39;, &#39;MZ&#39;,
+                                                              &#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                                     names_to = &#39;Aliquot&#39;, values_to = &#39;Abundance&#39;) %&gt;%
+  dplyr::mutate(Aliquot = stringr::str_remove(Aliquot, &#39;_pos_.+$&#39;),
+                Abundance = replace(Abundance, Abundance == 0, NA),
+                # Mislabeling??
+                Aliquot = dplyr::case_when(Aliquot %in% &#39;SC_DIS_A_PDIR55_TU3&#39; ~ &#39;SC_DIS_A_PDIR55_TU2&#39;,
+                                           Aliquot %in% &#39;SC_DIS_A_1QFJ7P_TU3&#39; ~ &#39;SC_DIS_A_1QFJ7P_TU1&#39;,
+                                           Aliquot %in% &#39;SC_DIS_A_8ZSMVV_NG1&#39; ~ &#39;SC_DIS_A_8ZSMVV_NG3&#39;,
+                                           !Aliquot %in% c(&#39;SC_DIS_A_PDIR55_TU3&#39;, &#39;SC_DIS_A_1QFJ7P_TU3&#39;,
+                                                           &#39;SC_DIS_A_8ZSMVV_NG1&#39;) ~ Aliquot)) %&gt;%
+  dplyr::left_join(summMetadat, by = &#39;Aliquot&#39;) %&gt;%
+  dplyr::select(-Aliquot) %&gt;%
+  # Compute sample missing levels
+  dplyr::group_by(Sample) %&gt;%
+  dplyr::mutate(MissLevel = sum(is.na(Abundance)) / length(Abundance)) %&gt;%
+  dplyr::ungroup()
+
+# Remove tumor samples with low tumor purity
+proTissue &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/proTissueVsn.rds&#39;)
+goodSmps &lt;- colnames(proTissue)
+allSmps &lt;- unique(lipTissue_Dis$Sample)
+badSmps &lt;- allSmps[!allSmps %in% goodSmps]
+# Manually remove &#39;1HTNWJ_TU&#39; sample from bad quality sample list due to its missingness
+# in good quality sample list
+badSmps &lt;- badSmps[-which(badSmps == &#39;1HTNWJ_TU&#39;)]
+badSmps &lt;- badSmps[grepl(&#39;_TU&#39;, badSmps)]
+# lipTissue_Dis &lt;- dplyr::filter(lipTissue_Dis, !Sample %in% badSmps)</code></pre>
+<p><font size='4'> <strong>Overview original data</strong> </font></p>
+<pre class="r"><code># Preprocess data
+lipTissueOriTab &lt;- lipTissue_Dis
+lipTissuePrepro &lt;- doPreprocessing(lipTissueOriTab, feat = &#39;Feature&#39;, smp = &#39;Sample&#39;,
+                                   val = &#39;Abundance&#39;, featAnno = c(&#39;RT&#39;, &#39;CCS&#39;, &#39;MZ&#39;,
+                                                                   &#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                                   smpAnno = c(smpAnno, &#39;MissLevel&#39;),
+                                   do_featFilt = T, cutoff = 0.5, viz_miss = T)
+# saveRDS(lipTissuePrepro$vsn.data, &#39;./data/Discovery/AG_Hopf/partial_annotated/Dis_lipTissueVsn_Anno.rds&#39;)
+# saveRDS(lipTissuePrepro$medi.data, &#39;./data/Discovery/AG_Hopf/partial_annotated/Dis_lipTissueMedi_Anno.rds&#39;)
+# Show dimensions of data
+cat(&#39;Data dimensions:&#39;, dim(lipTissuePrepro$ori.data)[2], &#39;samples and&#39;, dim(lipTissuePrepro$ori.data)[1], &#39;features&#39;)</code></pre>
+<pre><code>Data dimensions: 130 samples and 2750 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+lipTissuePrepro$ori.data.miss +
+  labs(title = &#39;Missingness of original data&#39;) +
+  theme(axis.text.x = element_text(size = 6))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-15-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data distribution
+lipTissuePrepro$ori.data.dist +
+  labs(title = &#39;Distribution of original data&#39;) +
+  theme(axis.text.x = element_text(size = 6))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-15-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Overview filtered vsn normalized
+data</strong> </font><br />
+Features quantified in less than half of samples are removed.</p>
+<pre class="r"><code># Show dimensions of data
+cat(&#39;Filtered data dimensions:&#39;, dim(lipTissuePrepro$filt.data)[2], &#39;samples and&#39;,
+    dim(lipTissuePrepro$filt.data)[1], &#39;features&#39;)</code></pre>
+<pre><code>Filtered data dimensions: 130 samples and 2228 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+lipTissuePrepro$filt.data.miss +
+  labs(title = &#39;Missingness of filtered data&#39;) +
+  theme(axis.text.x = element_text(size = 6))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-16-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data distribution
+lipTissuePrepro$vsn.data.dist +
+  labs(y = &#39;Log(Abundance)&#39;, title = &#39;Distribution of filtered vsn normalized data&#39;) +
+  theme(axis.text.x = element_text(size = 6))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-16-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize mean-sd relationship
+lipTissuePrepro$vsn.feat.mean.var +
+  labs(title = &#39;Feature mean-sd relationship after vsn normalization&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-16-3.png" width="960" style="display: block; margin: auto;" /></p>
+<p>The following annotated lipids are filtered out:<br />
+(GREEN - Based on MS2; YELLOW - Based on MS1, other candidates
+possible)</p>
+<pre class="r"><code># Show identified lipids that are filtered out
+oriFeatSpace &lt;- rownames(lipTissuePrepro$ori.data)
+filtFeatSpace &lt;- rownames(lipTissuePrepro$filt.data)
+rmFeats &lt;- oriFeatSpace[!oriFeatSpace %in% filtFeatSpace]
+featAnnoTab &lt;- rowData(lipTissuePrepro$ori.data) %&gt;%
+  tibble::as_tibble(rownames = &#39;Feature&#39;)
+rmLipids &lt;- featAnnoTab[featAnnoTab$Feature %in% rmFeats, c(&#39;Lipid&#39;, &#39;Flag&#39;)] %&gt;%
+  dplyr::filter(!is.na(Lipid))
+DT::datatable(rmLipids)</code></pre>
+<div class="datatables html-widget html-fill-item" id="htmlwidget-b3ebd087860ae8cc3e44" style="width:100%;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-b3ebd087860ae8cc3e44">{"x":{"filter":"none","vertical":false,"data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90"],["BMP 16:0_20:4","CE 18:0","CE 23:1","CE 24:6","CE 26:2","CE 26:3","Cer 18:0;O2/23:1","DG 18:0_20:3","DG O-38:5","DG O-40:8","PC 12:0_24:4","PC 14:0_21:2","PC 21:0_20:2","PC 32:1","PC 39:7","PC 42:5","PC 43:1","PC 8:0_32:3","PC O-33:0","PC O-37:0","PC O-39:0","PC O-40:4","PC O-40:6","PC O-45:8","PE 40:3","PE O-15:0_22:5","PE O-16:1_20:3","PE O-17:1_18:1","PE O-17:1_22:4","PG 36:1","PI 36:2","SM 37:1;O2","SM 42:2;3O","SM 42:4;O3","TG 16:0_18:1_26:0","PC 21:1_40:7","PC 21:2_42:7","PC 21:2_44:10","O-(17-Carboxyheptadecanoyl)carnitine","Diltiazem","Amlodipine","Latrepirdine","Amitriptyline","Amiodarone","Eicosapentaenoyl Ethanolamide","PE(14:0/20:2(11Z,14Z))","CE(11:1&lt;oxo&gt;)","PE(22:4(7Z,10Z,13Z,16Z)/24:0)","E-10-Hydroxynortriptyline","Metoprolol","10-Nitrolinoleic acid","Clarithromycin","Morphine","(-)-3,4,9-Trimethoxypterocarpan","N-desethylamiodarone","Oleamide","Misoprostol","3-Methylcyclopentadecanone","cis-Hydroxy Perhexiline","Adrenic acid","7-a,25-Dihydroxycholesterol","24,25-Dihydroxyvitamin D","7-a,25-Dihydroxycholesterol","PS(18:0/20:3(8Z,11Z,14Z))","PC(15:0/16:1(9Z))","TG(8:0/8:0/8:0)","7-a,25-Dihydroxycholesterol","7-Ketocholesterol","7-a,25-Dihydroxycholesterol","PS(18:0/20:0)","7-Ketocholesterol","TG(16:0/16:0/8:0&lt;oxo&gt;)","CE (18:2&lt;OH&gt;)","7-a,25-Dihydroxycholesterol","7-a,25-Dihydroxycholesterol","CE(18:3(6Z,9Z,12Z))","CE(DiMe(11,3))","CE  (18:2&lt;OOH&gt;)","DG(O-16:0/18:0/0:0)","CE(20:0)","TG(16:0/16:0/1 8:2&lt;OOH&gt;)","CE (18:2&lt;OH&gt;)","Cer(d18:0/22:0)","TG(16:0/16:0/1 8:1&lt;OOH&gt;)","TG(16:0/20:0/20:1(11Z))","Plastoquinone 9","SM(d18:0/20:0)","Sabadelin","Plastoquinone 9","Sabadelin"],["GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","GREEN","Yellow","Yellow","Yellow","PURPLE, YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW","YELLOW"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>Lipid<\/th>\n      <th>Flag<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"orderable":false,"targets":0},{"name":" ","targets":0},{"name":"Lipid","targets":1},{"name":"Flag","targets":2}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+<p><font size='4'> <strong>Do metadata-assisted quality control</strong>
+</font><br />
+<strong>Tumor vs Normal samples</strong></p>
+<pre class="r"><code># Do PCA
+lipTissueFiltVsn &lt;- lipTissuePrepro$vsn.data
+abunMat &lt;- as.matrix(assay(lipTissueFiltVsn))
+featSDs &lt;- rowSds(abunMat, na.rm = T)
+topVarFeats &lt;- names(sort(featSDs, decreasing = T)[1:1000])
+lipTissueFiltVsnSub &lt;- lipTissueFiltVsn[rownames(lipTissueFiltVsn) %in% topVarFeats,]
+pcaRes &lt;- doSOA(lipTissueFiltVsnSub, meta_var = c(&#39;Condition&#39;, &#39;MissLevel&#39;), pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj   Stat        Test
+1 PC3 (11.9%) Condition 2.95e-15 1.18e-13  8.980      T-test
+2 PC1 (39.8%) Condition 3.89e-11 7.78e-10  7.230      T-test
+3  PC5 (4.3%) MissLevel 2.48e-10 3.30e-09  0.519 Correlation
+4 PC2 (14.2%) MissLevel 1.21e-05 1.21e-04 -0.373 Correlation
+5  PC6 (3.3%) MissLevel 1.38e-04 1.10e-03  0.328 Correlation
+6  PC8 (2.5%) MissLevel 1.85e-03 1.23e-02 -0.271 Correlation
+7 PC1 (39.8%) MissLevel 1.35e-02 7.70e-02  0.216 Correlation
+8 PC10 (2.1%) MissLevel 1.98e-02 9.88e-02 -0.204 Correlation
+9  PC9 (2.2%) MissLevel 2.95e-02 1.31e-01 -0.191 Correlation</code></pre>
+<pre class="r"><code># Visualize PCs
+# Prepare samples to be labeled
+labelSmps &lt;- gsub(&#39;_TU&#39;, &#39;_NG&#39;, badSmps)
+labelSmps &lt;- c(labelSmps, badSmps)
+pcTab &lt;- pcaRes$pcTab %&gt;%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% labelSmps ~ Sample),
+                Extra = dplyr::case_when(Sample %in% labelSmps ~ &#39;Yes&#39;,
+                                         !Sample %in% labelSmps ~ &#39;No&#39;),
+                TumorPurity = dplyr::case_when(Condition == &#39;Normal&#39; ~ NA,
+                                               Condition == &#39;Tumor&#39; ~ TumorPurity))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (39.8%)`, col=Condition, fill=Condition, label=Label)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  # geom_text_repel(size = 3, show.legend = F) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-18-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(pcTab, aes(x=Condition, y=`PC3 (11.9%)`, col=Condition, fill=Condition, label=Label)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  # geom_text_repel(size = 3, show.legend = F) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-18-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(pcTab, aes(x=`PC1 (39.8%)`, y=`PC3 (11.9%)`, col=Condition, shape=Extra)) +
+  geom_point(size = 2.5) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_shape_manual(name = &#39;Extra samples&#39;, values = c(16, 3)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-18-3.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(pcTab, aes(x=`PC1 (39.8%)`, y=`PC3 (11.9%)`, col=MissLevel, shape=Condition)) +
+  geom_point(size = 2.5) +
+  scale_color_continuous(name = &#39;Missing level (%)&#39;, type = &#39;viridis&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-18-4.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(pcTab, aes(x=`PC1 (39.8%)`, y=`PC3 (11.9%)`, col=TumorPurity, shape=Condition)) +
+  geom_point(size = 2.5) +
+  scale_color_continuous(name = &#39;Tumor purity (%)&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-18-5.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Remove samples misclassified or with low tumor purity according to quality control
+# results of combined data
+smpRmLipTissue_Dis &lt;- lipTissue_Dis
+smpRmLipTissue_Dis &lt;- dplyr::filter(smpRmLipTissue_Dis, !Sample %in% c(&#39;7EAOX7_TU&#39;, &#39;I0HVOL_TU&#39;,
+                                                                       &#39;1NL5BV_TU&#39;, &#39;125CII_TU&#39;,
+                                                                       &#39;PDIR55_NG&#39;))
+# Preprocess data
+smpRmLipTissuePrepro &lt;- doPreprocessing(smpRmLipTissue_Dis, feat = &#39;Feature&#39;, smp = &#39;Sample&#39;,
+                                        val = &#39;Abundance&#39;, featAnno = c(&#39;RT&#39;, &#39;CCS&#39;, &#39;MZ&#39;,
+                                                                        &#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                                        smpAnno = c(smpAnno, &#39;MissLevel&#39;),
+                                        do_featFilt = T, cutoff = 0.5, viz_miss = T)
+                                        # save_path = paste0(&#39;./data/Discovery/AG_Hopf/partial_annotated/&#39;,
+                                        #                    &#39;Dis_smpRmLipTissue&#39;)
+# Show dimensions of data
+cat(&#39;Filtered data dimensions:&#39;, dim(smpRmLipTissuePrepro$filt.data)[2], &#39;samples and&#39;,
+    dim(smpRmLipTissuePrepro$filt.data)[1], &#39;features&#39;)
+
+# Visualize data distribution
+smpRmLipTissuePrepro$vsn.data.dist +
+  labs(y = &#39;Log(Abundance)&#39;, title = &#39;Distribution of filtered vsn normalized data&#39;) +
+  theme(axis.text.x = element_text(size = 6))
+
+# Visualize mean-sd relationship
+smpRmLipTissuePrepro$vsn.feat.mean.var +
+  labs(title = &#39;Feature mean-sd relationship after vsn normalization&#39;)</code></pre>
+</div>
+<div id="combined-data" class="section level2">
+<h2>Combined data</h2>
+<p>Method Dev + Discovery cohort</p>
+<pre class="r"><code># Keep duplicated annotated features with maximal abundances
+rmDupLips &lt;- function(summExp) {
+  lipids &lt;- rowData(summExp)$Lipid
+  dupLipids &lt;- unique(lipids[duplicated(lipids)])
+  rmLipids &lt;- c()
+  for (lip in dupLipids) {
+    datMat &lt;- assay(summExp)
+    orderedLips &lt;- apply(datMat[lipids %in% lip,], 1, function (lipVec) {
+      mean(lipVec, na.rm = T)
+    }) %&gt;%
+      sort(decreasing = T) %&gt;%
+      names()
+    rmLipids &lt;- c(rmLipids, orderedLips[-1])
+  }
+  summExp &lt;- summExp[!rownames(summExp) %in% rmLipids,]
+  longDat &lt;- summExp2df(summExp, row_id = &#39;Feature&#39;, col_id = &#39;Sample&#39;) %&gt;%
+    dplyr::select(-Feature)
+  return(longDat)
+}</code></pre>
+<div id="mdev-prepro-rep123-dis" class="section level3">
+<h3>MDev (Prepro, Rep1&amp;2&amp;3) + Dis</h3>
+<p>Merge Preprocessed Method Dev (Replicate1&amp;2&amp;3) and Discovery
+data</p>
+<pre class="r"><code># Load preprocessed data
+lipTissueVsnB123_MDev &lt;- readRDS(&#39;./data/Discovery/AG_Hopf/partial_annotated/MDev_lipTissueVsn_Anno_B123.rds&#39;)
+lipTissueVsn_Dis &lt;- readRDS(&#39;./data/Discovery/AG_Hopf/partial_annotated/Dis_lipTissueVsn_Anno.rds&#39;)
+# Prepare list of common annotated features
+lipids_MDev &lt;- rowData(lipTissueVsnB123_MDev)$Lipid
+lipids_Dis &lt;- rowData(lipTissueVsn_Dis)$Lipid
+cmnLipids &lt;- intersect(lipids_MDev, lipids_Dis)
+cmnLipids &lt;- cmnLipids[-which(is.na(cmnLipids))]
+# Subset datasets by common annotated features
+lipTissueVsnB123_MDev &lt;- lipTissueVsnB123_MDev[!is.na(lipids_MDev) &amp; lipids_MDev %in% cmnLipids,]
+lipTissueVsn_Dis &lt;- lipTissueVsn_Dis[!is.na(lipids_Dis) &amp; lipids_Dis %in% cmnLipids,]
+# Keep duplicated annotated features with maximal abundances
+annoLipTissueVsnB123_MDev &lt;- rmDupLips(lipTissueVsnB123_MDev)
+annoLipTissueVsn_Dis &lt;- rmDupLips(lipTissueVsn_Dis)
+# Combine datasets
+combLipTissue &lt;- dplyr::bind_rows(annoLipTissueVsnB123_MDev, annoLipTissueVsn_Dis) %&gt;%
+  dplyr::select(-MissLevel)
+# Convert long data to SE object
+combLipTissueVsn &lt;- df2SummExp(combLipTissue, row_id = &#39;Lipid&#39;, col_id = &#39;Sample&#39;,
+                               values = &#39;Value&#39;, row_anno = c(&#39;Formula&#39;, &#39;Flag&#39;),
+                               col_anno = smpAnno)</code></pre>
+<p><font size='4'> <strong>Do metadata-assisted quality control</strong>
+</font><br />
+<strong>Tumor vs Normal samples</strong></p>
+<pre class="r"><code># Do PCA
+pcaRes &lt;- doSOA(combLipTissueVsn, meta_var = c(&#39;Cohort&#39;, &#39;Condition&#39;),
+                pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj  Stat   Test
+1 PC1 (46.8%)    Cohort 2.73e-80 1.09e-78 35.70 T-test
+2 PC2 (21.1%) Condition 1.69e-32 3.38e-31 14.90 T-test
+3    PC3 (8%) Condition 6.10e-05 8.13e-04  4.11 T-test
+4    PC3 (8%)    Cohort 1.04e-03 1.04e-02 -3.34 T-test
+5  PC4 (4.4%) Condition 2.38e-03 1.91e-02  3.08 T-test
+6  PC8 (1.8%) Condition 2.20e-02 1.47e-01  2.31 T-test
+7    PC5 (3%) Condition 2.68e-02 1.53e-01 -2.23 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes$pcTab %&gt;%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(pcTab, aes(x=`PC1 (46.8%)`, y=`PC2 (21.1%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-22-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Do batch correction using limma</strong>
+</font><br />
+</p>
+<pre class="r"><code># Perform batch correction to see if two cohorts can be merged
+# Extract data matrix from SE object
+datMat &lt;- as.matrix(assay(combLipTissueVsn))
+# Define design matrix to keep particular effects, e.g., treatments
+smpAnnoTab &lt;- as_tibble(colData(combLipTissueVsn), rownames = &#39;Sample&#39;)
+design &lt;- model.matrix(~ Condition + Recurrence + Cohort, data = smpAnnoTab)
+wantedDesign &lt;- design[, seq_len(3)]
+unwantedDesign &lt;- design[, -seq_len(3)]
+# Do batch correction
+datMat_BC &lt;- limma::removeBatchEffect(datMat, design = wantedDesign, covariates = unwantedDesign)
+combLipTissueVsn_BC &lt;- combLipTissueVsn
+assay(combLipTissueVsn_BC) &lt;- datMat_BC
+# Save batch corrected data
+# saveRDS(combLipTissueVsn_BC, paste0(&#39;./data/Discovery/AG_Hopf/partial_annotated/&#39;,
+#                                     &#39;Comb_Prepro_lipTissueVsn_Anno_MDevB123_BC.rds&#39;))
+# saveRDS(combLipTissueVsn, paste0(&#39;./data/Discovery/AG_Hopf/partial_annotated/&#39;,
+#                                  &#39;Comb_Prepro_lipTissueVsn_Anno_MDevB123.rds&#39;))
+
+# Do single-omics analysis
+pcaRes &lt;- doSOA(combLipTissueVsn_BC, meta_var = c(&#39;Condition&#39;, &#39;Cohort&#39;), pca_method = &#39;ppca&#39;, do_onlyPCA = T)
+pcaRes$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj   Stat   Test
+1 PC1 (36.6%) Condition 4.53e-28 1.81e-26 -13.30 T-test
+2 PC2 (18.3%) Condition 5.25e-08 1.05e-06  -5.70 T-test
+3  PC3 (7.7%) Condition 3.65e-03 4.87e-02  -2.95 T-test
+4  PC7 (3.3%) Condition 4.73e-02 4.73e-01   2.00 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes$pcTab %&gt;%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (36.6%)`, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-23-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(pcTab, aes(x=`PC1 (36.6%)`, y=`PC2 (18.3%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-23-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Show reasons for removing some samples
+# Prepare data accounted for SVs for later visualizations
+# Do SVA
+combLipTissueSVA &lt;- doSVA(combLipTissueVsn_BC, wantedVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;),
+                          numSV_method = &#39;be&#39;, asso_metaVar = c(&#39;Cohort&#39;, &#39;Condition&#39;,
+                                                                &#39;Recurrence&#39;, &#39;Gender&#39;,
+                                                                &#39;Age&#39;, &#39;Smoking&#39;, &#39;Stage&#39;,
+                                                                &#39;Adjuvant&#39;, &#39;TumorPurity&#39;))
+# Show significant associations between SVs and sample metadata variables
+# Sample condition accounts for large variance in data, so perhaps to preserve effects
+# of recurrence, some variance contributed from condition is eliminated.
+combLipTissueSVA$sigAssoTab
+# Perform single-omics analysis
+SVs &lt;- grep(&#39;^SV\\d+$&#39;, colnames(colData(combLipTissueSVA$summExp_SVs)), value = T)
+pcaRes &lt;- doSOA(combLipTissueSVA$summExp_SVs, meta_var = &#39;Condition&#39;, pca_method = &#39;ppca&#39;,
+                num_PCs = 20, do_onlyPCA = T, unwantVar = SVs)
+# Display significant associations
+pcaRes$pcSigAssoRes
+# Visualize PCs
+pcTab &lt;- pcaRes$pcTab %&gt;%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% c(&#39;7EAOX7_TU&#39;, &#39;I0HVOL_TU&#39;,
+                                                       &#39;1NL5BV_TU&#39;, &#39;125CII_TU&#39;,
+                                                       &#39;1HTNWJ_TU&#39;, &#39;PDIR55_NG&#39;,
+                                                       &#39;7EAOX7_NG&#39;, &#39;I0HVOL_NG&#39;,
+                                                       &#39;1NL5BV_NG&#39;, &#39;125CII_NG&#39;,
+                                                       &#39;1HTNWJ_NG&#39;, &#39;PDIR55_TU&#39;) ~ Sample))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (50.2%)`, col=Condition, fill=Condition, label=Label)) +
+  geom_text_repel(show.legend = F) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th
+
+# Show tumor purity of misclassified samples
+tibble::as_tibble(colData(combLipTissueVsn), rownames = &#39;Sample&#39;) %&gt;%
+  dplyr::select(Sample, TumorPurity) %&gt;%
+  dplyr::filter(Sample %in% c(&#39;7EAOX7_TU&#39;, &#39;I0HVOL_TU&#39;, &#39;1NL5BV_TU&#39;, &#39;125CII_TU&#39;,
+                              &#39;1HTNWJ_TU&#39;))</code></pre>
+<pre class="r"><code># Combine datasets where unwanted samples were removed from Discovery data
+# Load preprocessed data
+lipTissueVsnB123_MDev &lt;- readRDS(&#39;./data/Discovery/AG_Hopf/partial_annotated/MDev_lipTissueVsn_Anno_B123.rds&#39;)
+smpRmLipTissueVsn_Dis &lt;- readRDS(&#39;./data/Discovery/AG_Hopf/partial_annotated/Dis_smpRmLipTissueVsn.rds&#39;)
+# Prepare list of common annotated features
+lipids_MDev &lt;- rowData(lipTissueVsnB123_MDev)$Lipid
+lipids_Dis &lt;- rowData(smpRmLipTissueVsn_Dis)$Lipid
+cmnLipids &lt;- intersect(lipids_MDev, lipids_Dis)
+cmnLipids &lt;- cmnLipids[-which(is.na(cmnLipids))]
+# Subset datasets by common annotated features
+lipTissueVsnB123_MDev &lt;- lipTissueVsnB123_MDev[!is.na(lipids_MDev) &amp; lipids_MDev %in% cmnLipids,]
+smpRmLipTissueVsn_Dis &lt;- smpRmLipTissueVsn_Dis[!is.na(lipids_Dis) &amp; lipids_Dis %in% cmnLipids,]
+# Keep duplicated annotated features with maximal abundances
+annoLipTissueVsnB123_MDev &lt;- rmDupLips(lipTissueVsnB123_MDev)
+annoSmpRmLipTissueVsn_Dis &lt;- rmDupLips(smpRmLipTissueVsn_Dis)
+# Combine datasets
+combLipTissue &lt;- dplyr::bind_rows(annoLipTissueVsnB123_MDev, annoSmpRmLipTissueVsn_Dis) %&gt;%
+  dplyr::select(-MissLevel)
+# Convert long data to SE object
+combLipTissueVsn &lt;- df2SummExp(combLipTissue, row_id = &#39;Lipid&#39;, col_id = &#39;Sample&#39;,
+                               values = &#39;Value&#39;, row_anno = c(&#39;Formula&#39;, &#39;Flag&#39;),
+                               col_anno = smpAnno)
+
+# Do PCA
+pcaRes &lt;- doSOA(combLipTissueVsn, meta_var = c(&#39;Cohort&#39;, &#39;Condition&#39;),
+                pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes$pcSigAssoRes
+# Visualize PCs
+pcTab &lt;- pcaRes$pcTab %&gt;%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(pcTab, aes(x=`PC1 (47.7%)`, y=`PC2 (20.7%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th
+
+# Perform batch correction to see if two cohorts can be merged
+# Extract data matrix from SE object
+datMat &lt;- as.matrix(assay(combLipTissueVsn))
+# Define design matrix to keep particular effects, e.g., treatments
+smpAnnoTab &lt;- as_tibble(colData(combLipTissueVsn), rownames = &#39;Sample&#39;)
+design &lt;- model.matrix(~ Condition + Recurrence + Cohort, data = smpAnnoTab)
+wantedDesign &lt;- design[, seq_len(3)]
+unwantedDesign &lt;- design[, -seq_len(3)]
+# Do batch correction
+datMat_BC &lt;- limma::removeBatchEffect(datMat, design = wantedDesign, covariates = unwantedDesign)
+combLipTissueVsn_BC &lt;- combLipTissueVsn
+assay(combLipTissueVsn_BC) &lt;- datMat_BC
+# Save batch corrected data
+# saveRDS(combLipTissueVsn_BC, paste0(&#39;./data/Discovery/AG_Hopf/partial_annotated/&#39;,
+#                                     &#39;Comb_Prepro_SmpRm_lipTissueVsn_Anno_MDevB123_BC.rds&#39;))
+# saveRDS(combLipTissueVsn, paste0(&#39;./data/Discovery/AG_Hopf/partial_annotated/&#39;,
+#                                  &#39;Comb_Prepro_SmpRm_lipTissueVsn_Anno_MDevB123.rds&#39;))
+
+# Do single-omics analysis
+pcaRes &lt;- doSOA(combLipTissueVsn_BC, meta_var = c(&#39;Condition&#39;, &#39;Cohort&#39;), pca_method = &#39;ppca&#39;, do_onlyPCA = T)
+pcaRes$pcSigAssoRes
+# Visualize PCs
+pcTab &lt;- pcaRes$pcTab %&gt;%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (36.6%)`, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th
+
+ggplot(pcTab, aes(x=`PC1 (36.6%)`, y=`PC2 (18.6%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+</div>
+<div id="mdev-raw-rep123-dis" class="section level3">
+<h3>MDev (Raw, Rep1&amp;2&amp;3) + Dis</h3>
+<p>Replicates in Method Dev data are merged on Raw intensity level,
+which may be not reliable due to highly variable values.</p>
+<pre class="r"><code># Prepare tidy data containing only annotated features
+annoLipTissueB123_MDev &lt;- dplyr::group_by(lipTissue_MDev, Feature, Sample) %&gt;%
+  dplyr::mutate(Abundance = mean(Abundance, na.rm = T),
+                Feature_Sample = paste0(Feature, &#39;_&#39;, Sample)) %&gt;%
+  dplyr::ungroup() %&gt;%
+  dplyr::filter(!duplicated(Feature_Sample)) %&gt;%
+  dplyr::select(-c(Sample_Batch, Batch, Feature_Sample)) %&gt;%
+  dplyr::filter(!is.na(Lipid)) %&gt;%
+  dplyr::select(-c(RT, CCS, MZ)) %&gt;%
+  dplyr::mutate(Abundance = dplyr::case_when(is.nan(Abundance) ~ NA,
+                                             !is.nan(Abundance) ~ Abundance))
+annoLipTissueB1_MDev &lt;- dplyr::filter(lipTissueB1_MDev, !is.na(Lipid)) %&gt;%
+  dplyr::select(-c(RT, CCS, MZ))
+annoLipTissue_Dis &lt;- dplyr::select(lipTissue_Dis, -MissLevel) %&gt;%
+  dplyr::filter(!is.na(Lipid)) %&gt;%
+  dplyr::select(-c(RT, CCS, MZ))
+# Keep only common annotated features between cohort data
+cmnFeats &lt;- intersect(unique(annoLipTissueB123_MDev$Lipid), unique(annoLipTissue_Dis$Lipid))
+annoLipTissueB123_MDev &lt;- dplyr::filter(annoLipTissueB123_MDev, Lipid %in% cmnFeats)
+annoLipTissueB1_MDev &lt;- dplyr::filter(annoLipTissueB1_MDev, Lipid %in% cmnFeats)
+annoLipTissue_Dis &lt;- dplyr::filter(annoLipTissue_Dis, Lipid %in% cmnFeats)
+# Keep duplicated annotated features with maximal abundances
+tmp_lipTissueB123_MDev &lt;- df2SummExp(annoLipTissueB123_MDev, row_id = &#39;Feature&#39;, col_id = &#39;Sample&#39;,
+                                     values = &#39;Abundance&#39;, row_anno = c(&#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                                     col_anno = smpAnno)
+tmp_lipTissueB1_MDev &lt;- df2SummExp(annoLipTissueB1_MDev, row_id = &#39;Feature&#39;, col_id = &#39;Sample&#39;,
+                                   values = &#39;Abundance&#39;, row_anno = c(&#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                                   col_anno = smpAnno)
+tmp_lipTissue_Dis &lt;- df2SummExp(annoLipTissue_Dis, row_id = &#39;Feature&#39;, col_id = &#39;Sample&#39;,
+                                values = &#39;Abundance&#39;, row_anno = c(&#39;Lipid&#39;, &#39;Formula&#39;, &#39;Flag&#39;),
+                                col_anno = smpAnno)
+
+annoLipTissueB123_MDev &lt;- rmDupLips(tmp_lipTissueB123_MDev)
+annoLipTissueB1_MDev &lt;- rmDupLips(tmp_lipTissueB1_MDev)
+annoLipTissue_Dis &lt;- rmDupLips(tmp_lipTissue_Dis)
+rm(tmp_lipTissueB123_MDev, tmp_lipTissueB1_MDev, tmp_lipTissue_Dis)</code></pre>
+<p><font size='4'> <strong>Overview original data</strong> </font></p>
+<pre class="r"><code># Combine datasets and do preprocessing
+combLipTissue &lt;- dplyr::bind_rows(annoLipTissueB123_MDev, annoLipTissue_Dis)
+combLipTissuePrepro &lt;- doPreprocessing(combLipTissue, feat = &#39;Lipid&#39;, smp = &#39;Sample&#39;,
+                                       val = &#39;Value&#39;, featAnno = c(&#39;Formula&#39;, &#39;Flag&#39;),
+                                       smpAnno = smpAnno, do_featFilt = T,
+                                       cutoff = 0.5, viz_miss = T, bins = 20)
+# Show dimensions of data
+cat(&#39;Data dimensions:&#39;, dim(combLipTissuePrepro$ori.data)[2], &#39;samples and&#39;,
+    dim(combLipTissuePrepro$ori.data)[1], &#39;features&#39;)</code></pre>
+<pre><code>Data dimensions: 170 samples and 463 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+combLipTissuePrepro$ori.data.miss +
+  labs(title = &#39;Missingness of original data&#39;) +
+  theme(axis.text.x = element_text(size = 5))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-27-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data distribution
+oriDatTab &lt;- summExp2df(combLipTissuePrepro$ori.data, row_id = &#39;Lipid&#39;, col_id = &#39;Sample&#39;) %&gt;%
+  dplyr::mutate(Sample = factor(Sample, levels = c(unique(annoLipTissueB123_MDev$Sample),
+                                                   unique(annoLipTissue_Dis$Sample))),
+                Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(oriDatTab, aes(x=Sample, y=Value, col=Cohort)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(y = &#39;Abundance&#39;, title = &#39;Distribution of original data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 4))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-27-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Overview filtered vsn normalized
+data</strong> </font><br />
+Features quantified in less than half of samples are removed.</p>
+<pre class="r"><code># Show dimensions of data
+cat(&#39;Filtered data dimensions:&#39;, dim(combLipTissuePrepro$filt.data)[2], &#39;samples and&#39;,
+    dim(combLipTissuePrepro$filt.data)[1], &#39;features&#39;)</code></pre>
+<pre><code>Filtered data dimensions: 170 samples and 453 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+combLipTissuePrepro$filt.data.miss +
+  labs(title = &#39;Missingness of filtered data&#39;) +
+  theme(axis.text.x = element_text(size = 5))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-28-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data distribution
+vsnDatTab &lt;- summExp2df(combLipTissuePrepro$vsn.data, row_id = &#39;Lipid&#39;, col_id = &#39;Sample&#39;) %&gt;%
+  dplyr::mutate(Sample = factor(Sample, levels = c(unique(annoLipTissueB123_MDev$Sample),
+                                                   unique(annoLipTissue_Dis$Sample))),
+                Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(vsnDatTab, aes(x=Sample, y=Value, col=Cohort)) +
+  geom_boxplot() +
+  labs(y = &#39;Log(Abundance)&#39;, title = &#39;Distribution of filtered vsn normalized data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 4))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-28-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize mean-sd relationship
+combLipTissuePrepro$vsn.feat.mean.var +
+  labs(title = &#39;Feature mean-sd relationship after vsn normalization&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-28-3.png" width="960" style="display: block; margin: auto;" /></p>
+<p>The following annotated lipids are filtered out:<br />
+(GREEN - Based on MS2; YELLOW - Based on MS1, other candidates
+possible)</p>
+<pre class="r"><code># Show identified lipids that are filtered out
+oriFeatSpace &lt;- rownames(combLipTissuePrepro$ori.data)
+filtFeatSpace &lt;- rownames(combLipTissuePrepro$filt.data)
+rmFeats &lt;- oriFeatSpace[!oriFeatSpace %in% filtFeatSpace]
+rowData(combLipTissuePrepro$ori.data) %&gt;%
+  tibble::as_tibble(rownames = &#39;Lipid&#39;) %&gt;%
+  dplyr::filter(Lipid %in% rmFeats)</code></pre>
+<pre><code># A tibble: 10 × 3
+   Lipid           Formula      Flag  
+   &lt;chr&gt;           &lt;chr&gt;        &lt;chr&gt; 
+ 1 PC O-45:8       C53H92NO7P   GREEN 
+ 2 PC O-40:6       C48H86NO7P   GREEN 
+ 3 PG 36:1         C42H81O10P   GREEN 
+ 4 PC 8:0_32:3     C48H90NO8P   GREEN 
+ 5 PE 40:3         C45H84NO8P   GREEN 
+ 6 CE 26:3         C53H90O2     GREEN 
+ 7 Metoprolol      C15H25NO3    YELLOW
+ 8 Amlodipine      C20H25ClN2O5 YELLOW
+ 9 Sabadelin       C35H62O3     YELLOW
+10 Plastoquinone 9 C53H80O2     YELLOW</code></pre>
+<p><font size='4'> <strong>Do metadata-assisted quality control</strong>
+</font><br />
+<strong>Tumor vs Normal samples</strong></p>
+<pre class="r"><code># Do PCA
+pcaRes &lt;- doSOA(combLipTissuePrepro$vsn.data, meta_var = c(&#39;Cohort&#39;, &#39;Condition&#39;),
+                pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj   Stat   Test
+1 PC1 (42.3%)    Cohort 8.73e-83 3.49e-81 -37.10 T-test
+2 PC2 (19.8%) Condition 2.42e-31 4.85e-30  14.50 T-test
+3 PC3 (10.1%) Condition 6.67e-04 8.89e-03  -3.47 T-test
+4 PC2 (19.8%)    Cohort 1.20e-03 9.76e-03  -3.30 T-test
+5 PC1 (42.3%) Condition 1.22e-03 9.76e-03  -3.29 T-test
+6  PC4 (5.2%) Condition 3.09e-03 2.06e-02   3.00 T-test
+7    PC8 (2%) Condition 2.61e-02 1.49e-01   2.24 T-test
+8  PC5 (3.5%) Condition 4.10e-02 2.05e-01   2.06 T-test
+9 PC3 (10.1%)    Cohort 4.65e-02 2.07e-01   2.01 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes$pcTab %&gt;%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(pcTab, aes(x=`PC1 (42.3%)`, y=`PC2 (19.8%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-30-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Do batch correction using limma</strong>
+</font><br />
+</p>
+<pre class="r"><code># Perform batch correction to see if two cohorts can be merged
+# Extract data matrix from SE object
+datMat &lt;- assay(combLipTissuePrepro$vsn.data)
+# Define design matrix to keep particular effects, e.g., treatments
+smpAnnoTab &lt;- as_tibble(colData(combLipTissuePrepro$vsn.data), rownames = &#39;Sample&#39;)
+design &lt;- model.matrix(~ Condition + Recurrence + Cohort, data = smpAnnoTab)
+wantedDesign &lt;- design[, seq_len(3)]
+unwantedDesign &lt;- design[, -seq_len(3)]
+# Do batch correction
+datMat_BC &lt;- limma::removeBatchEffect(datMat, design = wantedDesign, covariates = unwantedDesign)
+combLipTissueVsn_BC &lt;- combLipTissuePrepro$vsn.data
+assay(combLipTissueVsn_BC) &lt;- datMat_BC
+# Save batch corrected data
+# saveRDS(combLipTissueVsn_BC, &#39;./data/Discovery/AG_Hopf/partial_annotated/Comb_lipTissueVsn_Anno_MDevB123_BC.rds&#39;)
+
+# Do single-omics analysis
+pcaRes &lt;- doSOA(combLipTissueVsn_BC, meta_var = c(&#39;Condition&#39;, &#39;Cohort&#39;), pca_method = &#39;ppca&#39;, do_onlyPCA = T)
+pcaRes$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj   Stat   Test
+1 PC1 (33.8%) Condition 3.58e-41 1.43e-39 -18.00 T-test
+2  PC3 (8.9%) Condition 9.97e-03 1.99e-01  -2.61 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes$pcTab %&gt;%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (33.8%)`, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-31-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(pcTab, aes(x=`PC1 (33.8%)`, y=`PC3 (8.9%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-31-2.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="mdev-rep1-dis" class="section level3">
+<h3>MDev (Rep1) + Dis</h3>
+<p><font size='4'> <strong>Overview original data</strong> </font></p>
+<pre class="r"><code># Combine datasets and do preprocessing
+combLipTissue &lt;- dplyr::bind_rows(annoLipTissueB1_MDev, annoLipTissue_Dis)
+combLipTissuePrepro &lt;- doPreprocessing(combLipTissue, feat = &#39;Lipid&#39;, smp = &#39;Sample&#39;,
+                                       val = &#39;Value&#39;, featAnno = c(&#39;Formula&#39;, &#39;Flag&#39;),
+                                       smpAnno = smpAnno, do_featFilt = T,
+                                       cutoff = 0.5, viz_miss = T, bins = 20)
+# Show dimensions of data
+cat(&#39;Data dimensions:&#39;, dim(combLipTissuePrepro$ori.data)[2], &#39;samples and&#39;,
+    dim(combLipTissuePrepro$ori.data)[1], &#39;features&#39;)</code></pre>
+<pre><code>Data dimensions: 170 samples and 463 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+combLipTissuePrepro$ori.data.miss +
+  labs(title = &#39;Missingness of original data&#39;) +
+  theme(axis.text.x = element_text(size = 5))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-32-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data distribution
+oriDatTab &lt;- summExp2df(combLipTissuePrepro$ori.data, row_id = &#39;Lipid&#39;, col_id = &#39;Sample&#39;) %&gt;%
+  dplyr::mutate(Sample = factor(Sample, levels = c(unique(annoLipTissueB1_MDev$Sample),
+                                                   unique(annoLipTissue_Dis$Sample))),
+                Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(oriDatTab, aes(x=Sample, y=Value, col=Cohort)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(y = &#39;Abundance&#39;, title = &#39;Distribution of original data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 4))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-32-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Overview filtered vsn normalized
+data</strong> </font><br />
+Features quantified in less than half of samples are removed.</p>
+<pre class="r"><code># Show dimensions of data
+cat(&#39;Filtered data dimensions:&#39;, dim(combLipTissuePrepro$filt.data)[2], &#39;samples and&#39;,
+    dim(combLipTissuePrepro$filt.data)[1], &#39;features&#39;)</code></pre>
+<pre><code>Filtered data dimensions: 170 samples and 453 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+combLipTissuePrepro$filt.data.miss +
+  labs(title = &#39;Missingness of filtered data&#39;) +
+  theme(axis.text.x = element_text(size = 5))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-33-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data distribution
+vsnDatTab &lt;- summExp2df(combLipTissuePrepro$vsn.data, row_id = &#39;Lipid&#39;, col_id = &#39;Sample&#39;) %&gt;%
+  dplyr::mutate(Sample = factor(Sample, levels = c(unique(annoLipTissueB1_MDev$Sample),
+                                                   unique(annoLipTissue_Dis$Sample))),
+                Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(vsnDatTab, aes(x=Sample, y=Value, col=Cohort)) +
+  geom_boxplot() +
+  labs(y = &#39;Log(Abundance)&#39;, title = &#39;Distribution of filtered vsn normalized data&#39;) +
+  th + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 4))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-33-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize mean-sd relationship
+combLipTissuePrepro$vsn.feat.mean.var +
+  labs(title = &#39;Feature mean-sd relationship after vsn normalization&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-33-3.png" width="960" style="display: block; margin: auto;" /></p>
+<p>The following annotated lipids are filtered out:<br />
+(GREEN - Based on MS2; YELLOW - Based on MS1, other candidates
+possible)</p>
+<pre class="r"><code># Show identified lipids that are filtered out
+oriFeatSpace &lt;- rownames(combLipTissuePrepro$ori.data)
+filtFeatSpace &lt;- rownames(combLipTissuePrepro$filt.data)
+rmFeats &lt;- oriFeatSpace[!oriFeatSpace %in% filtFeatSpace]
+rowData(combLipTissuePrepro$ori.data) %&gt;%
+  tibble::as_tibble(rownames = &#39;Lipid&#39;) %&gt;%
+  dplyr::filter(Lipid %in% rmFeats)</code></pre>
+<pre><code># A tibble: 10 × 3
+   Lipid           Formula      Flag  
+   &lt;chr&gt;           &lt;chr&gt;        &lt;chr&gt; 
+ 1 PC O-45:8       C53H92NO7P   GREEN 
+ 2 PC O-40:6       C48H86NO7P   GREEN 
+ 3 PG 36:1         C42H81O10P   GREEN 
+ 4 PC 8:0_32:3     C48H90NO8P   GREEN 
+ 5 PE 40:3         C45H84NO8P   GREEN 
+ 6 CE 26:3         C53H90O2     GREEN 
+ 7 Metoprolol      C15H25NO3    YELLOW
+ 8 Amlodipine      C20H25ClN2O5 YELLOW
+ 9 Sabadelin       C35H62O3     YELLOW
+10 Plastoquinone 9 C53H80O2     YELLOW</code></pre>
+<p><font size='4'> <strong>Do metadata-assisted quality control</strong>
+</font><br />
+<strong>Tumor vs Normal samples</strong></p>
+<pre class="r"><code># Do PCA
+pcaRes &lt;- doSOA(combLipTissuePrepro$vsn.data, meta_var = c(&#39;Cohort&#39;, &#39;Condition&#39;),
+                pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj   Stat   Test
+1 PC1 (39.8%)    Cohort 6.95e-80 2.78e-78 -35.40 T-test
+2 PC2 (20.8%) Condition 2.86e-32 5.72e-31 -14.80 T-test
+3 PC2 (20.8%)    Cohort 3.50e-04 4.67e-03   3.65 T-test
+4 PC1 (39.8%) Condition 5.40e-04 5.40e-03  -3.53 T-test
+5 PC3 (10.2%) Condition 1.66e-03 1.33e-02  -3.20 T-test
+6  PC4 (5.5%) Condition 5.83e-03 3.89e-02   2.79 T-test
+7  PC5 (3.6%) Condition 3.97e-02 2.27e-01  -2.07 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes$pcTab %&gt;%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(pcTab, aes(x=`PC1 (39.8%)`, y=`PC2 (20.8%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-35-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Do batch correction using limma</strong>
+</font><br />
+</p>
+<pre class="r"><code># Perform batch correction to see if two cohorts can be merged
+# Extract data matrix from SE object
+datMat &lt;- assay(combLipTissuePrepro$vsn.data)
+# Define design matrix to keep particular effects, e.g., treatments
+smpAnnoTab &lt;- as_tibble(colData(combLipTissuePrepro$vsn.data), rownames = &#39;Sample&#39;)
+design &lt;- model.matrix(~ Condition + Recurrence + Cohort, data = smpAnnoTab)
+wantedDesign &lt;- design[, seq_len(3)]
+unwantedDesign &lt;- design[, -seq_len(3)]
+# Do batch correction
+datMat_BC &lt;- limma::removeBatchEffect(datMat, design = wantedDesign, covariates = unwantedDesign)
+combLipTissueVsn_BC &lt;- combLipTissuePrepro$vsn.data
+assay(combLipTissueVsn_BC) &lt;- datMat_BC
+# Save batch corrected data
+# saveRDS(combLipTissueVsn_BC, &#39;./data/Discovery/AG_Hopf/partial_annotated/Comb_lipTissueVsn_Anno_MDevB1_BC.rds&#39;)
+
+# Do single-omics analysis
+pcaRes &lt;- doSOA(combLipTissueVsn_BC, meta_var = c(&#39;Condition&#39;, &#39;Cohort&#39;), pca_method = &#39;ppca&#39;, do_onlyPCA = T)
+pcaRes$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj   Stat   Test
+1 PC1 (34.1%) Condition 2.38e-42 9.54e-41 -18.50 T-test
+2  PC3 (9.1%) Condition 1.62e-02 3.25e-01   2.43 T-test
+3 PC2 (16.1%) Condition 3.87e-02 5.16e-01   2.08 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes$pcTab %&gt;%
+  dplyr::mutate(Cohort = factor(Cohort, levels = c(&#39;MethodDev&#39;, &#39;Discovery&#39;)))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (34.1%)`, col=Condition, fill=Condition)) +
+  geom_boxplot(alpha = 0.7, outliers = F) +
+  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-36-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(pcTab, aes(x=`PC1 (34.1%)`, y=`PC2 (16.1%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_annotated_untargeted.Rmd/unnamed-chunk-36-2.png" width="960" style="display: block; margin: auto;" /></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Warsaw
+tzcode source: internal
+
+attached base packages:
+[1] stats4    grid      stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] proDA_1.16.0                pcaMethods_1.94.0          
+ [3] pheatmap_1.0.12             ggplotify_0.1.2            
+ [5] lubridate_1.9.3             forcats_1.0.0              
+ [7] stringr_1.5.1               purrr_1.0.2                
+ [9] tidyr_1.3.1                 tibble_3.2.1               
+[11] tidyverse_2.0.0             SummarizedExperiment_1.32.0
+[13] GenomicRanges_1.54.1        GenomeInfoDb_1.38.8        
+[15] IRanges_2.36.0              S4Vectors_0.40.2           
+[17] MatrixGenerics_1.14.0       matrixStats_1.3.0          
+[19] ggvenn_0.1.10               dplyr_1.1.4                
+[21] ggrepel_0.9.5               ggplot2_3.5.1              
+[23] visdat_0.6.0                sva_3.50.0                 
+[25] BiocParallel_1.36.0         genefilter_1.84.0          
+[27] mgcv_1.9-1                  nlme_3.1-164               
+[29] limma_3.58.1                vsn_3.70.0                 
+[31] Biobase_2.62.0              BiocGenerics_0.48.1        
+[33] readxl_1.4.3                readr_2.1.5                
+[35] workflowr_1.7.1            
+
+loaded via a namespace (and not attached):
+  [1] RColorBrewer_1.1-3      rstudioapi_0.16.0       jsonlite_1.8.8         
+  [4] magrittr_2.0.3          farver_2.1.2            rmarkdown_2.27         
+  [7] fs_1.6.4                zlibbioc_1.48.2         vctrs_0.6.5            
+ [10] memoise_2.0.1           RCurl_1.98-1.14         rstatix_0.7.2          
+ [13] htmltools_0.5.8.1       S4Arrays_1.2.1          broom_1.0.5            
+ [16] cellranger_1.1.0        SparseArray_1.2.4       gridGraphics_0.5-1     
+ [19] sass_0.4.9              bslib_0.7.0             htmlwidgets_1.6.4      
+ [22] cachem_1.1.0            whisker_0.4.1           lifecycle_1.0.4        
+ [25] pkgconfig_2.0.3         Matrix_1.6-5            R6_2.5.1               
+ [28] fastmap_1.2.0           GenomeInfoDbData_1.2.11 digest_0.6.35          
+ [31] colorspace_2.1-0        AnnotationDbi_1.64.1    ps_1.7.6               
+ [34] rprojroot_2.0.4         crosstalk_1.2.1         RSQLite_2.3.6          
+ [37] ggpubr_0.6.0            labeling_0.4.3          fansi_1.0.6            
+ [40] timechange_0.3.0        httr_1.4.7              abind_1.4-5            
+ [43] compiler_4.3.2          bit64_4.0.5             withr_3.0.0            
+ [46] backports_1.4.1         carData_3.0-5           DBI_1.2.2              
+ [49] hexbin_1.28.3           highr_0.11              ggsignif_0.6.4         
+ [52] DelayedArray_0.28.0     tools_4.3.2             httpuv_1.6.15          
+ [55] glue_1.7.0              callr_3.7.6             promises_1.3.0         
+ [58] getPass_0.2-4           generics_0.1.3          gtable_0.3.5           
+ [61] tzdb_0.4.0              preprocessCore_1.64.0   hms_1.1.3              
+ [64] car_3.1-2               utf8_1.2.4              XVector_0.42.0         
+ [67] pillar_1.9.0            yulab.utils_0.1.4       later_1.3.2            
+ [70] splines_4.3.2           lattice_0.22-6          survival_3.5-8         
+ [73] bit_4.0.5               annotate_1.80.0         tidyselect_1.2.1       
+ [76] locfit_1.5-9.9          Biostrings_2.70.3       knitr_1.47             
+ [79] git2r_0.33.0            edgeR_4.0.16            xfun_0.44              
+ [82] statmod_1.5.0           DT_0.33                 stringi_1.8.4          
+ [85] yaml_2.3.8              evaluate_0.23           codetools_0.2-20       
+ [88] BiocManager_1.30.22     cli_3.6.2               affyio_1.72.0          
+ [91] xtable_1.8-4            munsell_0.5.1           processx_3.8.4         
+ [94] jquerylib_0.1.4         Rcpp_1.0.12             png_0.1-8              
+ [97] XML_3.99-0.16.1         parallel_4.3.2          blob_1.2.4             
+[100] bitops_1.0-7            viridisLite_0.4.2       scales_1.3.0           
+[103] affy_1.80.0             crayon_1.5.2            rlang_1.1.4            
+[106] KEGGREST_1.42.0        </code></pre>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
