@@ -2996,24 +2996,4 @@ sigPCTabB12NoWBC <-soaResB12NoWBC$pcSigAssoRes %>%
 dplyr::bind_rows(sigPCTabB1WBC25, sigPCTabB1WBC15, sigPCTabB1NoWBC,
                  sigPCTabB12WBC25, sigPCTabB12WBC15, sigPCTabB12NoWBC) %>%
   dplyr::relocate(Dataset)
-
-ggplot(soaResB1WBC25$pcTab, aes(x=Recurrence, y=`PC5 (7%)`, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.7, outliers = F) +
-  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             size = 6, show.legend = F) +
-  th
-
-ggplot(soaResB12WBC25$pcTab, aes(x=Recurrence, y=`PC5 (7%)`, col=Recurrence, fill=Recurrence)) +
-  geom_boxplot(alpha = 0.7, outliers = F) +
-  geom_jitter(position = position_jitter(0.3), size = 2, show.legend = F) +
-  scale_color_manual(values=c('#00BFC4', '#F8766D')) +
-  scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-  ggpubr::stat_compare_means(method = 't.test', paired = F,
-                             method.args = list(var.equal = T),
-                             size = 6, show.legend = F) +
-  th
 ```
