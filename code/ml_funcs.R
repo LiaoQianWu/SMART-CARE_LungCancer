@@ -1,4 +1,37 @@
 #### Try to implement well-developed package, e.g., 'mlr3' or 'caret', to train ML models
+library('randomForest')
+library('missForest')
+library(xgboost)
+library('caret')
+library('glmnet')
+library('SummarizedExperiment')
+library('tidyverse')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
+
+
+imputeByMF <- function(se) {
+  #' Impute missing values using missForest
+  #' 
+  #' Parameter
+  #' se: A SummarizedExperiment object containing a data matrix
+  #' 
+  #' Return
+  #' impuSE: A SummarizedExperiment object containing the imputed data matrix
+  
+  dat <- t(assay(se))
+  impuDat <- missForest(dat, maxiter = 10, verbose = T)$ximp %>%
+    t()
+  impuSE <- se
+  assay(impuSE) <- impuDat
+  
+  return(impuSE)
+}
 
 rmCorrFeats <- function(data, cutoff = 0.8, distance_method = "pearson",
                         cluster_method = "ward.D2") {
@@ -90,7 +123,7 @@ subsetTrainData <- function(x, y, split_method = 'random split', trainSet_ratio 
 
 
 runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
-                  trainSet_ratio = 0.8, ntree = 10000, plot_ROC = F, save_RF = F) {
+                  trainSet_ratio = 0.8, ntree = 10000, plot_ROC = F, save_model = F) {
   # This function is currently for binary classification problem. For multi-class
   # classification, data split and bootstrap in random forest has to be reviewed
   # and refined!!!!
@@ -113,7 +146,7 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
   #' be set to too low to ensure that every input row gets predicted at least a few times.
   #' Default is 10000
   #' plot_ROC: A logical variable indicating whether ROC curve is plotted. Default is FALSE
-  #' save_RF: A logical variable indicating whether trained RF is saved. Default is FALSE
+  #' save_model: A logical variable indicating whether trained RF is saved. Default is FALSE
   #' 
   #' Return
   #' A list containing the following components:
@@ -182,7 +215,7 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
                    silent = T)
     if (!is(tuneRes, 'try-error')) {
       # Retrieve and save mtry with least OOB error
-      mtry <- tuneRes[order(tuneRes[, 2]),][1, 1]
+      mtry <- tuneRes[order(tuneRes[, 2]),, drop = F][1, 1]
       mtryList <- c(mtryList, mtry)
       # Run random forest
       rfRes <- randomForest::randomForest(x = x_train, y = y_train, mtry = mtry, ntree = ntree,
@@ -224,12 +257,12 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
     matMDG[, i] <- rfRes$importance[, 'MeanDecreaseGini']
     
     # Save trained RF model
-    if (save_RF) {
+    if (save_model) {
       rfResList[[i]] <- rfRes
     }
     
     # Save predictions and ground truths of test set samples
-    y_pred <- as.numeric(y_pred > 0.5) %>%
+    y_pred <- as.numeric(y_pred[, '1'] > 0.5) %>%
       as.factor()
     # Make labels interpretable
     names(y_pred) <- rownames(x_test)
@@ -242,18 +275,38 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
               params = paramList, rfRes = rfResList, y_pred = yPredList, y_truth = yTruthList))
 }
 
-iterRF <- function(se) {
-  #' Prepare input data without missing values for RF, do initial feature selection
-  #' using limma, remove highly correlated features using hierarchical clustering,
-  #' and train 1000 RF models. This function is currently lack of freedom and specific
-  #' to cancer recurrence prediction
+iterRF <- function(se, doImputation = F, sigFeatList = NULL, iter = 100) {
+  #' Iteratively train random forest models for stability selection, where input
+  #' data goes through data imputation (optional), initial feature selection, feature
+  #' grouping, and model training. Input data is imputed using missForest. Initial
+  #' feature selection is done with provided significant feature list or by significance
+  #' tests using limma, and feature grouping is done with hierarchical clustering
+  #' to remove highly correlated features. This function is currently lack of freedom
+  #' and very specific to cancer recurrence prediction
   #' 
-  #' Parameter
+  #' Parameters
   #' se: A SummarizedExperiment object containing a data matrix and patient recurrence information
+  #' doImputation: A logical variable indicating whether to do imputation using
+  #' missForest. Default is FALSE
+  #' sigFeatList: A vector of characters indicating the features for initial feature
+  #' selection to obtain a better chance to capture signals in data, for example,
+  #' differential analysis results. If NULL, limma will be implemented on the input
+  #' data to identify significant features. Default is NULL
+  #' iter: A numeric value specifying the number of models to train. Default is 100
   #' 
   #' Return
-  #' A list containing the information of trained models and feature clustering,
-  #' which is the returns of user-defined functions, "runRF" and "rmCorrFeats"
+  #' A list containing the information of trained models, feature clustering, and
+  #' imputed data if parameter 'doImputation' is set to TRUE. They are the returns
+  #' of user-defined functions, "runRF", "rmCorrFeats", and "imputeByMF"
+  
+  # Do imputation using missForest
+  if (doImputation) {
+    print('---- DATA IS BEING IMPUTED ----')
+    se <- imputeByMF(se)
+    impuSE <- se
+  } else {
+    impuSE <- NULL
+  }
   
   # Prepare input data for RF
   # Retrieve data matrix from SE object
@@ -266,9 +319,13 @@ iterRF <- function(se) {
   allFeats <- dplyr::left_join(recurAnno, datMat, by = 'Sample') %>%
     tibble::column_to_rownames('Sample')
   # Do initial feature selection
-  # Identify recurrence-related statistically significant features
-  soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
-  sigFeats <- dplyr::select(allFeats, c(Recurrence, soaRes$featSigAssoRes$Var1))
+  if (!is.null(sigFeatList)) {
+    sigFeats <- dplyr::select(allFeats, c(Recurrence, sigFeatList))
+  } else {
+    # Identify recurrence-related statistically significant features
+    soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
+    sigFeats <- dplyr::select(allFeats, c(Recurrence, soaRes$featSigAssoRes$Var1))
+  }
   # Cluster highly correlated features and keep only one representative of each cluster
   sigFeatClusters <- rmCorrFeats(t(sigFeats[, -1]), cutoff = 0.8)
   uncorrSigFeats <- dplyr::select(sigFeats, c(Recurrence, rownames(sigFeatClusters$reducedData)))
@@ -278,9 +335,80 @@ iterRF <- function(se) {
   set.seed(42)
   x <- as.matrix(uncorrSigFeats[, -1])
   y <- uncorrSigFeats[, 1]
-  rfRes <- runRF(x, y, targetClass = 'Yes', iter = 1000, split_method = 'random split', save_RF = T)
+  rfRes <- runRF(x, y, targetClass = 'Yes', iter = iter, split_method = 'random split',
+                 trainSet_ratio = 0.8, ntree = 10000, plot_ROC = F, save_model = T)
   
-  return(list(rfRes = rfRes, featClusters = sigFeatClusters))
+  return(list(rfRes = rfRes, featClusters = sigFeatClusters, impuSE = impuSE))
+}
+
+doStabSelecRF <- function(rfRes, se, max_numTopFeats = 50) {
+  #' Do stability selection using RF model and different combinations of top important
+  #' features summarized by bootstrapped model training. Models are trained on top 2,
+  #' top 3, etc. important features 100 times, and mean AUC scores and 95% CI will be reported
+  #' 
+  #' Parameters
+  #' rfRes: An output of function 'iterRF'
+  #' se: A SummarizedExperiment object used as the input to function 'iterRF'
+  #' max_numTopFeats: A numeric value specifying the maximum number of top important
+  #' features allowed, where different combinations of features, from top 2 to top
+  #' 'max_numTopFeats', will be used to train models. Default is 50
+  #' 
+  #' Return
+  #' stabModelTab: A table showing mean AUC and 95% CI of trained models
+  
+  # Prepare top important feature list
+  # Process feature importance scores
+  # Rank feature importance scores for all iterations
+  rankedFeatImpoTab <- apply(rfRes$rfRes$MDG, 2, function(featImpo) {
+    orderIdx <- order(featImpo, decreasing = T)
+    featImpoRanks <- seq_along(orderIdx)
+    names(featImpoRanks) <- orderIdx
+    featImpo[as.numeric(names(featImpoRanks))] <- featImpoRanks
+    return(featImpo)
+  })
+  # Compute median rank of each feature across iterations
+  medianFeatImpo <- apply(rankedFeatImpoTab, 1, median)
+  # Order features by median ranks
+  rankedImpoFeats <- data.frame(Feature = names(medianFeatImpo),
+                                ImpoMedian = medianFeatImpo) %>%
+    dplyr::arrange(ImpoMedian) %>%
+    dplyr::pull(Feature)
+  
+  # Prepare input data
+  x <- t(rfRes$featClusters$reducedData)
+  # Do sanity check
+  if (!identical(rownames(x), rownames(colData(se)))) {
+    stop("Please double check if input SE object is the one used to train models iteratively.")
+  }
+  y <- colData(se)$Recurrence
+  
+  # Systematically train models with different combinations of top important features
+  numTopImpoFeats <- 2:max_numTopFeats
+  # Create containers to save results
+  meanAUC <- c()
+  lowerAUC <- c()
+  upperAUC <- c()
+  for (num in numTopImpoFeats) {
+    print(paste0('---- TOP ', num, ' FEATURES USED ----'))
+    # Subset data
+    topImpoFeats <- rankedImpoFeats[1:num]
+    # Train lasso logistic regression model
+    xSub <- x[, topImpoFeats, drop = F]
+    rfResStab <- runRF(xSub, y, targetClass = 'Yes', iter = 100, split_method = 'random split',
+                       trainSet_ratio = 0.8, ntree = 10000, plot_ROC = F, save_model = F)
+    # Save mean AUC and 95% CI
+    auc_roc <- rfResStab$auc_roc
+    meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
+    ci <- calcCI(auc_roc, bootstrap = T)
+    lowerAUC <- c(lowerAUC, ci[1])
+    upperAUC <- c(upperAUC, ci[2])
+  }
+  # Summarize results
+  stabModelTab <- data.frame(FeatComb = paste0('Top', numTopImpoFeats),
+                             MeanAUC = meanAUC, CI95 = paste0('[', round(lowerAUC, 2),
+                                                              ',', round(upperAUC, 2), ']'))
+  
+  return(stabModelTab)
 }
 
 vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', featAnno = NULL,
@@ -303,7 +431,7 @@ vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', fea
   #' to display for feature abundance boxplots. Default is 6
   #' 
   #' Return
-  #' A list containing summarized full and top feature tables and two ggplot objects,
+  #' A list containing summarized full feature importance table and two ggplot objects,
   #' feature rank and abundance plots
   
   if (ncol(featAnno) != 2) {
@@ -331,6 +459,10 @@ vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', fea
   upperCIFeatImpo <- apply(rankedFeatImpoTab, 1, function(featImpoRanks) {
     calcCI(featImpoRanks, bootstrap = T)[2]
   })
+  # Prepare feature annotation information
+  if (!is.null(featAnno)) {
+    colnames(featAnno) <- c('Feature', 'Annotation')
+  }
   # Prepare cluster information
   featClustList <- rfRes$featClusters$corrFeats
   for (feat in names(featClustList)) {
@@ -342,35 +474,29 @@ vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', fea
   # Collect all needed information into a table
   medianRankedFeatImpoTab <- data.frame(Feature = names(medianFeatImpo),
                                         ImpoMedian = medianFeatImpo,
-                                        ImpoSD = sdFeatImpo,
-                                        ImpoLowerCI = lowerCIFeatImpo,
-                                        ImpoUpperCI = upperCIFeatImpo) %>%
+                                        ImpoSD = round(sdFeatImpo, 2),
+                                        ImpoLowerCI = round(lowerCIFeatImpo, 1),
+                                        ImpoUpperCI = round(upperCIFeatImpo, 1)) %>%
     dplyr::arrange(ImpoMedian) %>%
+    dplyr::left_join(featAnno, by = 'Feature') %>%
     dplyr::left_join(featClustTab, by = 'Feature') %>%
-    dplyr::relocate(Cluster, .after = Feature)
+    dplyr::relocate(Annotation, .after = Feature) %>%
+    dplyr::relocate(Cluster, .after = Annotation) %>%
+    as.data.frame()
+  medianRankedFeatImpoTab4Viz <- dplyr::mutate(medianRankedFeatImpoTab,
+                                               Feature = stringr::str_remove(Feature, ';.+'))
   if (!is.null(featAnno)) {
-    colnames(featAnno) <- c('Feature', 'Annotation')
-    medianRankedFeatImpoTab <- dplyr::left_join(medianRankedFeatImpoTab, featAnno,
-                                                by = 'Feature') %>%
-      dplyr::mutate(Annotation = stringr::str_remove(Annotation, ';.+'),
-                    Feature = stringr::str_remove(Feature, ';.+')) %>%
-      dplyr::relocate(Annotation, .after = Feature)
-  } else {
-    medianRankedFeatImpoTab <- dplyr::mutate(medianRankedFeatImpoTab,
-                                             Feature = stringr::str_remove(Feature, ';.+'))
+    medianRankedFeatImpoTab4Viz <- dplyr::mutate(medianRankedFeatImpoTab4Viz,
+                                                 Annotation = stringr::str_remove(Annotation, ';.+'))
   }
   
   # Visualize top important features
-  topFeatImpoTab <- medianRankedFeatImpoTab[seq_len(num_p1TopFeats),]
+  topFeatImpoTab <- medianRankedFeatImpoTab4Viz[seq_len(num_p1TopFeats),]
   p1 <- ggplot(topFeatImpoTab, aes(x=ImpoMedian, y=factor(Annotation, levels = rev(Annotation)))) +
     geom_errorbar(aes(xmin=ImpoLowerCI, xmax=ImpoUpperCI)) +
     geom_point(size = 6) +
     labs(x = 'Median Rank of Feature Importance', y = 'Feature') +
     th
-  # Save top important feature table
-  topFeatTab <- topFeatImpoTab %>%
-    dplyr::select(Feature, Annotation, Cluster, ImpoMedian) %>%
-    dplyr::rename(Protein = Feature, Gene = Annotation, MedianRank = ImpoMedian)
   
   # Visualize abundances of top important features
   # Prepare data matrix and metadata including both Tumor and Normal samples
@@ -387,7 +513,7 @@ vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', fea
     comparisons = list(c('Yes_Tumor', 'No_Tumor'), c('Yes_Normal', 'No_Normal'))
   }
   # Extract top important features and prepare needed information
-  topImpoFeats <- medianRankedFeatImpoTab[1:num_p2TopFeats,] %>%
+  topImpoFeats <- medianRankedFeatImpoTab4Viz[1:num_p2TopFeats,] %>%
     dplyr::select(Feature, Annotation) %>%
     dplyr::mutate(newFeat = paste0(Feature, ' (', Annotation, ')'),
                   newFeat = factor(newFeat, levels = unique(newFeat)))
@@ -411,7 +537,7 @@ vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', fea
     theme(strip.text = element_text(size = 13, face = 'bold'),
           axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
   
-  return(list(fullFeatTab = medianRankedFeatImpoTab, topFeatTab = topFeatTab, rank = p1, abun = p2))
+  return(list(fullImpoFeatTab = medianRankedFeatImpoTab, rank = p1, abun = p2))
 }
 
 
@@ -815,32 +941,52 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
               y_pred = yPredList, y_truth = yTruthList))
 }
 
-iterLogisR <- function(se, iter = 1000, cvFold = 10, cvMeasure = 'auc') {
-  #' Prepare imputed input data, do initial feature selection, remove highly correlated
-  #' features, and train lasso logistic regression model
-  #' 
-  #' Prepare input data without missing values, do initial feature selection using
-  #' limma, remove highly correlated features using hierarchical clustering, and
-  #' train 1000 XGBoost. This function is currently lack of freedom and specific
-  #' to cancer recurrence prediction
+iterLogisR <- function(se, doImputation = F, sigFeatList = NULL, iter = 100, cvFold = 10, cvMeasure = 'auc') {
+  #' Iteratively train lasso logistic regression models for stability selection,
+  #' where input data goes through data imputation (optional), initial feature selection,
+  #' feature grouping, and model training. Input data is imputed using missForest.
+  #' Initial feature selection is done with provided significant feature list or
+  #' by significance tests using limma, and feature grouping is done with hierarchical
+  #' clustering to remove highly correlated features. This function is currently
+  #' lack of freedom and very specific to cancer recurrence prediction
   #' 
   #' Parameter
-  #' se: A SummarizedExperiment object containing a data matrix and patient recurrence information
-  #' iter: A numeric value specifying the number of models to train. Default is 1
+  #' se: A SummarizedExperiment object containing a data matrix and patient recurrence
+  #' information. If imputation is needed, the input SE object should have been imputed
+  #' doImputation: A logical variable indicating whether to do imputation using
+  #' missForest. Default is FALSE
+  #' sigFeatList: A vector of characters indicating the features for initial feature
+  #' selection to obtain a better chance to capture signals in data, for example,
+  #' differential analysis results. If NULL, limma will be implemented on the input
+  #' data to identify significant features. Default is NULL
+  #' iter: A numeric value specifying the number of models to train. Default is 100
   #' cvFold: A numeric value specifying the number of folds for cross-validation
   #' for optimizing lambda. Default is 10, and it can be as large as the sample size
   #' (leave-one-out cross-validation), but it is not recommended for large datasets
   #' cvMeasure: A character specifying the evaluation metric for cross-validation
   #' 
   #' Return
-  #' A list containing the information of trained models and feature clustering,
-  #' which is the returns of user-defined functions, "runLogisR" and "rmCorrFeats"
+  #' A list containing the information of trained models, feature clustering, and
+  #' imputed data if parameter 'doImputation' is set to TRUE. They are the returns
+  #' of user-defined functions, "runLogisR", "rmCorrFeats", and "imputeByMF"
   
+  # Do imputation using missForest
+  if (doImputation) {
+    print('---- DATA IS BEING IMPUTED ----')
+    se <- imputeByMF(se)
+    impuSE <- se
+  } else {
+    impuSE <- NULL
+  }
   # Do initial feature selection
-  # Identify recurrence-related statistically significant features
-  soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
   x <- t(assay(se))
-  x <- x[, colnames(x) %in% soaRes$featSigAssoRes$Var1]
+  if (!is.null(sigFeatList)) {
+    x <- x[, colnames(x) %in% sigFeatList]
+  } else {
+    # Identify recurrence-related statistically significant features
+    soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
+    x <- x[, colnames(x) %in% soaRes$featSigAssoRes$Var1]
+  }
   # Cluster highly correlated features and keep only one representative of each cluster
   featClusters <- rmCorrFeats(t(x), cutoff = 0.8)
   x <- t(featClusters$reducedData)
@@ -853,7 +999,82 @@ iterLogisR <- function(se, iter = 1000, cvFold = 10, cvMeasure = 'auc') {
                      trainSet_ratio = 0.8, split_method = 'random split',
                      plot_ROC = F, save_model = T)
   
-  return(list(lrRes = lrRes, featClusters = featClusters))
+  return(list(lrRes = lrRes, featClusters = featClusters, impuSE = impuSE))
+}
+
+doStabSelecLogisR <- function(lrRes, se, max_numTopFeats = 50) {
+  #' Do stability selection using lasso logistic regression model and different
+  #' combinations of top important features summarized by bootstrapped model training.
+  #' Models are trained on top 2, top 3, etc. important features 100 times, and
+  #' mean AUC scores and 95% CI will be reported
+  #' 
+  #' Parameters
+  #' lrRes: An output of function 'iterLogisR'
+  #' se: A SummarizedExperiment object used as the input to function 'iterLogisR'
+  #' max_numTopFeats: A numeric value specifying the maximum number of top important
+  #' features allowed, where different combinations of features, from top 2 to top
+  #' 'max_numTopFeats', will be used to train models. Default is 50
+  #' 
+  #' Return
+  #' stabModelTab: A table showing mean AUC and 95% CI of trained models
+  
+  # Prepare top important feature list
+  # Pinpoint useless models that will be removed
+  uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+  # Prepare coefficient table
+  coefTab <- lrRes$lrRes$coefficient
+  if (length(uselessModels) != 0) {
+    coefTab <- coefTab[, -uselessModels]
+  }
+  # Summarize feature selection results into pick rates and rank features by pick rates
+  rankedImpoFeats <- as.data.frame(coefTab) %>%
+    dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
+                                                   .x == 0 ~ 0))) %>%
+    tibble::rownames_to_column('Feature') %>%
+    tidyr::pivot_longer(cols = -'Feature', names_to = 'Model', values_to = 'Pick') %>%
+    dplyr::group_by(Feature) %>%
+    dplyr::summarise(PickRate = sum(Pick)/ncol(coefTab)) %>%
+    dplyr::filter(PickRate != 0) %>%
+    dplyr::arrange(desc(PickRate)) %>%
+    dplyr::pull(Feature)
+  
+  # Prepare input data
+  x <- t(lrRes$featClusters$reducedData)
+  # Do sanity check
+  if (!identical(rownames(x), rownames(colData(se)))) {
+    stop("Please double check if input SE object is the one used to train models iteratively.")
+  }
+  y <- colData(se)$Recurrence
+  
+  # Systematically train models with different combinations of top important features
+  numTopImpoFeats <- 2:max_numTopFeats
+  # Create containers to save results
+  meanAUC <- c()
+  lowerAUC <- c()
+  upperAUC <- c()
+  for (num in numTopImpoFeats) {
+    print(paste0('---- TOP ', num, ' FEATURES USED ----'))
+    # Subset data
+    topImpoFeats <- rankedImpoFeats[1:num]
+    # Train lasso logistic regression model
+    xSub <- x[, topImpoFeats, drop = F]
+    lrResStab <- runLogisR(xSub, y, targetClass = 'Yes', iter = 100, regularized_method = 'lasso',
+                           cvFold = lrRes$lrRes$params$cvFold, cvMeasure = lrRes$lrRes$params$cvMeasure,
+                           used_lambda = 'lambda.min', trainSet_ratio = 0.8, split_method = 'random split',
+                           plot_ROC = F, save_model = F)
+    # Save mean AUC and 95% CI
+    auc_roc <- lrResStab$auc_roc
+    meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
+    ci <- calcCI(auc_roc, bootstrap = T)
+    lowerAUC <- c(lowerAUC, ci[1])
+    upperAUC <- c(upperAUC, ci[2])
+  }
+  # Summarize results
+  stabModelTab <- data.frame(FeatComb = paste0('Top', numTopImpoFeats),
+                             MeanAUC = meanAUC, CI95 = paste0('[', round(lowerAUC, 2),
+                                                              ',', round(upperAUC, 2), ']'))
+  
+  return(stabModelTab)
 }
 
 vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', featAnno = NULL,
@@ -876,7 +1097,7 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
   #' to display for feature abundance boxplots. Default is 6
   #' 
   #' Return
-  #' A list containing summarized full and top feature tables and two ggplot objects,
+  #' A list containing summarized full feature importance table and two ggplot objects,
   #' feature pick rate and abundance plots
   
   if (ncol(featAnno) != 2) {
@@ -893,6 +1114,10 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
   coefTab <- lrRes$lrRes$coefficient
   if (length(uselessModels) != 0) {
     coefTab <- coefTab[, -uselessModels]
+  }
+  # Prepare feature annotation information
+  if (!is.null(featAnno)) {
+    colnames(featAnno) <- c('Feature', 'Annotation')
   }
   # Prepare cluster information
   featClustList <- lrRes$featClusters$corrFeats
@@ -913,29 +1138,23 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
     dplyr::summarise(PickRate = sum(Pick)/ncol(coefTab)) %>%
     dplyr::filter(PickRate != 0) %>%
     dplyr::arrange(desc(PickRate)) %>%
+    dplyr::left_join(featAnno, by = 'Feature') %>%
     dplyr::left_join(featClustTab, by = 'Feature') %>%
-    dplyr::relocate(Cluster, .after = Feature)
+    dplyr::relocate(Annotation, .after = Feature) %>%
+    dplyr::relocate(Cluster, .after = Annotation) %>%
+    as.data.frame()
+  impoFeatTab4Viz <- dplyr::mutate(impoFeatTab, Feature = stringr::str_remove(Feature, ';.+'))
   if (!is.null(featAnno)) {
-    colnames(featAnno) <- c('Feature', 'Annotation')
-    impoFeatTab <- dplyr::left_join(impoFeatTab, featAnno, by = 'Feature') %>%
-      dplyr::mutate(Annotation = stringr::str_remove(Annotation, ';.+'),
-                    Feature = stringr::str_remove(Feature, ';.+')) %>%
-      dplyr::relocate(Annotation, .after = Feature)
-  } else {
-    impoFeatTab <- dplyr::mutate(impoFeatTab, Feature = stringr::str_remove(Feature, ';.+'))
+    impoFeatTab4Viz <- dplyr::mutate(impoFeatTab4Viz, Annotation = stringr::str_remove(Annotation, ';.+'))
   }
   
   # Visualize top important features
-  topImpoFeatTab <- impoFeatTab[seq_len(num_p1TopFeats),]
+  topImpoFeatTab <- impoFeatTab4Viz[seq_len(num_p1TopFeats),]
   p1 <- ggplot(topImpoFeatTab, aes(x=PickRate, y=factor(Annotation, levels = rev(Annotation)))) +
     geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
     labs(x = 'Feature Pick Rate (~ 1000 models)', y = 'Feature') +
     scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
     th
-  # Save top important feature table
-  topFeatTab <- topImpoFeatTab %>%
-    dplyr::rename(Protein = Feature, Gene = Annotation) %>%
-    as.data.frame()
   
   # Visualize abundances of top important features
   # Prepare data matrix and metadata including both Tumor and Normal samples
@@ -952,7 +1171,7 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
     comparisons = list(c('Yes_Tumor', 'No_Tumor'), c('Yes_Normal', 'No_Normal'))
   }
   # Extract top important features and prepare needed information
-  topImpoFeats <- impoFeatTab[1:num_p2TopFeats,] %>%
+  topImpoFeats <- impoFeatTab4Viz[1:num_p2TopFeats,] %>%
     dplyr::select(Feature, Annotation) %>%
     dplyr::mutate(newFeat = paste0(Feature, ' (', Annotation, ')'),
                   newFeat = factor(newFeat, levels = unique(newFeat)))
@@ -976,7 +1195,7 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
     theme(strip.text = element_text(size = 13, face = 'bold'),
           axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
   
-  return(list(fullImpoFeatTab = impoFeatTab, topImpoFeatTab = topFeatTab, pick = p1, abun = p2))
+  return(list(fullImpoFeatTab = impoFeatTab, pick = p1, abun = p2))
 }
 
 
