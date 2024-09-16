@@ -926,7 +926,8 @@ prepRankedFeatList <- function(statRes, featAnno = NULL, to_gene = F) {
 }
 
 
-doEA <- function(rankedList, categoryDB, subcategoryDB = NULL, numSigGS = 10, rmPrefixGS = NULL) {
+doEA <- function(rankedList, categoryDB, subcategoryDB = NULL, pvalueCutoff = 0.05,
+                 numSigGS = 10, rmPrefixGS = NULL) {
   #' Do human gene set enrichment analysis. Visualization in this function is specific
   #' to recurrence prediction task for now, assuming positive ES score corresponds
   #' to recurrence patient group
@@ -937,6 +938,8 @@ doEA <- function(rankedList, categoryDB, subcategoryDB = NULL, numSigGS = 10, rm
   #' categoryDB: A character specifying the MSigDB collection, e.g., 'H'
   #' subcategoryDB: A character specifying the subcategory in the specified MSigDB
   #' collection by the parameter 'categoryDB', e.g., 'GO:BP' in C5. Default is NULL
+  #' pvalueCutoff: A numeric value specifying the cutoff for adjusted p-values of
+  #' terms. Default is 0.05
   #' numSigGS: A numeric value specifying the number of overrepresented terms shown
   #' in the output plot. Default is 10
   #' rmPrefixGS: A regular expression specifying the prefix(es) of terms to remove
@@ -956,7 +959,7 @@ doEA <- function(rankedList, categoryDB, subcategoryDB = NULL, numSigGS = 10, rm
   # Run GSEA
   gseaRes <- clusterProfiler::GSEA(geneList = rankedList, TERM2GENE = msigTab,
                                    minGSSize = 10, maxGSSize = 500,
-                                   pvalueCutoff = 0.05, pAdjustMethod = 'BH',
+                                   pvalueCutoff = pvalueCutoff, pAdjustMethod = 'BH',
                                    by = 'fgsea', eps = 0)
   
   # Plot enrichment analysis results

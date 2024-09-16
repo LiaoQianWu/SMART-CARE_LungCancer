@@ -432,9 +432,26 @@ rankedGeneList <- mofa_rankFeatList(tidyWeiMat, factor = 3)
 
 # Do GSEA
 # Hallmark gene sets
-gseaRes_H <- doEA(rankedGeneList, categoryDB = 'H', numSigGS = 20, rmPrefixGS = '^HALLMARK_')
+gseaRes_H <- doEA(rankedGeneList, categoryDB = 'H', pvalueCutoff = 0.2, numSigGS = 20, rmPrefixGS = '^HALLMARK_')
 gseaRes_H$plotTopSigGS +
   labs(title = 'Hallmark: Factor3')
+  # theme(axis.title = element_text(size = 20),
+  #       axis.text.y = element_text(face = 'bold', size = 18), axis.text.x = element_text(face = 'bold', size = 14),
+  #       legend.title = element_text(size = 18), legend.text = element_text(size = 16))
+# ggsave('./output/Discovery/25.07.24_LGM/mofa_gsea_F3_H_cutoff0.2_combined_NTP_TTP_Klin_NTL_TTL_Hopf.png',
+#        device = 'png', dpi = 400, height = 8, width = 12)
+```
+
+```{r}
+gseaRes_GOBP <- doEA(rankedGeneList, categoryDB = 'C5', subcategoryDB = 'GO:BP', pvalueCutoff = 0.2,
+                     numSigGS = 20, rmPrefixGS = '^GOBP_')
+gseaRes_GOBP$plotTopSigGS +
+  labs(title = 'GOBP: Factor3')
+  # theme(axis.title = element_text(size = 18),
+  #       axis.text.y = element_text(face = 'bold', size = 16), axis.text.x = element_text(face = 'bold', size = 14),
+  #       legend.title = element_text(size = 18), legend.text = element_text(size = 16))
+# ggsave('./output/Discovery/25.07.24_LGM/mofa_gsea_F3_GOBP_cutoff0.2_combined_NTP_TTP_Klin_NTL_TTL_Hopf.png',
+#        device = 'png', dpi = 400, height = 8, width = 12)
 ```
 
 ## NTP + TTP + NTL + TTL (Un-Super, Correct)
