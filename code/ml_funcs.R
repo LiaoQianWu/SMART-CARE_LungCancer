@@ -275,7 +275,8 @@ runRF <- function(x, y, targetClass, iter = 1, split_method = 'random split',
               params = paramList, rfRes = rfResList, y_pred = yPredList, y_truth = yTruthList))
 }
 
-iterRF <- function(se, doImputation = F, sigFeatList = NULL, iter = 100) {
+iterRF <- function(se, doImputation = F, doInitFeatSelection = F, sigFeatList = NULL,
+                   doFeatClustering = F, iter = 100) {
   #' Iteratively train random forest models for stability selection, where input
   #' data goes through data imputation (optional), initial feature selection, feature
   #' grouping, and model training. Input data is imputed using missForest. Initial
@@ -288,10 +289,14 @@ iterRF <- function(se, doImputation = F, sigFeatList = NULL, iter = 100) {
   #' se: A SummarizedExperiment object containing a data matrix and patient recurrence information
   #' doImputation: A logical variable indicating whether to do imputation using
   #' missForest. Default is FALSE
+  #' doInitFeatSelection: A logical variable indicating whether to do initial feature
+  #' selection. Default is FALSE
   #' sigFeatList: A vector of characters indicating the features for initial feature
   #' selection to obtain a better chance to capture signals in data, for example,
   #' differential analysis results. If NULL, limma will be implemented on the input
   #' data to identify significant features. Default is NULL
+  #' doFeatClustering: A logical variable indicating whether to do group highly
+  #' correlated features using hierarchical clustering. Default is FALSE
   #' iter: A numeric value specifying the number of models to train. Default is 100
   #' 
   #' Return
@@ -316,35 +321,45 @@ iterRF <- function(se, doImputation = F, sigFeatList = NULL, iter = 100) {
   recurAnno <- tibble::as_tibble(colData(se), rownames = 'Sample') %>%
     dplyr::select(Sample, Recurrence)
   # Combine all needed information
-  allFeats <- dplyr::left_join(recurAnno, datMat, by = 'Sample') %>%
+  inputDat <- dplyr::left_join(recurAnno, datMat, by = 'Sample') %>%
     tibble::column_to_rownames('Sample')
+  
   # Do initial feature selection
-  if (!is.null(sigFeatList)) {
-    sigFeats <- dplyr::select(allFeats, c(Recurrence, sigFeatList))
-  } else {
-    # Identify recurrence-related statistically significant features
-    soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
-    sigFeats <- dplyr::select(allFeats, c(Recurrence, soaRes$featSigAssoRes$Var1))
+  if (doInitFeatSelection) {
+    if (!is.null(sigFeatList)) {
+      inputDat <- dplyr::select(inputDat, c(Recurrence, sigFeatList))
+    } else {
+      # Identify recurrence-related statistically significant features
+      soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
+      inputDat <- dplyr::select(inputDat, c(Recurrence, soaRes$featSigAssoRes$Var1))
+    }
+    print('---- INITIAL FEATURE SELECTION IS DONE ----')
   }
+  
   # Cluster highly correlated features and keep only one representative of each cluster
-  sigFeatClusters <- rmCorrFeats(t(sigFeats[, -1]), cutoff = 0.8)
-  uncorrSigFeats <- dplyr::select(sigFeats, c(Recurrence, rownames(sigFeatClusters$reducedData)))
+  if (doFeatClustering) {
+    featClusters <- rmCorrFeats(t(inputDat[, -1]), cutoff = 0.9)
+    inputDat <- dplyr::select(inputDat, c(Recurrence, rownames(featClusters$reducedData)))
+    print('---- FEATURE CLUSTERING IS DONE ----')
+  } else {
+    featClusters <- NULL
+  }
   
   # Run RF
   # Set random seed for reproducible outcomes
   set.seed(42)
-  x <- as.matrix(uncorrSigFeats[, -1])
-  y <- uncorrSigFeats[, 1]
+  x <- as.matrix(inputDat[, -1])
+  y <- inputDat[, 1]
   rfRes <- runRF(x, y, targetClass = 'Yes', iter = iter, split_method = 'random split',
                  trainSet_ratio = 0.8, ntree = 10000, plot_ROC = F, save_model = T)
   
-  return(list(rfRes = rfRes, featClusters = sigFeatClusters, impuSE = impuSE))
+  return(list(rfRes = rfRes, featClusters = featClusters, impuSE = impuSE))
 }
 
-doStabSelecRF <- function(rfRes, se, max_numTopFeats = 50) {
-  #' Do stability selection using RF model and different combinations of top important
-  #' features summarized by bootstrapped model training. Models are trained on top 2,
-  #' top 3, etc. important features 100 times, and mean AUC scores and 95% CI will be reported
+doSysTrainRF <- function(rfRes, se, max_numTopFeats = 50) {
+  #' Systematically train random forest models with different numbers of top important
+  #' features summarized by bootstrapped model training. For instance, models are
+  #' trained on top 2 important features 100 times, and mean AUC scores and 95% CI will be reported
   #' 
   #' Parameters
   #' rfRes: An output of function 'iterRF'
@@ -354,7 +369,7 @@ doStabSelecRF <- function(rfRes, se, max_numTopFeats = 50) {
   #' 'max_numTopFeats', will be used to train models. Default is 50
   #' 
   #' Return
-  #' stabModelTab: A table showing mean AUC and 95% CI of trained models
+  #' modelPerfTab: A table showing mean AUC and 95% CI of trained models
   
   # Prepare top important feature list
   # Process feature importance scores
@@ -375,11 +390,7 @@ doStabSelecRF <- function(rfRes, se, max_numTopFeats = 50) {
     dplyr::pull(Feature)
   
   # Prepare input data
-  x <- t(rfRes$featClusters$reducedData)
-  # Do sanity check
-  if (!identical(rownames(x), rownames(colData(se)))) {
-    stop("Please double check if input SE object is the one used to train models iteratively.")
-  }
+  x <- t(assay(se))
   y <- colData(se)$Recurrence
   
   # Systematically train models with different combinations of top important features
@@ -392,53 +403,62 @@ doStabSelecRF <- function(rfRes, se, max_numTopFeats = 50) {
     print(paste0('---- TOP ', num, ' FEATURES USED ----'))
     # Subset data
     topImpoFeats <- rankedImpoFeats[1:num]
-    # Train lasso logistic regression model
+    # Train random forest model
     xSub <- x[, topImpoFeats, drop = F]
-    rfResStab <- runRF(xSub, y, targetClass = 'Yes', iter = 100, split_method = 'random split',
-                       trainSet_ratio = 0.8, ntree = 10000, plot_ROC = F, save_model = F)
+    rfResSystem <- runRF(xSub, y, targetClass = 'Yes', iter = 100, split_method = 'random split',
+                         trainSet_ratio = 0.8, ntree = 10000, plot_ROC = F, save_model = F)
     # Save mean AUC and 95% CI
-    auc_roc <- rfResStab$auc_roc
+    auc_roc <- rfResSystem$auc_roc
     meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
     ci <- calcCI(auc_roc, bootstrap = T)
     lowerAUC <- c(lowerAUC, ci[1])
     upperAUC <- c(upperAUC, ci[2])
   }
   # Summarize results
-  stabModelTab <- data.frame(FeatComb = paste0('Top', numTopImpoFeats),
+  modelPerfTab <- data.frame(FeatComb = paste0('Top', numTopImpoFeats),
                              MeanAUC = meanAUC, CI95 = paste0('[', round(lowerAUC, 2),
                                                               ',', round(upperAUC, 2), ']'))
   
-  return(stabModelTab)
+  #### Return result as list for now to fit function 'vizSysTrainModelPerf'
+  #### To save scores of test samples, return votes (rfRes$test$votes[, '1']) in
+  #### function 'runRF'. Sample order of vote vector will be same as that of rfRes$rfRes$y_pred of certain model
+  return(list(summPerformanceTab = modelPerfTab))
 }
 
-vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', featAnno = NULL,
-                              num_p1TopFeats = 15, num_p2TopFeats = 6) {
+vizTopImpoFeatsRF <- function(rfRes, featAnno = NULL, fullData = NULL, trainData_smpType = 'Normal',
+                              num_p1TopFeats = 15, num_p2TopFeats = NULL) {
   #' Summarize results of trained RF models and visualize top important features.
   #' This function can be further improved and extended
   #' 
   #' Parameters
   #' rfRes: An output of function 'iterRF'
-  #' fullData: An SE object of the full version of RF training data, containing
-  #' a data matrix with all samples, e.g., Normal and Tumor tissue samples, and sample metadata
-  #' trainData_smpType: A character specifying the sample type of RF training data,
-  #' which should be 'Normal' (default) or 'Tumor'
   #' featAnno: A data frame of two columns where the first column stores feature
   #' names of the training data and the second column contains annotations of the
   #' features. Default is NULL
+  #' fullData: An SE object of the full version of RF training data for making feature
+  #' abundance boxplots (p2), containing a data matrix with all samples, e.g., Normal
+  #' and Tumor tissue samples, and sample metadata. If NULL, p2 will not be made.
+  #' Default is NULL
+  #' trainData_smpType: A character specifying the sample type of RF training data,
+  #' which should be 'Normal' (default) or 'Tumor'
   #' num_p1TopFeats: A numeric value specifying the number of top important features
   #' to show in a feature rank plot. Default is 15
   #' num_p2TopFeats: A numeric value specifying the number of top important features
-  #' to display for feature abundance boxplots. Default is 6
+  #' to display for feature abundance boxplots. If NULL, p2 will not be made. Default is NULL
   #' 
   #' Return
   #' A list containing summarized full feature importance table and two ggplot objects,
   #' feature rank and abundance plots
   
-  if (ncol(featAnno) != 2) {
-    stop("Column number of annotation data should be 2.")
+  if (!is.null(featAnno)) {
+    if (ncol(featAnno) != 2) {
+      stop("Column number of annotation data should be 2.")
+    }
   }
-  if (!trainData_smpType %in% c('Normal', 'Tumor')) {
-    stop("Argument for 'trainData_smpType' should be 'Normal' or 'Tumor'.")
+  if (!is.null(fullData)) {
+    if (!trainData_smpType %in% c('Normal', 'Tumor')) {
+      stop("Argument for 'trainData_smpType' should be 'Normal' or 'Tumor'.")
+    }
   }
   
   # Process feature importance scores
@@ -473,69 +493,89 @@ vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', fea
                                       !Cluster %in% '' ~ Cluster))
   # Collect all needed information into a table
   medianRankedFeatImpoTab <- data.frame(Feature = names(medianFeatImpo),
-                                        ImpoMedian = medianFeatImpo,
-                                        ImpoSD = round(sdFeatImpo, 2),
+                                        RankMedian = medianFeatImpo,
+                                        # RankSD = round(sdFeatImpo, 2),
                                         ImpoLowerCI = round(lowerCIFeatImpo, 1),
-                                        ImpoUpperCI = round(upperCIFeatImpo, 1)) %>%
-    dplyr::arrange(ImpoMedian) %>%
-    dplyr::left_join(featAnno, by = 'Feature') %>%
+                                        ImpoUpperCI = round(upperCIFeatImpo, 1),
+                                        CI95 = paste0('[', round(lowerCIFeatImpo, 1),
+                                                      ',', round(upperCIFeatImpo, 1), ']')) %>%
+    dplyr::arrange(RankMedian) %>%
     dplyr::left_join(featClustTab, by = 'Feature') %>%
-    dplyr::relocate(Annotation, .after = Feature) %>%
-    dplyr::relocate(Cluster, .after = Annotation) %>%
+    dplyr::relocate(Cluster, .after = Feature) %>%
     as.data.frame()
   medianRankedFeatImpoTab4Viz <- dplyr::mutate(medianRankedFeatImpoTab,
                                                Feature = stringr::str_remove(Feature, ';.+'))
   if (!is.null(featAnno)) {
-    medianRankedFeatImpoTab4Viz <- dplyr::mutate(medianRankedFeatImpoTab4Viz,
+    medianRankedFeatImpoTab <- dplyr::left_join(medianRankedFeatImpoTab, featAnno, by = 'Feature') %>%
+      dplyr::relocate(Annotation, .after = Feature)
+    medianRankedFeatImpoTab4Viz <- dplyr::mutate(medianRankedFeatImpoTab,
+                                                 Feature = stringr::str_remove(Feature, ';.+'),
                                                  Annotation = stringr::str_remove(Annotation, ';.+'))
   }
   
   # Visualize top important features
-  topFeatImpoTab <- medianRankedFeatImpoTab4Viz[seq_len(num_p1TopFeats),]
-  p1 <- ggplot(topFeatImpoTab, aes(x=ImpoMedian, y=factor(Annotation, levels = rev(Annotation)))) +
-    geom_errorbar(aes(xmin=ImpoLowerCI, xmax=ImpoUpperCI)) +
+  topImpoFeatTab <- medianRankedFeatImpoTab4Viz[seq_len(num_p1TopFeats),]
+  if (is.null(featAnno)) {
+    p1 <- ggplot(topImpoFeatTab, aes(x=RankMedian, y=factor(Feature, levels = rev(Feature))))
+  } else {
+    p1 <- ggplot(topImpoFeatTab, aes(x=RankMedian, y=factor(Annotation, levels = rev(Annotation))))
+  }
+  p1 <- p1 + geom_errorbar(aes(xmin=ImpoLowerCI, xmax=ImpoUpperCI)) +
     geom_point(size = 6) +
     labs(x = 'Median Rank of Feature Importance', y = 'Feature') +
     th
   
   # Visualize abundances of top important features
-  # Prepare data matrix and metadata including both Tumor and Normal samples
-  datMat <- assay(fullData)
-  rownames(datMat) <- stringr::str_remove(rownames(datMat), ';.+')
-  smpAnnoTab <- tibble::as_tibble(colData(fullData), rownames = 'Sample')
-  if (trainData_smpType == 'Normal') {
-    gpLevel = c('Yes_Normal', 'No_Normal', 'Yes_Tumor', 'No_Tumor')
-    condiCol = c('firebrick', 'grey50') #c(Normal, Tumor)
-    comparisons = list(c('Yes_Normal', 'No_Normal'), c('Yes_Tumor', 'No_Tumor'))
-  } else if (trainData_smpType == 'Tumor') {
-    gpLevel = c('Yes_Tumor', 'No_Tumor', 'Yes_Normal', 'No_Normal')
-    condiCol = c('grey50', 'firebrick') #c(Normal, Tumor)
-    comparisons = list(c('Yes_Tumor', 'No_Tumor'), c('Yes_Normal', 'No_Normal'))
+  if (!is.null(fullData) & !is.null(num_p2TopFeats)) {
+    # Prepare data matrix and metadata including both Tumor and Normal samples
+    datMat <- assay(fullData)
+    rownames(datMat) <- stringr::str_remove(rownames(datMat), ';.+')
+    smpAnnoTab <- tibble::as_tibble(colData(fullData), rownames = 'Sample')
+    if (trainData_smpType == 'Normal') {
+      gpLevel = c('Yes_Normal', 'No_Normal', 'Yes_Tumor', 'No_Tumor')
+      condiCol = c('firebrick', 'grey50') #c(Normal, Tumor)
+      comparisons = list(c('Yes_Normal', 'No_Normal'), c('Yes_Tumor', 'No_Tumor'))
+    } else if (trainData_smpType == 'Tumor') {
+      gpLevel = c('Yes_Tumor', 'No_Tumor', 'Yes_Normal', 'No_Normal')
+      condiCol = c('grey50', 'firebrick') #c(Normal, Tumor)
+      comparisons = list(c('Yes_Tumor', 'No_Tumor'), c('Yes_Normal', 'No_Normal'))
+    }
+    # Extract top important features and prepare needed information
+    topImpoFeatTab <- medianRankedFeatImpoTab4Viz[1:num_p2TopFeats,]
+    if (is.null(featAnno)) {
+      topImpoFeats <- dplyr::mutate(topImpoFeatTab, Feat4Viz = Feature) %>%
+        dplyr::select(Feature, Feat4Viz)
+    } else {
+      topImpoFeats <- dplr::select(topImpoFeatTab, Feature, Annotation) %>%
+        dplyr::mutate(Feat4Viz = paste0(Feature, ' (', Annotation, ')'),
+                      Feat4Viz = factor(Feat4Viz, levels = unique(Feat4Viz))) %>%
+        dplyr::select(-Annotation)
+    }
+    topImpoFeatDat <- tibble::as_tibble(datMat[topImpoFeats$Feature,], rownames = 'Feature') %>%
+      tidyr::pivot_longer(cols = -'Feature', names_to = 'Sample', values_to = 'Abundance') %>%
+      dplyr::left_join(topImpoFeats, by = 'Feature') %>%
+      dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
+      dplyr::mutate(Recur_Condi = paste0(Recurrence, '_', Condition),
+                    Recur_Condi = factor(Recur_Condi, levels = gpLevel))
+    p2 <- ggplot(topImpoFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurrence)) +
+      geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
+      geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+      ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                                 comparisons = comparisons, label = 'p.signif', tip.length = 0.015,
+                                 bracket.size = 0.7, size = 4) +
+      labs(x = 'Recurrence') +
+      scale_color_manual(values = condiCol) +
+      scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+      facet_wrap(vars(Feat4Viz), scales = 'free') +
+      th +
+      theme(strip.text = element_text(size = 13, face = 'bold'),
+            axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  } else {
+    p2 <- NULL
   }
-  # Extract top important features and prepare needed information
-  topImpoFeats <- medianRankedFeatImpoTab4Viz[1:num_p2TopFeats,] %>%
-    dplyr::select(Feature, Annotation) %>%
-    dplyr::mutate(newFeat = paste0(Feature, ' (', Annotation, ')'),
-                  newFeat = factor(newFeat, levels = unique(newFeat)))
-  topImpoFeatDat <- tibble::as_tibble(datMat[topImpoFeats$Feature,], rownames = 'Feature') %>%
-    tidyr::pivot_longer(cols = -'Feature', names_to = 'Sample', values_to = 'Abundance') %>%
-    dplyr::left_join(topImpoFeats, by = 'Feature') %>%
-    dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
-    dplyr::mutate(Recur_Condi = paste0(Recurrence, '_', Condition),
-                  Recur_Condi = factor(Recur_Condi, levels = gpLevel))
-  p2 <- ggplot(topImpoFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurrence)) +
-    geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
-    geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-    ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
-                               comparisons = comparisons, label = 'p.signif', tip.length = 0.015,
-                               bracket.size = 0.7, size = 4) +
-    labs(x = 'Recurrence') +
-    scale_color_manual(values = condiCol) +
-    scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-    facet_wrap(vars(newFeat), scales = 'free') +
-    th +
-    theme(strip.text = element_text(size = 13, face = 'bold'),
-          axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  
+  # Remove columns 'ImpoLowerCI' and 'ImpoUpperCI' for avoiding redundant information
+  medianRankedFeatImpoTab <- dplyr::select(medianRankedFeatImpoTab, -c(ImpoLowerCI, ImpoUpperCI))
   
   return(list(fullImpoFeatTab = medianRankedFeatImpoTab, rank = p1, abun = p2))
 }
@@ -543,7 +583,7 @@ vizTopImpoFeatsRF <- function(rfRes, fullData, trainData_smpType = 'Normal', fea
 
 
 
-runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds = 100,
+runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds = 1000,
                        maxDepth = 6, eta = 0.3, trainSet_ratio = 0.8, plot_ROC = F,
                        save_model = F) {
   #' Perform XGBoost for binary classification problem. Trained model is evaluated
@@ -615,15 +655,15 @@ runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds 
   if (booster == 'gbtree') {
     parameters <- list(booster = 'gbtree',
                        objective = 'binary:logistic',
-                       eval_metric = 'error',
                        eval_metric = 'logloss',
+                       eval_metric = 'auc',
                        max_depth = maxDepth,
                        eta = eta)
   } else if (booster == 'gblinear') {
     parameters <- list(booster = 'gblinear',
                        objective = 'binary:logistic',
                        eval_metric = 'logloss',
-                       eval_metric = 'error')
+                       eval_metric = 'rmse')
   }
   
   for (i in seq_len(iter)) {
@@ -715,68 +755,108 @@ runXGBoost <- function(x, y, targetClass, iter = 1, booster = 'gbtree', nrounds 
     featImpoTab <- featImpoTab[-1,] %>%
       dplyr::group_by(Feature) %>%
       dplyr::summarise(OccurRate = length(Feature)/iter, Occurrence = length(Feature),
-                       ImpoMean = mean(Gain), ImpoSD = sd(Gain)) %>%
+                       GainMean = mean(Gain), GainSD = sd(Gain)) %>%
       dplyr::arrange(dplyr::desc(Occurrence))
   } else if (booster == 'gblinear') {
-    # Compute median, SD, and CI of each feature across iterations
-    medianFeatRanks <- apply(featImpoTab, 1, median)
-    sdFeatRanks <- apply(featImpoTab, 1, sd)
-    lowerCIFeatRanks <- apply(featImpoTab, 1, function(featRanks) {
-      calcCI(featRanks, bootstrap = T)[1]
-    })
-    upperCIFeatRanks <- apply(featImpoTab, 1, function(featRanks) {
-      calcCI(featRanks, bootstrap = T)[2]
-    })
-    # Collect all needed information into a table
-    featImpoTab <- data.frame(Feature = names(medianFeatRanks),
-                              ImpoMedian = medianFeatRanks,
-                              ImpoSD = sdFeatRanks,
-                              ImpoLowerCI = lowerCIFeatRanks,
-                              ImpoUpperCI = upperCIFeatRanks) %>%
-      dplyr::arrange(ImpoMedian)
+    # Compute median, SD, and 95% CI of ranks of each feature across iterations
+    featImpoTab <- lapply(seq_len(nrow(featImpoTab)), function (rowIdx) {
+      featRanks <- featImpoTab[rowIdx,,drop = T]
+      medianFeatRank <- median(featRanks)
+      sdFeatRank <- sd(featRanks)
+      ciFeatRank <- calcCI(featRanks, bootstrap = T)
+      
+      data.frame(Feature = rownames(featImpoTab)[rowIdx],
+                 RankMedian = medianFeatRank,
+                 # RankSD = sdFeatRank,
+                 RankLowerCI = ciFeatRank[1],
+                 RankUpperCI = ciFeatRank[2],
+                 row.names = c())
+    }) %>% dplyr::bind_rows() %>%
+      dplyr::arrange(RankMedian)
   }
   
   return(list(auc_roc = aucList, featImpoTab = featImpoTab, best_nrounds = bestnroundList,
               params = paramList, xgbRes = xgbResList, y_pred = yPredList, y_truth = yTruthList))
 }
 
-iterXGBoost <- function(se, booster = 'gbtree') {
-  #' Prepare input data without missing values for XGBoost, do initial feature selection
-  #' using limma, remove highly correlated features using hierarchical clustering,
-  #' and train 1000 XGBoost. This function is currently lack of freedom and specific
-  #' to cancer recurrence prediction
+iterXGBoost <- function(se, doImputation = F, doInitFeatSelection = F, sigFeatList = NULL,
+                        doFeatClustering = F, booster = 'gbtree', iter = 100, nrounds = 1000) {
+  #' Iteratively train XGBoost models for stability selection, where input data
+  #' goes through data imputation (optional), initial feature selection, feature
+  #' grouping, and model training. Input data is imputed using missForest. Initial
+  #' feature selection is done with provided significant feature list or by significance
+  #' tests using limma, and feature grouping is done with hierarchical clustering
+  #' to remove highly correlated features. This function is currently lack of freedom
+  #' and very specific to cancer recurrence prediction
   #' 
   #' Parameter
   #' se: A SummarizedExperiment object containing a data matrix and patient recurrence information
+  #' doImputation: A logical variable indicating whether to do imputation using
+  #' missForest. Default is FALSE
+  #' doInitFeatSelection: A logical variable indicating whether to do initial feature
+  #' selection. Default is FALSE
+  #' sigFeatList: A vector of characters indicating the features for initial feature
+  #' selection to obtain a better chance to capture signals in data, for example,
+  #' differential analysis results. If NULL, limma will be implemented on the input
+  #' data to identify significant features. Default is NULL
+  #' doFeatClustering: A logical variable indicating whether to do group highly
+  #' correlated features using hierarchical clustering. Default is FALSE
   #' booster: A character specifying the booster to use, which should be one of
   #' 'gbtree' (default) or 'gblinear'
+  #' iter: A numeric value specifying the number of models to train. Default is 100
+  #' nrounds: Parameter as described in function 'xgb.train'
   #' 
   #' Return
-  #' A list containing the information of trained models and feature clustering,
-  #' which is the returns of user-defined functions, "runXGBoost" and "rmCorrFeats"
+  #' A list containing the information of trained models, feature clustering, and
+  #' imputed data if parameter 'doImputation' is set to TRUE. They are the returns
+  #' of user-defined functions, "runXGBoost", "rmCorrFeats", and "imputeByMF"
+  
+  # Do imputation using missForest
+  if (doImputation) {
+    print('---- DATA IS BEING IMPUTED ----')
+    se <- imputeByMF(se)
+    impuSE <- se
+  } else {
+    impuSE <- NULL
+  }
+  
+  # Prepare input data
+  x <- t(assay(se))
+  y <- colData(se)$Recurrence
   
   # Do initial feature selection
-  # Identify recurrence-related statistically significant features
-  soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
-  x <- t(assay(se))
-  x <- x[, colnames(x) %in% soaRes$featSigAssoRes$Var1]
+  if (doInitFeatSelection) {
+    if (!is.null(sigFeatList)) {
+      x <- x[, colnames(x) %in% sigFeatList]
+    } else {
+      # Identify recurrence-related statistically significant features
+      soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
+      x <- x[, colnames(x) %in% soaRes$featSigAssoRes$Var1]
+    }
+    print('---- INITIAL FEATURE SELECTION IS DONE ----')
+  }
+  
   # Cluster highly correlated features and keep only one representative of each cluster
-  featClusters <- rmCorrFeats(t(x), cutoff = 0.8)
-  x <- t(featClusters$reducedData)
-  y <- colData(se)$Recurrence
+  if (doFeatClustering) {
+    featClusters <- rmCorrFeats(t(x), cutoff = 0.9)
+    x <- t(featClusters$reducedData)
+    print('---- FEATURE CLUSTERING IS DONE ----')
+  } else {
+    featClusters <- NULL
+  }
   
   # Train XGBoost with tree or linear booster
   set.seed(42)
   if (booster == 'gbtree') {
-    xgbRes <- runXGBoost(x, y, targetClass = 'Yes', iter = 1000, booster = 'gbtree',
-                         nrounds = 100, maxDepth = 6, eta = 0.3, trainSet_ratio = 0.6,
+    xgbRes <- runXGBoost(x, y, targetClass = 'Yes', iter = iter, booster = 'gbtree',
+                         nrounds = nrounds, maxDepth = 6, eta = 0.3, trainSet_ratio = 0.7,
                          plot_ROC = F, save_model = T)
   } else if (booster == 'gblinear') {
-    xgbRes <- runXGBoost(x, y, targetClass = 'Yes', iter = 1000, booster = 'gblinear',
-                         nrounds = 100, trainSet_ratio = 0.6, plot_ROC = F, save_model = T)
+    xgbRes <- runXGBoost(x, y, targetClass = 'Yes', iter = iter, booster = 'gblinear',
+                         nrounds = nrounds, trainSet_ratio = 0.7, plot_ROC = F, save_model = T)
   }
   
-  return(list(xgbRes = xgbRes, featClusters = featClusters))
+  return(list(xgbRes = xgbRes, featClusters = featClusters, impuSE = impuSE))
 }
 
 
@@ -815,11 +895,15 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
   #' coefficient: A matrix containing optimized coefficients. Rows and columns present
   #' features and independent trained models
   #' usedLambda: A vector of used lambda for selected trained models
-  #' auc: A vector of computed AUC from trained models
+  #' auc_roc: A vector of computed AUC from trained models
+  #' nNonZero: A vector of counts of nonzero coefficients, i.e., selected features
   #' params: A list containing arguments of parameters 'regularized_method', 'cvFold',
   #' 'used_lambda', 'split_method', and 'trainSet_ratio'
-  #' yPredList: A list of class predictions of test set samples
-  #' yTruthList: A list of ground truth labels of test set samples
+  #' lrRes: A list of trained models
+  #' y_pred: A list of class predictions of test set samples
+  #' y_truth: A list of ground truth labels of test set samples
+  #' y_pred_link: A list of linear regression scores of test set samples, which
+  #' is the logit transformation of the output of logistic regression, log(p/(1-p))
   
   # Sanity check
   if (!(nrow(x) == length(y))) {
@@ -858,6 +942,8 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
   names(yPredList) <- as.character(seq_len(iter))
   yTruthList <- as.list(rep(NA, iter))
   names(yTruthList) <- as.character(seq_len(iter))
+  yPredLinkList <- as.list(rep(NA, iter))
+  names(yPredLinkList) <- as.character(seq_len(iter))
   
   # Encode target sample label with 1 and the other with 0
   # Will be coerced into factor and target class is the last level in alphabetical order
@@ -934,14 +1020,20 @@ runLogisR <- function(x, y, targetClass, regularized_method = 'lasso', cvFold = 
     names(y_test) <- rownames(x_test)
     yPredList[[i]] <- y_pred
     yTruthList[[i]] <- y_test
+    
+    # Save linear regression scores of test set samples
+    y_predLink <- predict(lrRes, s = lrRes[[used_lambda]], newx = x_test, type = 'link')[, 1]
+    names(y_predLink) <- rownames(x_test)
+    yPredLinkList[[i]] <- y_predLink
   }
   
   return(list(coefficient = matCoeffi, usedLambda = lambdaList, auc_roc = aucList,
               nNonZero = numNonZeroList, params = paramList, lrRes = lrResList,
-              y_pred = yPredList, y_truth = yTruthList))
+              y_pred = yPredList, y_truth = yTruthList, y_pred_link = yPredLinkList))
 }
 
-iterLogisR <- function(se, doImputation = F, sigFeatList = NULL, iter = 100, cvFold = 10, cvMeasure = 'auc') {
+iterLogisR <- function(se, doImputation = F, doInitFeatSelection = F, sigFeatList = NULL,
+                       doFeatClustering = F, iter = 100, cvFold = 10, cvMeasure = 'auc') {
   #' Iteratively train lasso logistic regression models for stability selection,
   #' where input data goes through data imputation (optional), initial feature selection,
   #' feature grouping, and model training. Input data is imputed using missForest.
@@ -951,14 +1043,17 @@ iterLogisR <- function(se, doImputation = F, sigFeatList = NULL, iter = 100, cvF
   #' lack of freedom and very specific to cancer recurrence prediction
   #' 
   #' Parameter
-  #' se: A SummarizedExperiment object containing a data matrix and patient recurrence
-  #' information. If imputation is needed, the input SE object should have been imputed
+  #' se: A SummarizedExperiment object containing a data matrix and patient recurrence information
   #' doImputation: A logical variable indicating whether to do imputation using
   #' missForest. Default is FALSE
+  #' doInitFeatSelection: A logical variable indicating whether to do initial feature
+  #' selection. Default is FALSE
   #' sigFeatList: A vector of characters indicating the features for initial feature
   #' selection to obtain a better chance to capture signals in data, for example,
   #' differential analysis results. If NULL, limma will be implemented on the input
   #' data to identify significant features. Default is NULL
+  #' doFeatClustering: A logical variable indicating whether to do group highly
+  #' correlated features using hierarchical clustering. Default is FALSE
   #' iter: A numeric value specifying the number of models to train. Default is 100
   #' cvFold: A numeric value specifying the number of folds for cross-validation
   #' for optimizing lambda. Default is 10, and it can be as large as the sample size
@@ -978,19 +1073,31 @@ iterLogisR <- function(se, doImputation = F, sigFeatList = NULL, iter = 100, cvF
   } else {
     impuSE <- NULL
   }
-  # Do initial feature selection
+  
+  # Prepare input data
   x <- t(assay(se))
-  if (!is.null(sigFeatList)) {
-    x <- x[, colnames(x) %in% sigFeatList]
-  } else {
-    # Identify recurrence-related statistically significant features
-    soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
-    x <- x[, colnames(x) %in% soaRes$featSigAssoRes$Var1]
-  }
-  # Cluster highly correlated features and keep only one representative of each cluster
-  featClusters <- rmCorrFeats(t(x), cutoff = 0.8)
-  x <- t(featClusters$reducedData)
   y <- colData(se)$Recurrence
+  
+  # Do initial feature selection
+  if (doInitFeatSelection) {
+    if (!is.null(sigFeatList)) {
+      x <- x[, colnames(x) %in% sigFeatList]
+    } else {
+      # Identify recurrence-related statistically significant features
+      soaRes <- doSOA(se, meta_var = 'Recurrence', use_limma = T)
+      x <- x[, colnames(x) %in% soaRes$featSigAssoRes$Var1]
+    }
+    print('---- INITIAL FEATURE SELECTION IS DONE ----')
+  }
+  
+  # Cluster highly correlated features and keep only one representative of each cluster
+  if (doFeatClustering) {
+    featClusters <- rmCorrFeats(t(x), cutoff = 0.9)
+    x <- t(featClusters$reducedData)
+    print('---- FEATURE CLUSTERING IS DONE ----')
+  } else {
+    featClusters <- NULL
+  }
   
   # Train lasso logistic regression model
   set.seed(42)
@@ -1002,11 +1109,11 @@ iterLogisR <- function(se, doImputation = F, sigFeatList = NULL, iter = 100, cvF
   return(list(lrRes = lrRes, featClusters = featClusters, impuSE = impuSE))
 }
 
-doStabSelecLogisR <- function(lrRes, se, max_numTopFeats = 50) {
-  #' Do stability selection using lasso logistic regression model and different
-  #' combinations of top important features summarized by bootstrapped model training.
-  #' Models are trained on top 2, top 3, etc. important features 100 times, and
-  #' mean AUC scores and 95% CI will be reported
+doSysTrainLogisR <- function(lrRes, se, max_numTopFeats = 50) {
+  #' Systematically train lasso logistic regression models with different numbers
+  #' of top important features summarized by bootstrapped model training. For instance,
+  #' models are trained on top 2 important features 100 times, and mean AUC scores
+  #' and 95% CI will be reported
   #' 
   #' Parameters
   #' lrRes: An output of function 'iterLogisR'
@@ -1016,7 +1123,8 @@ doStabSelecLogisR <- function(lrRes, se, max_numTopFeats = 50) {
   #' 'max_numTopFeats', will be used to train models. Default is 50
   #' 
   #' Return
-  #' stabModelTab: A table showing mean AUC and 95% CI of trained models
+  #' A list containing summarized table showing mean AUC and 95% CI of trained models
+  #' and all training results for latter whatever use
   
   # Prepare top important feature list
   # Pinpoint useless models that will be removed
@@ -1024,6 +1132,7 @@ doStabSelecLogisR <- function(lrRes, se, max_numTopFeats = 50) {
   # Prepare coefficient table
   coefTab <- lrRes$lrRes$coefficient
   if (length(uselessModels) != 0) {
+    message(paste(length(uselessModels), 'models with no non-zero coefficient, i.e., useless models.'))
     coefTab <- coefTab[, -uselessModels]
   }
   # Summarize feature selection results into pick rates and rank features by pick rates
@@ -1039,11 +1148,7 @@ doStabSelecLogisR <- function(lrRes, se, max_numTopFeats = 50) {
     dplyr::pull(Feature)
   
   # Prepare input data
-  x <- t(lrRes$featClusters$reducedData)
-  # Do sanity check
-  if (!identical(rownames(x), rownames(colData(se)))) {
-    stop("Please double check if input SE object is the one used to train models iteratively.")
-  }
+  x <- t(assay(se))
   y <- colData(se)$Recurrence
   
   # Systematically train models with different combinations of top important features
@@ -1052,59 +1157,68 @@ doStabSelecLogisR <- function(lrRes, se, max_numTopFeats = 50) {
   meanAUC <- c()
   lowerAUC <- c()
   upperAUC <- c()
+  trainRes <- list()
   for (num in numTopImpoFeats) {
     print(paste0('---- TOP ', num, ' FEATURES USED ----'))
     # Subset data
     topImpoFeats <- rankedImpoFeats[1:num]
     # Train lasso logistic regression model
     xSub <- x[, topImpoFeats, drop = F]
-    lrResStab <- runLogisR(xSub, y, targetClass = 'Yes', iter = 100, regularized_method = 'lasso',
-                           cvFold = lrRes$lrRes$params$cvFold, cvMeasure = lrRes$lrRes$params$cvMeasure,
-                           used_lambda = 'lambda.min', trainSet_ratio = 0.8, split_method = 'random split',
-                           plot_ROC = F, save_model = F)
+    lrResSystem <- runLogisR(xSub, y, targetClass = 'Yes', iter = 100, regularized_method = 'lasso',
+                             cvFold = lrRes$lrRes$params$cvFold, cvMeasure = lrRes$lrRes$params$cvMeasure,
+                             used_lambda = 'lambda.min', trainSet_ratio = 0.8, split_method = 'random split',
+                             plot_ROC = F, save_model = F)
     # Save mean AUC and 95% CI
-    auc_roc <- lrResStab$auc_roc
+    auc_roc <- lrResSystem$auc_roc
     meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
     ci <- calcCI(auc_roc, bootstrap = T)
     lowerAUC <- c(lowerAUC, ci[1])
     upperAUC <- c(upperAUC, ci[2])
+    # Save training results
+    trainRes[[paste0('Top', num)]] <- lrResSystem
   }
   # Summarize results
-  stabModelTab <- data.frame(FeatComb = paste0('Top', numTopImpoFeats),
+  modelPerfTab <- data.frame(FeatComb = paste0('Top', numTopImpoFeats),
                              MeanAUC = meanAUC, CI95 = paste0('[', round(lowerAUC, 2),
                                                               ',', round(upperAUC, 2), ']'))
   
-  return(stabModelTab)
+  return(list(summPerformanceTab = modelPerfTab, allTrainRes = trainRes))
 }
 
-vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', featAnno = NULL,
-                              num_p1TopFeats = 15, num_p2TopFeats = 6) {
+vizTopImpoFeatsLR <- function(lrRes, featAnno = NULL, fullData = NULL, trainData_smpType = 'Normal',
+                              num_p1TopFeats = 15, num_p2TopFeats = NULL) {
   #' Summarize results of trained logistic regression models and visualize top important
-  #' features. This function can be further improved and extended
+  #' features. This function should be further improved and extended
   #' 
   #' Parameters
   #' lrRes: An output of function 'iterLogisR'
-  #' fullData: An SE object of the full version of RF training data, containing
-  #' a data matrix with all samples, e.g., Normal and Tumor tissue samples, and sample metadata
-  #' trainData_smpType: A character specifying the sample type of RF training data,
-  #' which should be 'Normal' (default) or 'Tumor'
   #' featAnno: A data frame of two columns where the first column stores feature
   #' names of the training data and the second column contains annotations of the
   #' features. Default is NULL
+  #' fullData: An SE object of the full version of RF training data for making feature
+  #' abundance boxplots (p2), containing a data matrix with all samples, e.g., Normal
+  #' and Tumor tissue samples, and sample metadata. If NULL, p2 will not be made.
+  #' Default is NULL
+  #' trainData_smpType: A character specifying the sample type of RF training data,
+  #' which should be 'Normal' (default) or 'Tumor'
   #' num_p1TopFeats: A numeric value specifying the number of top important features
   #' to show in a feature pick rate plot. Default is 15
   #' num_p2TopFeats: A numeric value specifying the number of top important features
-  #' to display for feature abundance boxplots. Default is 6
+  #' to display for feature abundance boxplots. If NULL, p2 will not be made. Default is NULL
   #' 
   #' Return
   #' A list containing summarized full feature importance table and two ggplot objects,
   #' feature pick rate and abundance plots
   
-  if (ncol(featAnno) != 2) {
-    stop("Column number of annotation data should be 2.")
+  if (!is.null(featAnno)) {
+    if (ncol(featAnno) != 2) {
+      stop("Column number of annotation data should be 2.")
+    }
   }
-  if (!trainData_smpType %in% c('Normal', 'Tumor')) {
-    stop("Argument for 'trainData_smpType' should be 'Normal' or 'Tumor'.")
+  if (!is.null(fullData)) {
+    if (!trainData_smpType %in% c('Normal', 'Tumor')) {
+      stop("Argument for 'trainData_smpType' should be 'Normal' or 'Tumor'.")
+    }
   }
   
   # Summarize feature selection results
@@ -1138,64 +1252,230 @@ vizTopImpoFeatsLR <- function(lrRes, fullData, trainData_smpType = 'Normal', fea
     dplyr::summarise(PickRate = sum(Pick)/ncol(coefTab)) %>%
     dplyr::filter(PickRate != 0) %>%
     dplyr::arrange(desc(PickRate)) %>%
-    dplyr::left_join(featAnno, by = 'Feature') %>%
     dplyr::left_join(featClustTab, by = 'Feature') %>%
-    dplyr::relocate(Annotation, .after = Feature) %>%
-    dplyr::relocate(Cluster, .after = Annotation) %>%
+    dplyr::relocate(Cluster, .after = Feature) %>%
     as.data.frame()
   impoFeatTab4Viz <- dplyr::mutate(impoFeatTab, Feature = stringr::str_remove(Feature, ';.+'))
   if (!is.null(featAnno)) {
-    impoFeatTab4Viz <- dplyr::mutate(impoFeatTab4Viz, Annotation = stringr::str_remove(Annotation, ';.+'))
+    impoFeatTab <- dplyr::left_join(impoFeatTab, featAnno, by = 'Feature') %>%
+      dplyr::relocate(Annotation, .after = Feature)
+    impoFeatTab4Viz <- dplyr::mutate(impoFeatTab, Feature = stringr::str_remove(Feature, ';.+'),
+                                     Annotation = stringr::str_remove(Annotation, ';.+'))
   }
   
   # Visualize top important features
   topImpoFeatTab <- impoFeatTab4Viz[seq_len(num_p1TopFeats),]
-  p1 <- ggplot(topImpoFeatTab, aes(x=PickRate, y=factor(Annotation, levels = rev(Annotation)))) +
-    geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
+  if (is.null(featAnno)) {
+    p1 <- ggplot(topImpoFeatTab, aes(x=PickRate, y=factor(Feature, levels = rev(Feature))))
+  } else {
+    p1 <- ggplot(topImpoFeatTab, aes(x=PickRate, y=factor(Annotation, levels = rev(Annotation))))
+  }
+  p1 <- p1 + geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
     labs(x = 'Feature Pick Rate (~ 1000 models)', y = 'Feature') +
     scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
     th
   
   # Visualize abundances of top important features
-  # Prepare data matrix and metadata including both Tumor and Normal samples
-  datMat <- assay(fullData)
-  rownames(datMat) <- stringr::str_remove(rownames(datMat), ';.+')
-  smpAnnoTab <- tibble::as_tibble(colData(fullData), rownames = 'Sample')
-  if (trainData_smpType == 'Normal') {
-    gpLevel = c('Yes_Normal', 'No_Normal', 'Yes_Tumor', 'No_Tumor')
-    condiCol = c('firebrick', 'grey50') #c(Normal, Tumor)
-    comparisons = list(c('Yes_Normal', 'No_Normal'), c('Yes_Tumor', 'No_Tumor'))
-  } else if (trainData_smpType == 'Tumor') {
-    gpLevel = c('Yes_Tumor', 'No_Tumor', 'Yes_Normal', 'No_Normal')
-    condiCol = c('grey50', 'firebrick') #c(Normal, Tumor)
-    comparisons = list(c('Yes_Tumor', 'No_Tumor'), c('Yes_Normal', 'No_Normal'))
+  if (!is.null(fullData) & !is.null(num_p2TopFeats)) {
+    # Prepare data matrix and metadata including both Tumor and Normal samples
+    datMat <- assay(fullData)
+    rownames(datMat) <- stringr::str_remove(rownames(datMat), ';.+')
+    smpAnnoTab <- tibble::as_tibble(colData(fullData), rownames = 'Sample')
+    if (trainData_smpType == 'Normal') {
+      gpLevel = c('Yes_Normal', 'No_Normal', 'Yes_Tumor', 'No_Tumor')
+      condiCol = c('firebrick', 'grey50') #c(Normal, Tumor)
+      comparisons = list(c('Yes_Normal', 'No_Normal'), c('Yes_Tumor', 'No_Tumor'))
+    } else if (trainData_smpType == 'Tumor') {
+      gpLevel = c('Yes_Tumor', 'No_Tumor', 'Yes_Normal', 'No_Normal')
+      condiCol = c('grey50', 'firebrick') #c(Normal, Tumor)
+      comparisons = list(c('Yes_Tumor', 'No_Tumor'), c('Yes_Normal', 'No_Normal'))
+    }
+    # Extract top important features and prepare needed information
+    topImpoFeatTab <- impoFeatTab4Viz[1:num_p2TopFeats,]
+    if (is.null(featAnno)) {
+      topImpoFeats <- dplyr::mutate(topImpoFeatTab, Feat4Viz = Feature) %>%
+        dplyr::select(Feature, Feat4Viz)
+    } else {
+      topImpoFeats <- dplyr::select(topImpoFeatTab, Feature, Annotation) %>%
+        dplyr::mutate(Feat4Viz = paste0(Feature, ' (', Annotation, ')'),
+                      Feat4Viz = factor(Feat4Viz, levels = unique(Feat4Viz))) %>%
+        dplyr::select(-Annotation)
+    }
+    topImpoFeatDat <- tibble::as_tibble(datMat[topImpoFeats$Feature,], rownames = 'Feature') %>%
+      tidyr::pivot_longer(cols = -'Feature', names_to = 'Sample', values_to = 'Abundance') %>%
+      dplyr::left_join(topImpoFeats, by = 'Feature') %>%
+      dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
+      dplyr::mutate(Recur_Condi = paste0(Recurrence, '_', Condition),
+                    Recur_Condi = factor(Recur_Condi, levels = gpLevel))
+    p2 <- ggplot(topImpoFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurrence)) +
+      geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
+      geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
+      ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
+                                 comparisons = comparisons, label = 'p.signif', tip.length = 0.015,
+                                 bracket.size = 0.7, size = 4) +
+      labs(x = 'Recurrence') +
+      scale_color_manual(values = condiCol) +
+      scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
+      facet_wrap(vars(Feat4Viz), scales = 'free') +
+      th +
+      theme(strip.text = element_text(size = 13, face = 'bold'),
+            axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  } else {
+    p2 <- NULL
   }
-  # Extract top important features and prepare needed information
-  topImpoFeats <- impoFeatTab4Viz[1:num_p2TopFeats,] %>%
-    dplyr::select(Feature, Annotation) %>%
-    dplyr::mutate(newFeat = paste0(Feature, ' (', Annotation, ')'),
-                  newFeat = factor(newFeat, levels = unique(newFeat)))
-  topImpoFeatDat <- tibble::as_tibble(datMat[topImpoFeats$Feature,], rownames = 'Feature') %>%
-    tidyr::pivot_longer(cols = -'Feature', names_to = 'Sample', values_to = 'Abundance') %>%
-    dplyr::left_join(topImpoFeats, by = 'Feature') %>%
-    dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
-    dplyr::mutate(Recur_Condi = paste0(Recurrence, '_', Condition),
-                  Recur_Condi = factor(Recur_Condi, levels = gpLevel))
-  p2 <- ggplot(topImpoFeatDat, aes(x=Recur_Condi, y=Abundance, col=Condition, fill=Recurrence)) +
-    geom_boxplot(alpha = 1, outlier.shape = NA, linewidth = 1) +
-    geom_jitter(position = position_jitter(0.2), size = 2, show.legend = F) +
-    ggpubr::stat_compare_means(method = 't.test', paired = F, method.args = list(var.equal = T),
-                               comparisons = comparisons, label = 'p.signif', tip.length = 0.015,
-                               bracket.size = 0.7, size = 4) +
-    labs(x = 'Recurrence') +
-    scale_color_manual(values = condiCol) +
-    scale_fill_manual(values=c('#00BFC4', '#F8766D')) +
-    facet_wrap(vars(newFeat), scales = 'free') +
-    th +
-    theme(strip.text = element_text(size = 13, face = 'bold'),
-          axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
   
   return(list(fullImpoFeatTab = impoFeatTab, pick = p1, abun = p2))
+}
+
+
+
+
+vizSysTrainModelPerf <- function(sysTrainRes, numTopFeats = 30) {
+  #' Visualize performance of models systematically trained with different numbers
+  #' of top important features summarized by bootstrapped model training
+  #' 
+  #' sysTrainRes: An output of function 'doSysTrainLogisR'
+  #' numTopFeats: A numeric value meaning that trained models until with the certain
+  #' number of top important features will be shown. Default is 30
+  
+  summPerfTab <- sysTrainRes$summPerformanceTab
+  sysModelTab4Viz <- dplyr::filter(summPerfTab, FeatComb %in% paste0('Top', 2:numTopFeats)) %>%
+    dplyr::mutate(lower = stringr::str_extract(CI95, '0.\\d*'),
+                  lower = as.numeric(lower),
+                  upper = stringr::str_extract(CI95, ',0.\\d*|,1'),
+                  upper = stringr::str_remove(upper, '^,'),
+                  upper = as.numeric(upper),
+                  FeatComb = stringr::str_remove(FeatComb, '^Top'),
+                  FeatComb = factor(FeatComb, levels = FeatComb))
+  
+  ggplot(sysModelTab4Viz, aes(x=FeatComb, y=MeanAUC)) +
+    geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
+    geom_errorbar(aes(ymin=lower, ymax=upper), width = 0.5) +
+    labs(x = 'Number of top important features', y = 'Mean AUC') +
+    th +
+    theme(axis.title = element_text(size = 24), axis.text = element_text(size = 22),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+}
+
+vizCoreFeats <- function(lrRes, sysTrainRes, se, heatmap_numCoreFeats, scatter_twoCoreFeats,
+                         colFeatAnno = NULL, rmUnwantedSmp = NULL, ...) {
+  #' Make heatmap and scatterplot to have further investigation of core features
+  #' that give rise to models with best performance. Heatmap displays abundances
+  #' of core features, where samples are ordered by average linear regression scores
+  #' and features are ordered by importance. Scatterplot visualizes predictive power
+  #' of selected two core features
+  #' 
+  #' lrRes: An output of function 'iterLogisR'
+  #' sysTrainRes: An output of function 'doSysTrainLogisR'
+  #' se: A SummarizedExperiment object used as the input to function 'iterLogisR'
+  #' heatmap_numCoreFeats: A numeric value specifying the number of top important
+  #' features to display in a heatmap
+  #' scatter_twoCoreFeats: A length-2 vector of characters indicating two core features
+  #' to use to make a scatterplot. Note that the argument of this parameter depends
+  #' on parameter 'colFeatAnno'. If colFeatAnno is NULL, feature names should be
+  #' chosen from the original feature space of an input SE object (se). If colFeatAnno
+  #' is specified, feature names should be chosen from the annotations of the original
+  #' feature space, i.e., the column selected in rowData(se)
+  #' colFeatAnno: A character specifying the column name of feature annotations
+  #' stored in rowData(se). Default is NULL
+  #' rmUnwantedSmp: A character or a vector of characters indicating the sample(s)
+  #' to remove from visualization. Default is NULL
+  #' ...: Further arguments to be passed to 'pheatmap', e.g., 'fontsize'
+  
+  # Prepare top important feature list
+  # Pinpoint useless models that will be removed
+  uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+  # Prepare coefficient table
+  coefTab <- lrRes$lrRes$coefficient
+  if (length(uselessModels) != 0) {
+    message(paste(length(uselessModels), 'models with no non-zero coefficient, i.e., useless models.'))
+    coefTab <- coefTab[, -uselessModels]
+  }
+  # Summarize feature selection results into pick rates and rank features by pick rates
+  rankedImpoFeats <- as.data.frame(coefTab) %>%
+    dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
+                                                   .x == 0 ~ 0))) %>%
+    tibble::rownames_to_column('Feature') %>%
+    tidyr::pivot_longer(cols = -'Feature', names_to = 'Model', values_to = 'Pick') %>%
+    dplyr::group_by(Feature) %>%
+    dplyr::summarise(PickRate = sum(Pick)/ncol(coefTab)) %>%
+    dplyr::filter(PickRate != 0) %>%
+    dplyr::arrange(desc(PickRate)) %>%
+    dplyr::pull(Feature)
+  
+  # Prepare average linear regression scores of samples
+  # Retrieve sample scores of best models
+  lrResBest <- sysTrainRes$allTrainRes[[paste0('Top', heatmap_numCoreFeats)]]
+  yPredLinkList <- lrResBest$y_pred_link
+  # Compute average sample scores
+  yPredLinkTab <- data.frame(Sample = names(yPredLinkList[[1]]),
+                             Score = yPredLinkList[[1]],
+                             row.names = NULL)
+  for (i in 2:length(yPredLinkList)) {
+    yPredLink <- yPredLinkList[[i]]
+    tmp_yPredLinkTab <- data.frame(Sample = names(yPredLinkList[[i]]),
+                                   Score = yPredLinkList[[i]],
+                                   row.names = NULL)
+    yPredLinkTab <- dplyr::bind_rows(yPredLinkTab, tmp_yPredLinkTab)
+  }
+  yPredLinkTab <- dplyr::group_by(yPredLinkTab, Sample) %>%
+    dplyr::summarise(Score = mean(Score)) %>%
+    dplyr::arrange(dplyr::desc(Score))
+  
+  # Make heatmap showing abundances of core features that give rise to best models
+  # Prepare data matrix where features are ordered by importance and samples are
+  # ordered by average sample scores
+  # Remove unwanted samples from visualization if provided
+  if (!is.null(rmUnwantedSmp)) {
+    yPredLinkTab <- dplyr::filter(yPredLinkTab, !Sample %in% rmUnwantedSmp)
+  }
+  seSub <- se[rankedImpoFeats[1:heatmap_numCoreFeats], yPredLinkTab$Sample]
+  datMatSub <- assay(seSub)
+  # Map features to annotations if provided
+  if (!is.null(colFeatAnno)) {
+    rownames(datMatSub) <- rowData(seSub)[[colFeatAnno]] %>%
+      stringr::str_remove(';.+$')
+  }
+  # Prepare sample annotations (Score and Recurrence) and colors for Recurrence
+  smpAnnoTab <- tibble::as_tibble(colData(seSub), rownames = 'Sample') %>%
+    dplyr::select(Sample, Recurrence) %>%
+    dplyr::left_join(yPredLinkTab, by = 'Sample') %>%
+    tibble::column_to_rownames('Sample')
+  smpAnnoCols <- list(Recurrence = c(Yes = '#F8766D', No = '#00BFC4'))
+  
+  heatmap <- pheatmap::pheatmap(datMatSub, annotation_col = smpAnnoTab, scale = 'row',
+                                color = colorRampPalette(c('navy', 'white', 'red'))(100),
+                                annotation_colors = smpAnnoCols, cluster_rows = F,
+                                cluster_cols = F, silent = T, ...) %>%
+    ggplotify::as.ggplot()
+  
+  
+  # Make scatterplot visualizing predictive power of two selected core features
+  # Prepare long table with two core features selected and needed information for visualization
+  recurInfo <- tibble::as_tibble(colData(seSub), rownames = 'Sample') %>%
+    dplyr::select(Sample, Recurrence)
+  twoFeatTab4Viz <- summExp2df(seSub, row_id = 'Feature', col_id = 'Sample')
+  if (!is.null(colFeatAnno)) {
+    twoFeatTab4Viz <- dplyr::filter(twoFeatTab4Viz, .data[[colFeatAnno]] %in% scatter_twoCoreFeats) %>%
+      dplyr::select(all_of(colFeatAnno), Sample, Value) %>%
+      tidyr::pivot_wider(names_from = colFeatAnno, values_from = 'Value')
+  } else {
+    twoFeatTab4Viz <- dplyr::filter(twoFeatTab4Viz, Feature %in% scatter_twoCoreFeats) %>%
+      dplyr::select(Feature, Sample, Value) %>%
+      tidyr::pivot_wider(names_from = 'Feature', values_from = 'Value')
+  }
+  twoFeatTab4Viz <- dplyr::left_join(twoFeatTab4Viz, recurInfo, by = 'Sample') %>%
+    dplyr::mutate(Recurrence = factor(Recurrence, levels = c('Yes', 'No')))
+  
+  scatter <- ggplot(twoFeatTab4Viz, aes(x=.data[[scatter_twoCoreFeats[1]]],
+                                        y=.data[[scatter_twoCoreFeats[2]]],
+                                        col=Recurrence)) +
+    geom_point(size = 6) +
+    th +
+    theme(axis.title = element_text(size = 24), axis.text = element_text(size = 22),
+          legend.title = element_text(size = 24), legend.text = element_text(size = 22))
+  
+  return(list(heatmap = heatmap, scatterplot = scatter))
 }
 
 
