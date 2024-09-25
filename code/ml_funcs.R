@@ -812,6 +812,9 @@ iterXGBoost <- function(se, doImputation = F, doInitFeatSelection = F, sigFeatLi
   #' of user-defined functions, "runXGBoost", "rmCorrFeats", and "imputeByMF"
   
   # Do imputation using missForest
+  # XGBoost supports missing values by default. Branch directions for missing values
+  # are learned during training. Note that 'gblinear' booster treats missing values
+  # as zeros.
   if (doImputation) {
     print('---- DATA IS BEING IMPUTED ----')
     se <- imputeByMF(se)
