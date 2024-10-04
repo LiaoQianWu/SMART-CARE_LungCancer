@@ -1150,6 +1150,12 @@ doSysTrainLogisR <- function(lrRes, se, max_numTopFeats = 50) {
     dplyr::arrange(desc(PickRate)) %>%
     dplyr::pull(Feature)
   
+  # Reset parameter 'max_numTopFeats' if it is larger than number of selected features
+  # to avoid error in data subsetting
+  if (max_numTopFeats > length(rankedImpoFeats)) {
+    max_numTopFeats <- length(rankedImpoFeats)
+  }
+  
   # Prepare input data
   x <- t(assay(se))
   y <- colData(se)$Recurrence
@@ -1267,6 +1273,11 @@ vizTopImpoFeatsLR <- function(lrRes, featAnno = NULL, fullData = NULL, trainData
   }
   
   # Visualize top important features
+  # Reset parameter 'num_p1TopFeats' if it is larger than number of selected features
+  # to avoid NA in visualization
+  if (num_p1TopFeats > nrow(impoFeatTab4Viz)) {
+    num_p1TopFeats <- nrow(impoFeatTab4Viz)
+  }
   topImpoFeatTab <- impoFeatTab4Viz[seq_len(num_p1TopFeats),]
   if (is.null(featAnno)) {
     p1 <- ggplot(topImpoFeatTab, aes(x=PickRate, y=factor(Feature, levels = rev(Feature))))
@@ -1294,6 +1305,11 @@ vizTopImpoFeatsLR <- function(lrRes, featAnno = NULL, fullData = NULL, trainData
       comparisons = list(c('Yes_Tumor', 'No_Tumor'), c('Yes_Normal', 'No_Normal'))
     }
     # Extract top important features and prepare needed information
+    # Reset parameter 'num_p2TopFeats' if it is larger than number of selected features
+    # to avoid NA in visualization
+    if (num_p2TopFeats > nrow(impoFeatTab4Viz)) {
+      num_p2TopFeats <- nrow(impoFeatTab4Viz)
+    }
     topImpoFeatTab <- impoFeatTab4Viz[1:num_p2TopFeats,]
     if (is.null(featAnno)) {
       topImpoFeats <- dplyr::mutate(topImpoFeatTab, Feat4Viz = Feature) %>%
@@ -1304,7 +1320,7 @@ vizTopImpoFeatsLR <- function(lrRes, featAnno = NULL, fullData = NULL, trainData
                       Feat4Viz = factor(Feat4Viz, levels = unique(Feat4Viz))) %>%
         dplyr::select(-Annotation)
     }
-    topImpoFeatDat <- tibble::as_tibble(datMat[topImpoFeats$Feature,], rownames = 'Feature') %>%
+    topImpoFeatDat <- tibble::as_tibble(datMat[topImpoFeats$Feature,, drop = F], rownames = 'Feature') %>%
       tidyr::pivot_longer(cols = -'Feature', names_to = 'Sample', values_to = 'Abundance') %>%
       dplyr::left_join(topImpoFeats, by = 'Feature') %>%
       dplyr::left_join(smpAnnoTab, by = 'Sample') %>%
