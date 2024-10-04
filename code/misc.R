@@ -576,14 +576,15 @@ doSOA <- function(summ_exp, meta_var, pca_method = 'pca', num_PCs = 20, alpha = 
 
 doSVA <- function(summExp, wantedVar, unwantedVar = NULL, numSV_method = 'be',
                   asso_metaVar = NULL) {
-  #' Do surrogate variable analysis to identify latent factors that explain unknown
-  #' variance and correct data using identified SVs
+  #' Do surrogate variable analysis to identify latent factors that explain unknown,
+  #' unmeasured, or unmodeled variance and correct data using constructed SVs
   #' 
   #' Parameters
   #' summExp: An input SummarizedExperiment object containing the data matrix to
   #' do SVA and sample metadata to do association tests (optional)
   #' wantedVar: A character or a vector of characters indicating the variable(S)
-  #' in the sample metadata from an SE object, the sources of variation to keep
+  #' in the sample metadata from an SE object, the sources of variation to keep.
+  #' Note that interaction terms are applicable, e.g., Condition:Recurrence
   #' unwantedVar: A character or a vector of characters indicating the variable(S)
   #' in the sample metadata from an SE object, the sources of variation to adjust.
   #' Default is NULL, which adjusts all identified sources of variation, except
@@ -606,11 +607,19 @@ doSVA <- function(summExp, wantedVar, unwantedVar = NULL, numSV_method = 'be',
   if (!is(summExp, 'SummarizedExperiment')) {
     stop("This function takes only 'SummarizedExperiment' object for now.")
   }
-  if (!is(wantedVar, 'character') | !all(wantedVar %in% colnames(colData(summExp)))) {
+  # Split interaction terms into characters
+  tmp_wantedVar <- stringr::str_extract_all(wantedVar, '\\w+') %>%
+    unlist() %>%
+    unique()
+  if (!is(wantedVar, 'character') | !all(tmp_wantedVar %in% colnames(colData(summExp)))) {
     stop("Argument for 'wantedVar' should be class 'character' and included in sample metadata.")
   }
+  # Split interaction terms into characters
+  tmp_unwantedVar <- stringr::str_extract_all(unwantedVar, '\\w+') %>%
+    unlist() %>%
+    unique()
   if (!is.null(unwantedVar)) {
-    if (!is(unwantedVar, 'character') | !all(unwantedVar %in% colnames(colData(summExp)))) {
+    if (!is(unwantedVar, 'character') | !all(tmp_unwantedVar %in% colnames(colData(summExp)))) {
       stop("Argument for 'unwantedVar' should be class 'character' and included in sample metadata.")
     }
   }
@@ -619,6 +628,7 @@ doSVA <- function(summExp, wantedVar, unwantedVar = NULL, numSV_method = 'be',
       stop("Argument for 'asso_metaVar' should be class 'character' and included in sample metadata.")
     }
   }
+  rm(tmp_wantedVar, tmp_unwantedVar)
   
   # Prepare data matrix and sample metadata table for creating model matrices
   datMat <- as.matrix(assay(summExp))
@@ -626,17 +636,27 @@ doSVA <- function(summExp, wantedVar, unwantedVar = NULL, numSV_method = 'be',
   keptFeats <- apply(datMat, 1, function(featVec) {
     !any(is.na(featVec))
   })
+  if (length(keptFeats)/nrow(datMat) < 0.33) {
+    message("Complete features less than one third in data...")
+  }
   datMat <- datMat[keptFeats,]
   metadatTab <- colData(summExp) %>%
     tibble::as_tibble(rownames = 'Sample')
-  # Create full model matrix including both adjustment variables and variables of interest
-  formu <- paste0('~', paste0(wantedVar, collapse = '+')) %>%
-    as.formula()
-  modelMat <- model.matrix(formu, data = metadatTab)
-  # Create null model matrix including only adjustment variables
+  # Create model matrices to remove interesting effects from data to obtain residual
+  # expression matrix (expression heterogeneity)
   if (is.null(unwantedVar)) {
+    # Create full model matrix including both adjustment variables and variables of interest
+    formu <- paste0('~', paste0(wantedVar, collapse = '+')) %>%
+      as.formula()
+    modelMat <- model.matrix(formu, data = metadatTab)
+    # Create null model matrix including only adjustment variables
     modelMat0 <- model.matrix(~ 1, data = metadatTab)
   } else {
+    # Create full model matrix
+    formu <- paste0('~', paste0(c(wantedVar, unwantedVar), collapse = '+')) %>%
+      as.formula()
+    modelMat <- model.matrix(formu, data = metadatTab)
+    # Create null model matrix
     formu <- paste0('~', paste0(unwantedVar, collapse = '+')) %>%
       as.formula()
     modelMat0 <- model.matrix(formu, data = metadatTab)
@@ -685,12 +705,13 @@ doSVA <- function(summExp, wantedVar, unwantedVar = NULL, numSV_method = 'be',
 
 
 doBatchCorrection <- function(summExp, wantedVar, unwantedVar) {
-  #' Regress out unwanted effects from data using function limma::removeBatchEffect
+  #' Adjust unwanted effects in data using function limma::removeBatchEffect
   #' 
   #' Parameters
   #' summExp: An input SummarizedExperiment object containing the data matrix to correct
   #' wantedVar: A character or a vector of characters indicating the variable(S)
-  #' in the sample metadata from an SE object, the sources of variation to keep
+  #' in the sample metadata from an SE object, the sources of variation to keep.
+  #' Note that interaction terms are applicable, e.g., Condition:Recurrence
   #' unwantedVar: A character or a vector of characters indicating the variable(S)
   #' in the sample metadata from an SE object, the sources of variation to adjust
   #' 
@@ -701,34 +722,55 @@ doBatchCorrection <- function(summExp, wantedVar, unwantedVar) {
   if (!is(summExp, 'SummarizedExperiment')) {
     stop("This function takes only 'SummarizedExperiment' object for now.")
   }
-  if (!is(wantedVar, 'character') | !all(wantedVar %in% colnames(colData(summExp)))) {
+  # Split interaction terms into characters
+  tmp_wantedVar <- stringr::str_extract_all(wantedVar, '\\w+') %>%
+    unlist() %>%
+    unique()
+  if (!is(wantedVar, 'character') | !all(tmp_wantedVar %in% colnames(colData(summExp)))) {
     stop("Argument for 'wantedVar' should be class 'character' and included in sample metadata.")
   }
-  if (!is(unwantedVar, 'character') | !all(unwantedVar %in% colnames(colData(summExp)))) {
+  # Split interaction terms into characters
+  tmp_unwantedVar <- stringr::str_extract_all(unwantedVar, '\\w+') %>%
+    unlist() %>%
+    unique()
+  if (!is(unwantedVar, 'character') | !all(tmp_unwantedVar %in% colnames(colData(summExp)))) {
     stop("Argument for 'unwantedVar' should be class 'character' and included in sample metadata.")
   }
+  rm(tmp_wantedVar, tmp_unwantedVar)
   
-  # Prepare data matrix
+  # Prepare data matrix and sample metadata table for creating model matrices
   datMat <- as.matrix(assay(summExp))
-  # Define design matrix including wanted effects to preserve and unwanted effects to adjust
   metadatTab <- colData(summExp) %>%
     tibble::as_tibble(rownames = 'Sample')
-  formu <- paste0('~', paste0(c(wantedVar, unwantedVar), collapse = '+')) %>%
+  # Define design matrix including wanted effects to preserve
+  formu <- paste0('~', paste0(wantedVar, collapse = '+')) %>%
     as.formula()
-  design <- model.matrix(formu, data = metadatTab)
-  # Determine number of columns that is of interest in design matrix
-  wantedColCount <- 0
-  for (i in seq_len(length(wantedVar))) {
-    smpMetaVar <- metadatTab[[wantedVar[i]]]
-    clas <- class(smpMetaVar)
-    if (!is.numeric(clas)) {
-      wantedColCount <- wantedColCount + length(unique(smpMetaVar)) - 1
-    } else {
-      wantedColCount <- wantedColCount + 1
-    }
-  }
-  wantedDesign <- design[, seq_len(wantedColCount+1)] #+1 due to intercept term
-  unwantedDesign <- design[, -seq_len(wantedColCount+1)]
+  wantedDesign <- model.matrix(formu, data = metadatTab)
+  # Define design matrix including unwanted effects to adjust
+  formu <- paste0('~', paste0(unwantedVar, collapse = '+')) %>%
+    as.formula()
+  unwantedDesign <- model.matrix(formu, data = metadatTab)[, -1] #remove intercept term
+  
+  ######## WILL NOT WORK WHEN INTERACTION TERMS ARE PRESENT ########
+  # # Define design matrix including wanted effects to preserve and unwanted effects to adjust
+  # formu <- paste0('~', paste0(c(wantedVar, unwantedVar), collapse = '+')) %>%
+  #   as.formula()
+  # design <- model.matrix(formu, data = metadatTab)
+  # # Determine number of columns that is of interest in design matrix
+  # wantedColCount <- 0
+  # for (i in seq_len(length(wantedVar))) {
+  #   smpMetaVar <- metadatTab[[wantedVar[i]]]
+  #   clas <- class(smpMetaVar)
+  #   if (!is.numeric(clas)) {
+  #     wantedColCount <- wantedColCount + length(unique(smpMetaVar)) - 1
+  #   } else {
+  #     wantedColCount <- wantedColCount + 1
+  #   }
+  # }
+  # wantedDesign <- design[, seq_len(wantedColCount+1)] #+1 due to intercept term
+  # unwantedDesign <- design[, -seq_len(wantedColCount+1)]
+  ##################################################################
+  
   # Do correction
   datMatCorrect <- limma::removeBatchEffect(datMat, design = wantedDesign,
                                             covariates = unwantedDesign)
