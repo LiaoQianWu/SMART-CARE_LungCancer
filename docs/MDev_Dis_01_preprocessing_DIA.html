@@ -393,7 +393,7 @@ aria-hidden="true"></span> </a>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2024-07-30
+<strong>Last updated:</strong> 2024-10-10
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -550,15 +550,15 @@ relative
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree282daae0fdbb7078dd8d66521af4c5d654c63cfbtargetblank282daaea">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertreed14c3b30dc8e1ed76939ad796689988321a5f8b6targetblankd14c3b3a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/282daae0fdbb7078dd8d66521af4c5d654c63cfb" target="_blank">282daae</a>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/d14c3b30dc8e1ed76939ad796689988321a5f8b6" target="_blank">d14c3b3</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertree282daae0fdbb7078dd8d66521af4c5d654c63cfbtargetblank282daaea"
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertreed14c3b30dc8e1ed76939ad796689988321a5f8b6targetblankd14c3b3a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -568,7 +568,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/282daae0fdbb7078dd8d66521af4c5d654c63cfb" target="_blank">282daae</a>.
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/d14c3b30dc8e1ed76939ad796689988321a5f8b6" target="_blank">d14c3b3</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -597,6 +597,7 @@ Ignored files:
     Ignored:    data/sample_metadata.xlsx
     Ignored:    output/.DS_Store
     Ignored:    output/Discovery/
+    Ignored:    output/Junyan/
     Ignored:    output/MethodDev/
     Ignored:    output/SC_meeting/
 
@@ -608,7 +609,6 @@ Untracked files:
     Untracked:  code/workflowr_commands.R
 
 Unstaged changes:
-    Modified:   analysis/FeatSelection_ML.Rmd
     Modified:   analysis/MDev_Dis_02_soa_annotated_untargeted.Rmd
 
 </code></pre>
@@ -656,6 +656,61 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/05705b9f4e225dce9a6d7b7f84889d9388449397/analysis/MDev_Dis_01_preprocessing_DIA.Rmd" target="_blank">05705b9</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-10-10
+</td>
+<td>
+Compare results generated from data either unadjusted or adjusted by SVs
+and compare result consistency between datasets before and after
+adjustment -&gt; Data adjusted by SVs constructed from whole tissue
+datasets with interaction term (Condition:Recurrence) included is chosen
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/7f7aad9a9f257e5a5983397987e009f214d77cf3/analysis/MDev_Dis_01_preprocessing_DIA.Rmd" target="_blank">7f7aad9</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-09-20
+</td>
+<td>
+Do preprocessing of all Krij. data (Discovery + Discovery_LTP +
+MethodDev) and additionally exclude sample ‘PDIR55_NG’ from Klin. data
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/LiaoQianWu/SMART-CARE_LungCancer/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/MDev_Dis_01_preprocessing_DIA.html" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -739,15 +794,20 @@ Klin. and rename and rearrange source code and analysis results
 Development and Discovery Tissue DIA Proteomics generated from AG
 Klingmüller and AG Krijgsveld, including data cleansing, filtering,
 normalization (VSN), and data merging. All needed information was then
-stored in SummarizedExperiment objects for further analyses.</p>
+stored in SummarizedExperiment objects for further analyses. At end,
+feature correlations and result consistency (Tumor vs Normal samples)
+between datasets before and after data adjustment is investigated.</p>
 <p>For Klin. data: Sample <strong>Q89YQK_NG</strong>,
-<strong>1TK71I_TU</strong>, <strong>NG1IWD_TU</strong>,
-<strong>125CII_TU</strong>, <strong>1LJXIN_TU</strong>,
-<strong>I0HVOL_TU</strong>, and <strong>7EAOX7_TU</strong> were
-excluded. (Check Section ‘<strong>Show reasons for removing
-samples</strong>’ for more details)</p>
-<p>For Krij. data: Those 44 extra samples where Tumor samples are of low
-tumor purity in Discovery cohort are not included yet. </font></p>
+<strong>I0HVOL_TU</strong>, <strong>7EAOX7_TU</strong>,
+<strong>PDIR55_NG</strong>, <strong>1TK71I_TU</strong>,
+<strong>NG1IWD_TU</strong>, <strong>125CII_TU</strong>, and
+<strong>1LJXIN_TU</strong> were excluded. (Check Section ‘<strong>Show
+reasons for removing samples</strong>’ for more details)</p>
+<p>For Krij. data: Sample <strong>I0HVOL_TU</strong>,
+<strong>7EAOX7_TU</strong>, <strong>PDIR55_NG</strong>,
+<strong>3M0D40_TU</strong>, <strong>MJMTYR_TU</strong>, and
+<strong>XFKHGP_NG</strong> were excluded. (Check Section ‘<strong>Show
+reasons for removing samples</strong>’ for more details). </font></p>
 <p>Load libraries</p>
 <pre class="r"><code>library(readr)
 library(readxl)
@@ -903,7 +963,7 @@ badSmps_Dis &lt;- allSmps_Dis[!allSmps_Dis %in% goodSmps_Dis]
 # Manually remove Sample &#39;1HTNWJ_TU&#39; from bad quality sample list due to its missingness
 # in good quality sample list
 badSmps_Dis &lt;- badSmps_Dis[-which(badSmps_Dis == &#39;1HTNWJ_TU&#39;)]
-badSmps_Dis &lt;- badSmps_Dis[grepl(&#39;_TU&#39;, badSmps_Dis)]
+# badSmps_Dis &lt;- badSmps_Dis[grepl(&#39;_TU&#39;, badSmps_Dis)] #for now, assume all samples from those patients are bad quality
 # proTissueTab &lt;- dplyr::filter(proTissueTab, !Sample %in% badSmps_Dis)
 rm(proTissue_Dis_Krij, goodSmps_Dis, allSmps_Dis)
 
@@ -912,9 +972,9 @@ allProTissueTab &lt;- proTissueTab
 proTissueTab &lt;- dplyr::filter(proTissueTab, !Sample %in% c(&#39;Q89YQK_NG&#39;, &#39;125CII_TU&#39;,
                                                            &#39;1TK71I_TU&#39;, &#39;1LJXIN_TU&#39;,
                                                            &#39;NG1IWD_TU&#39;, &#39;I0HVOL_TU&#39;,
-                                                           &#39;7EAOX7_TU&#39;))</code></pre>
+                                                           &#39;7EAOX7_TU&#39;, &#39;PDIR55_NG&#39;))</code></pre>
 <p><font size='4'> <strong>Overview original data</strong> </font><br />
-6 Tumor samples and 1 Normal sample have been excluded before
+6 Tumor samples and 2 Normal sample have been excluded before
 preprocessing. Check <strong>Show reasons for removing samples</strong>
 for more details</p>
 <pre class="r"><code># Preprocess data
@@ -922,41 +982,235 @@ proTissuePrepro &lt;- doPreprocessing(proTissueTab, feat = &#39;Feature&#39;, sm
                                    val = &#39;Abundance&#39;, smpAnno = c(smpAnno, &#39;MissLevel&#39;),
                                    featAnno = &#39;Gene&#39;, do_featFilt = T, cutoff = 0.5, viz_miss = T)
                                    # save_path = &#39;./data/Discovery/AG_Klingmueller/proTissue&#39;
+
+# Save preprocessed data containing all samples except Q89YQK_NG
+# tmp_proTissueTab &lt;- dplyr::filter(allProTissueTab, !Sample %in% &#39;Q89YQK_NG&#39;)
+# proTissuePrepro &lt;- doPreprocessing(tmp_proTissueTab, feat = &#39;Feature&#39;, smp = &#39;Sample&#39;,
+#                                    val = &#39;Abundance&#39;, smpAnno = c(smpAnno, &#39;MissLevel&#39;),
+#                                    featAnno = &#39;Gene&#39;, do_featFilt = T, cutoff = 0.5, viz_miss = T,
+#                                    save_path = &#39;./data/Discovery/AG_Klingmueller/allProTissue&#39;)
+# rm(tmp_proTissueTab)
+
 # Show dimensions of data
 cat(&#39;Data dimensions:&#39;, dim(proTissuePrepro$ori.data)[2], &#39;samples and&#39;,
     dim(proTissuePrepro$ori.data)[1], &#39;features&#39;)</code></pre>
-<pre><code>Data dimensions: 163 samples and 10536 features</code></pre>
+<pre><code>Data dimensions: 162 samples and 10536 features</code></pre>
 <pre class="r"><code># Visualize data missingness
 proTissuePrepro$ori.data.miss +
   labs(title = &#39;Missingness of original data&#39;) +
   theme(axis.text.x = element_text(size = 5))</code></pre>
 <p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-2-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-2-1">
+Past versions of unnamed-chunk-2-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-2-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-2-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code># Visualize data distribution
 proTissuePrepro$ori.data.dist +
   labs(title = &#39;Distribution of original data&#39;) +
   theme(axis.text.x = element_text(size = 5))</code></pre>
 <p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-2-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-2-2">
+Past versions of unnamed-chunk-2-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-2-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-2-2.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><font size='4'> <strong>Overview filtered vsn normalized
 data</strong> </font><br />
 Features quantified in less than half of samples are removed.</p>
 <pre class="r"><code># Show dimensions of data
 cat(&#39;Filtered data dimensions:&#39;, dim(proTissuePrepro$filt.data)[2], &#39;samples and&#39;,
     dim(proTissuePrepro$filt.data)[1], &#39;features&#39;)</code></pre>
-<pre><code>Filtered data dimensions: 163 samples and 7290 features</code></pre>
+<pre><code>Filtered data dimensions: 162 samples and 7281 features</code></pre>
 <pre class="r"><code># Visualize data missingness
 proTissuePrepro$filt.data.miss +
   labs(title = &#39;Missingness of filtered data&#39;) +
   theme(axis.text.x = element_text(size = 5))</code></pre>
 <p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-3-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-3-1">
+Past versions of unnamed-chunk-3-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-3-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-3-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code># Visualize data distribution
 proTissuePrepro$vsn.data.dist +
   labs(y = &#39;Log(Abundance)&#39;, title = &#39;Distribution of filtered vsn normalized data&#39;) +
   theme(axis.text.x = element_text(size = 5))</code></pre>
 <p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-3-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-3-2">
+Past versions of unnamed-chunk-3-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-3-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-3-2.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code># Visualize mean-sd relationship
 proTissuePrepro$vsn.feat.mean.var +
   labs(title = &#39;Feature mean-sd relationship after vsn normalization&#39;)</code></pre>
 <p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-3-3.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-3-3">
+Past versions of unnamed-chunk-3-3.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-3-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-3-3.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><font size='4'> <strong>Do metadata-assisted quality control: Tumor
 vs Normal samples</strong> </font></p>
 <pre class="r"><code># Do PCA
@@ -964,22 +1218,57 @@ pcaRes &lt;- doSOA(proTissuePrepro$vsn.data, meta_var = &#39;Condition&#39;, #&#
                 pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
 # Show significant associations between PCs and sample conditions
 pcaRes$pcSigAssoRes</code></pre>
-<pre><code>         Var1      Var2     pVal  pValAdj  Stat   Test
-1 PC1 (33.8%) Condition 2.39e-71 4.77e-70 -31.8 T-test</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj Stat   Test
+1 PC1 (33.3%) Condition 3.56e-72 7.13e-71 32.4 T-test</code></pre>
 <pre class="r"><code># Visualize PCs
 # Prepare samples to be labeled
-badSmps &lt;- gsub(&#39;_TU&#39;, &#39;_NG&#39;, badSmps_Dis)
-badSmps &lt;- c(badSmps, badSmps_Dis)
 pcTab &lt;- pcaRes$pcTab %&gt;%
-  dplyr::mutate(Extra = dplyr::case_when(Sample %in% badSmps ~ &#39;Yes&#39;,
-                                         !Sample %in% badSmps ~ &#39;No&#39;))
-ggplot(pcTab, aes(x=Condition, y=`PC1 (33.8%)`, col=Condition, fill=Condition)) +
+  dplyr::mutate(Extra = dplyr::case_when(Sample %in% badSmps_Dis ~ &#39;Yes&#39;,
+                                         !Sample %in% badSmps_Dis ~ &#39;No&#39;))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (33.3%)`, col=Condition, fill=Condition)) +
   geom_boxplot(alpha = 0.7, outliers = F) +
   geom_jitter(position = position_jitter(0.3), size = 4, show.legend = F) +
   scale_color_brewer(palette = &#39;Dark2&#39;) +
   scale_fill_brewer(palette = &#39;Dark2&#39;) +
   th</code></pre>
 <p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-4-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-4-1">
+Past versions of unnamed-chunk-4-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-4-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-4-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>#   theme(axis.title = element_text(size = 22),
 #         axis.text.x = element_text(size = 18),
 #         axis.text.y = element_text(size = 14),
@@ -989,20 +1278,20 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (33.8%)`, col=Condition, fill=Condition)) 
 #        device = &#39;png&#39;, dpi = 400, height = 8, width = 10)
 
 # Check quality of those extra normal samples whose tumor counterparts were removed
-# ggplot(pcTab, aes(x=`PC1 (33.8%)`, y=`PC2 (14.3%)`, col=Condition, shape=Extra)) +
+# ggplot(pcTab, aes(x=`PC1 (33.3%)`, y=`PC2 (14.4%)`, col=Condition, shape=Extra)) +
 #   geom_point(size = 2.5) +
 #   scale_color_brewer(palette = &#39;Dark2&#39;) +
 #   scale_shape_manual(name = &#39;Extra samples&#39;, values = c(16, 3)) +
 #   th
 
 # Check tumor purity of tumor samples
-# ggplot(pcTab, aes(x=`PC1 (33.8%)`, y=`PC2 (14.3%)`, col=TumorPurity, shape=Condition)) +
+# ggplot(pcTab, aes(x=`PC1 (33.3%)`, y=`PC2 (14.4%)`, col=TumorPurity, shape=Condition)) +
 #   geom_point(size = 2.5) +
 #   scale_color_continuous(name = &#39;Tumor purity (%)&#39;) +
 #   th
 
 # Check missing levels of samples
-# ggplot(pcTab, aes(x=`PC1 (33.8%)`, y=`PC2 (14.3%)`, col=MissLevel*100, shape=Condition)) +
+# ggplot(pcTab, aes(x=`PC1 (33.3%)`, y=`PC2 (14.4%)`, col=MissLevel*100, shape=Condition)) +
 #   geom_point(size = 2.5) +
 #   scale_color_continuous(name = &#39;Missing level (%)&#39;, type = &#39;viridis&#39;) +
 #   th</code></pre>
@@ -1010,19 +1299,20 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (33.8%)`, col=Condition, fill=Condition)) 
 </font><br />
 Samples ‘1TK71I_TU’, ‘NG1IWD_TU’, ‘125CII_TU’, and ‘1LJXIN_TU’ are
 removed due to low tumor purity and misclassification in
-metadata-assisted quality control (Tumor vs Normal, PC1). Samples
-‘I0HVOL_TU’ and ‘7EAOX7_TU’ got decent tumor purity but still got
-removed due to misclassification and similar molecular signature as
+metadata-assisted quality control (Tumor vs Normal, PC1, clustering).
+Samples ‘I0HVOL_TU’ and ‘7EAOX7_TU’ got decent tumor purity but still
+got removed due to misclassification and similar molecular signature as
 normal samples (PC1, clustering). Sample ‘Q89YQK_NG’ is removed due to
-high level of missingness (71%) and potential outlier (PC2).</p>
+high level of missingness (71%) and potential outlier (PC2). Sample
+‘PDIR55_NG’ is removed because its molecular signature is more like that
+of tumor samples (clustering).</p>
 <p><strong>PCA</strong></p>
 <pre class="r"><code># Prepare preprocessed data containing all samples
 allProTissueVsn &lt;- doPreprocessing(allProTissueTab, feat = &#39;Feature&#39;, smp = &#39;Sample&#39;,
                                    val = &#39;Abundance&#39;, smpAnno = c(smpAnno, &#39;MissLevel&#39;),
                                    featAnno = &#39;Gene&#39;, do_featFilt = T, cutoff = 0.5)$vsn.data
 # Do PCA
-pcaRes &lt;- doSOA(allProTissueVsn, meta_var = &#39;Condition&#39;, pca_method = &#39;ppca&#39;, num_PCs = 20,
-                do_onlyPCA = T)
+pcaRes &lt;- doSOA(allProTissueVsn, meta_var = &#39;Condition&#39;, pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
 # Show significant associations between PCs and sample conditions
 pcaRes$pcSigAssoRes</code></pre>
 <pre><code>         Var1      Var2     pVal  pValAdj Stat   Test
@@ -1032,7 +1322,8 @@ pcTab &lt;- pcaRes$pcTab %&gt;%
   dplyr::mutate(Label = dplyr::case_when(Sample %in% c(&#39;I0HVOL_TU&#39;, &#39;I0HVOL_NG&#39;,
                                                        &#39;7EAOX7_TU&#39;, &#39;7EAOX7_NG&#39;,
                                                        &#39;1LJXIN_TU&#39;,&#39;125CII_TU&#39;, 
-                                                       &#39;1TK71I_TU&#39;, &#39;NG1IWD_TU&#39;) ~ Sample),
+                                                       &#39;1TK71I_TU&#39;, &#39;NG1IWD_TU&#39;,
+                                                       &#39;PDIR55_NG&#39;) ~ Sample),
                 Label2 = dplyr::case_when(Sample %in% &#39;Q89YQK_NG&#39; ~ Sample))
 ggplot(pcTab, aes(x=Condition, y=`PC1 (29.9%)`, col=Condition, fill=Condition, label=Label)) +
   geom_boxplot(alpha = 0.7, outliers = F) +
@@ -1042,6 +1333,43 @@ ggplot(pcTab, aes(x=Condition, y=`PC1 (29.9%)`, col=Condition, fill=Condition, l
   scale_fill_brewer(palette = &#39;Dark2&#39;) +
   th</code></pre>
 <p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-5-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-5-1">
+Past versions of unnamed-chunk-5-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-5-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-5-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>#   theme(axis.title = element_text(size = 22),
 #         axis.text.x = element_text(size = 18),
 #         axis.text.y = element_text(size = 14),
@@ -1057,12 +1385,69 @@ ggplot(pcTab, aes(x=`PC1 (29.9%)`, y=`PC2 (14%)`, col=MissLevel*100, shape=Condi
   scale_color_continuous(name = &#39;Missing level (%)&#39;) +
   th</code></pre>
 <p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-5-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-5-2">
+Past versions of unnamed-chunk-5-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-5-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-5-2.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>  # theme(axis.title = element_text(size = 22),
   #       axis.text = element_text(size = 14),
   #       legend.title = element_text(size = 22),
   #       legend.text = element_text(size = 20))
 # ggsave(&#39;./output/Discovery/25.07.24_LGM/QC_combined_proTissue_Klin_PC1&amp;2_allSmps.png&#39;,
-#        device = &#39;png&#39;, dpi = 400, height = 8, width = 11)</code></pre>
+#        device = &#39;png&#39;, dpi = 400, height = 8, width = 11)
+
+
+# Display tumor purity and missing levels of misclassified samples and potential outlier
+dplyr::distinct(allProTissueTab, Sample, .keep_all = T) %&gt;%
+  dplyr::select(Sample, TumorPurity, MissLevel) %&gt;%
+  dplyr::filter(Sample %in% c(&#39;I0HVOL_TU&#39;, &#39;7EAOX7_TU&#39;, &#39;1LJXIN_TU&#39;, &#39;125CII_TU&#39;,
+                              &#39;1TK71I_TU&#39;, &#39;NG1IWD_TU&#39;, &#39;Q89YQK_NG&#39;, &#39;PDIR55_NG&#39;)) %&gt;%
+  as.data.frame()</code></pre>
+<pre><code>     Sample TumorPurity MissLevel
+1 I0HVOL_TU          87 0.3462415
+2 1LJXIN_TU          40 0.2705011
+3 Q89YQK_NG          NA 0.7134586
+4 7EAOX7_TU          70 0.2592065
+5 PDIR55_NG          NA 0.3163440
+6 125CII_TU          30 0.5099658
+7 NG1IWD_TU          25 0.2764806
+8 1TK71I_TU          10 0.4129651</code></pre>
+<p>=&gt; Mean of sample tumor cell contents is 67%, ranging from 10% to
+100%.<br />
+=&gt; Mean of sample missing levels is 31%, ranging from 21% to 71%.</p>
 <p><strong>Hierarchical clustering</strong><br />
 Top 100 significant features between Tumor and Normal samples are used,
 of which Bad-quality samples were excluded for significance testing.
@@ -1070,24 +1455,22 @@ Features (rows) are ordered by t-statistics.</p>
 <pre class="r"><code># Check if potential bad-quality Tumor samples get condition-associated molecular
 # signature identified in good-quality samples
 # Prepare top significant features between Tumor and Normal samples
-# proTissueTab &lt;- dplyr::filter(allProTissueTab, !Sample %in% badSmps_Dis)
-# proTissueVsn &lt;- doPreprocessing(proTissueTab, feat = &#39;Feature&#39;, smp = &#39;Sample&#39;,
-#                                 val = &#39;Abundance&#39;, smpAnno = c(smpAnno, &#39;MissLevel&#39;),
-#                                 featAnno = &#39;Gene&#39;, do_featFilt = T, cutoff = 0.5)$vsn.data
-# soaRes &lt;- doSOA(proTissueVsn, meta_var = &#39;Condition&#39;, pca_method = &#39;ppca&#39;,
+# subProTissueTab &lt;- dplyr::filter(allProTissueTab, !Sample %in% badSmps_Dis)
+# subProTissueVsn &lt;- doPreprocessing(subProTissueTab, feat = &#39;Feature&#39;, smp = &#39;Sample&#39;,
+#                                    val = &#39;Abundance&#39;, smpAnno = c(smpAnno, &#39;MissLevel&#39;),
+#                                    featAnno = &#39;Gene&#39;, do_featFilt = T, cutoff = 0.5)$vsn.data
+# soaRes &lt;- doSOA(subProTissueVsn, meta_var = &#39;Condition&#39;, pca_method = &#39;ppca&#39;,
 #                 num_PCs = 20, use_proDA = T, level_metaVar = c(&#39;Tumor&#39;, &#39;Normal&#39;))
-# saveRDS(soaRes, &#39;./data/Discovery/AG_Klingmueller/soaRes/proTissueRes_rmBadSmps.rds&#39;)
-soaRes &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/proTissueRes_rmBadSmps.rds&#39;)
+# saveRDS(soaRes, &#39;./data/Discovery/AG_Klingmueller/soaRes/proTissueRes_signature_rmBadSmps.rds&#39;)
+soaRes &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/proTissueRes_signature_rmBadSmps.rds&#39;)
 topSigFeatIdx &lt;- order(abs(soaRes$featSigAssoRes$Stat), decreasing = T)[1:100]
 topSigFeats &lt;- soaRes$featSigAssoRes$Var1[topSigFeatIdx]
 # Order top significant features by t-statistics
 topSigFeatStats &lt;- soaRes$featSigAssoRes$Stat[topSigFeatIdx]
 featOrder &lt;- topSigFeats[order(topSigFeatStats, decreasing = T)]
-# Prepare abundance matrix including only top significant features
-datMat &lt;- dplyr::select(allProTissueTab, Feature, Sample, Abundance) %&gt;%
-  tidyr::pivot_wider(names_from = &#39;Sample&#39;, values_from = &#39;Abundance&#39;) %&gt;%
-  dplyr::filter(Feature %in% topSigFeats) %&gt;%
-  tibble::column_to_rownames(&#39;Feature&#39;)
+
+# Prepare preprocessed abundance matrix of all samples
+datMat &lt;- assay(allProTissueVsn)
 # Cluster samples by sample conditions
 normalSmpIdx &lt;- grep(&#39;_NG&#39; ,colnames(datMat))
 smpOrder &lt;- c(colnames(datMat)[-normalSmpIdx], colnames(datMat)[normalSmpIdx])
@@ -1096,97 +1479,777 @@ smpAnnoTab &lt;- dplyr::select(allProTissueTab, Sample, Condition) %&gt;%
   dplyr::filter(!duplicated(Sample)) %&gt;%
   tibble::column_to_rownames(&#39;Sample&#39;)
 # Color sample groups as same as in PC plots
-annoCols &lt;- c(&#39;#1B9E77&#39;, &#39;#D95F02&#39;)
-names(annoCols) &lt;- c(&#39;Normal&#39;, &#39;Tumor&#39;)
-smpAnnoCols &lt;- list()
-smpAnnoCols[[&#39;Condition&#39;]] &lt;- annoCols
+smpAnnoCols &lt;- list(Condition = c(Normal = &#39;#1B9E77&#39;, Tumor = &#39;#D95F02&#39;))
 
 # View molecular signature of all samples
-datMat &lt;- datMat[featOrder, smpOrder]
-pheatmap(datMat, scale = &#39;row&#39;, annotation_col = smpAnnoTab, annotation_colors = smpAnnoCols,
+datMatSub &lt;- datMat[featOrder, smpOrder]
+pheatmap(datMatSub, scale = &#39;row&#39;, annotation_col = smpAnnoTab, annotation_colors = smpAnnoCols,
          color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100), clustering_method = &#39;ward.D2&#39;,
          cluster_rows = F, cluster_cols = F, show_rownames = F, fontsize_col = 5,
          main = &#39;All samples (170)&#39;)</code></pre>
 <p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-6-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-1">
+Past versions of unnamed-chunk-6-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-6-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code># View molecular signature of bad-quality samples
 # rmSmps &lt;- c(&#39;NG1IWD_TU&#39;, &#39;1LJXIN_TU&#39;, &#39;1TK71I_TU&#39;, &#39;125CII_TU&#39;, &#39;7EAOX7_TU&#39;, &#39;I0HVOL_TU&#39;,
 #             &#39;NG1IWD_NG&#39;, &#39;1LJXIN_NG&#39;, &#39;1TK71I_NG&#39;, &#39;125CII_NG&#39;, &#39;7EAOX7_NG&#39;, &#39;I0HVOL_NG&#39;)
-badSmps &lt;- gsub(&#39;_TU&#39;, &#39;_NG&#39;, badSmps_Dis)
-badSmps &lt;- c(badSmps, badSmps_Dis, c(&#39;1LJXIN_TU&#39;, &#39;7EAOX7_TU&#39;, &#39;I0HVOL_TU&#39;, &#39;1LJXIN_NG&#39;,
-                                     &#39;7EAOX7_NG&#39;, &#39;I0HVOL_NG&#39;))
-datMatSub &lt;- datMat[, colnames(datMat) %in% badSmps]
+badSmps &lt;- c(badSmps_Dis, c(&#39;1LJXIN_TU&#39;, &#39;7EAOX7_TU&#39;, &#39;I0HVOL_TU&#39;, &#39;1LJXIN_NG&#39;,
+                            &#39;7EAOX7_NG&#39;, &#39;I0HVOL_NG&#39;))
+datMatSub &lt;- datMat[featOrder, badSmps]
 pheatmap(datMatSub, scale = &#39;row&#39;, annotation_col = smpAnnoTab, annotation_colors = smpAnnoCols,
          color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100), clustering_method = &#39;ward.D2&#39;,
          cluster_rows = F, show_rownames = F,
          main = &#39;Potential bad-quality samples and corresponding normal samples&#39;)</code></pre>
 <p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-6-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-2">
+Past versions of unnamed-chunk-6-2.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-6-2.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div id="ag-krijgsveld" class="section level2">
+<h2>AG Krijgsveld</h2>
+<p>Combine Method Dev and Discovery cohorts</p>
+<pre class="r"><code># Prepare long data containing original data and needed information
+# Discovery
+# Load original data
+proTissueTab_Discovery &lt;- readr::read_tsv(&#39;./data/Discovery/AG_Krijgsveld/20230815_MarcS_Discovery_Tissue.pg_matrix.tsv&#39;) %&gt;%
+  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %&gt;%
+  tidyr::pivot_longer(cols = -c(&#39;Protein.Group&#39;, &#39;Protein.Names&#39;, &#39;Genes&#39;),
+                      names_to = &#39;Sample&#39;, values_to = &#39;Abundance&#39;) %&gt;%
+  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, &#39;_HUMAN&#39;),
+                Sample = stringr::str_remove_all(Sample, &#39;^.+SC_A_|^.+SC_DIS_A_|4\\.raw$&#39;))
+# Include summarized metadata
+proTissueTab_Discovery &lt;- dplyr::left_join(proTissueTab_Discovery, summMetadat4Krij, by = &#39;Sample&#39;)
+
+# Discovery - Low Tumor Purity
+# Load and tidy up original data and include summarized metadata into it
+proTissueTab_Discovery_LowTP &lt;- readr::read_tsv(&#39;./data/Discovery/AG_Krijgsveld/Discovery_Tissue_Low_Tumor_Content.tsv&#39;) %&gt;%
+  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %&gt;%
+  tidyr::pivot_longer(cols = -c(&#39;Protein.Group&#39;, &#39;Protein.Names&#39;, &#39;Genes&#39;),
+                      names_to = &#39;Sample&#39;, values_to = &#39;Abundance&#39;) %&gt;%
+  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, &#39;_HUMAN&#39;),
+                Sample = stringr::str_remove_all(Sample, &#39;^.+SC_DIS_A_|3_\\d+\\.raw$|1_\\d+\\.raw$&#39;)) %&gt;%
+  dplyr::left_join(summMetadat4Krij, by = &#39;Sample&#39;) %&gt;%
+  dplyr::mutate(Cohort = paste0(Cohort, &#39;_LTP&#39;))
+
+# MethodDev
+# Load and tidy up original data and include summarized metadata into it
+summMetadat_Krij &lt;- dplyr::filter(summMetadat, To %in% &#39;KRIJGSVELD&#39;)
+proTissueTab_MethodDev &lt;- readr::read_delim(&#39;./data/MethodDev/AG_Krijgsveld/20230726_Thorax_Method_Est_tissue.txt&#39;) %&gt;%
+  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %&gt;%
+  tidyr::pivot_longer(cols = -c(&#39;Protein.Group&#39;, &#39;Protein.Names&#39;, &#39;Genes&#39;),
+                      names_to = &#39;Aliquot&#39;,
+                      values_to = &#39;Abundance&#39;) %&gt;%
+  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, &#39;_HUMAN&#39;),
+                Aliquot = stringr::str_remove_all(Aliquot, &#39;\\.raw$&#39;)) %&gt;%
+  dplyr::left_join(summMetadat_Krij, by = &#39;Aliquot&#39;) %&gt;%
+  dplyr::select(-Aliquot)
+
+# Extract common features for combining data
+featSpace_Discovery &lt;- unique(proTissueTab_Discovery$Protein.Group)
+featSpace_Discovery_LowTP &lt;- unique(proTissueTab_Discovery_LowTP$Protein.Group)
+featSpace_MethodDev &lt;- unique(proTissueTab_MethodDev$Protein.Group)
+cmnFeats &lt;- intersect(featSpace_Discovery, featSpace_Discovery_LowTP)
+cmnFeats &lt;- intersect(cmnFeats, featSpace_MethodDev)
+# Filter common features
+proTissueTab_Discovery &lt;- dplyr::filter(proTissueTab_Discovery, Protein.Group %in% cmnFeats)
+proTissueTab_Discovery_LowTP &lt;- dplyr::filter(proTissueTab_Discovery_LowTP, Protein.Group %in% cmnFeats)
+proTissueTab_MethodDev &lt;- dplyr::filter(proTissueTab_MethodDev, Protein.Group %in% cmnFeats)
+# Combine data
+proTissueTab_Combined &lt;- dplyr::bind_rows(proTissueTab_Discovery,
+                                          proTissueTab_Discovery_LowTP,
+                                          proTissueTab_MethodDev) %&gt;%
+  # Compute sample missing levels
+  dplyr::group_by(Sample) %&gt;%
+  dplyr::mutate(MissLevel = sum(is.na(Abundance)) / length(Abundance)) %&gt;%
+  dplyr::ungroup()
+
+# Remove potential bad-quality samples
+allProTissueTab &lt;- proTissueTab_Combined
+proTissueTab_Combined &lt;- dplyr::filter(proTissueTab_Combined, !Sample %in% c(&#39;I0HVOL_TU&#39;, &#39;7EAOX7_TU&#39;,
+                                                                             &#39;PDIR55_NG&#39;, &#39;XFKHGP_NG&#39;,
+                                                                             &#39;3M0D40_TU&#39;, &#39;MJMTYR_TU&#39;))</code></pre>
+<p><font size='4'> <strong>Overview original data</strong> </font><br />
+4 Tumor samples and 2 Normal sample have been excluded before
+preprocessing. Check <strong>Show reasons for removing samples</strong>
+for more details</p>
+<pre class="r"><code># Preprocess data
+proTissue_Combined &lt;- doPreprocessing(proTissueTab_Combined, feat = &#39;Protein.Group&#39;, smp = &#39;Sample&#39;,
+                                      val = &#39;Abundance&#39;, featAnno = c(&#39;Protein.Names&#39;, &#39;Genes&#39;),
+                                      smpAnno = c(smpAnno, &#39;MissLevel&#39;), do_featFilt = T, cutoff = 0.5, viz_miss = T)
+                                      # save_path = &#39;./data/Discovery/AG_Krijgsveld/combined_proTissue&#39;
+
+# Save preprocessed data containing all samples
+# proTissue_Combined &lt;- doPreprocessing(allProTissueTab, feat = &#39;Protein.Group&#39;, smp = &#39;Sample&#39;,
+#                                       val = &#39;Abundance&#39;, featAnno = c(&#39;Protein.Names&#39;, &#39;Genes&#39;),
+#                                       smpAnno = c(smpAnno, &#39;MissLevel&#39;), do_featFilt = T, cutoff = 0.5, viz_miss = T,
+#                                       save_path = &#39;./data/Discovery/AG_Krijgsveld/combined_allProTissue&#39;)
+
+# Show dimensions of data
+cat(&#39;Data dimensions:&#39;, dim(proTissue_Combined$ori.data)[2], &#39;samples and&#39;,
+    dim(proTissue_Combined$ori.data)[1], &#39;features&#39;)</code></pre>
+<pre><code>Data dimensions: 164 samples and 6848 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+proTissue_Combined$ori.data.miss +
+  labs(title = &#39;Missingness of original data&#39;) +
+  theme(axis.text.x = element_text(size = 5))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize data distribution
+# Convert SE object into long data
+longData &lt;- summExp2df(proTissue_Combined$ori.data, row_id = &#39;Protein.Group&#39;, col_id = &#39;Sample&#39;)
+# Order samples based on cohorts so that same cohorts are clustered in plot
+smpLevels &lt;- dplyr::arrange(longData, Cohort) %&gt;%
+  dplyr::filter(!duplicated(Sample)) %&gt;%
+  dplyr::pull(Sample)
+longData &lt;- dplyr::mutate(longData, Sample = factor(Sample, levels = smpLevels))
+ggplot(longData, aes(x=Sample, y=Value, col=Cohort)) +
+  geom_boxplot(outlier.size = 0.8) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_y_log10() +
+  labs(y = &#39;Abundance&#39;, title = &#39;Distribution of original data&#39;) +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-8-2.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Overview filtered vsn normalized
+data</strong> </font><br />
+Features quantified in less than half of samples are removed.</p>
+<pre class="r"><code># Show dimensions of data
+cat(&#39;Filtered data dimensions:&#39;, dim(proTissue_Combined$filt.data)[2], &#39;samples and&#39;,
+    dim(proTissue_Combined$filt.data)[1], &#39;features&#39;)</code></pre>
+<pre><code>Filtered data dimensions: 164 samples and 6237 features</code></pre>
+<pre class="r"><code># Visualize data missingness
+proTissue_Combined$filt.data.miss +
+  labs(title = &#39;Missingness of filtered data&#39;) +
+  theme(axis.text.x = element_text(size = 5))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-9-1">
+Past versions of unnamed-chunk-9-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-9-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-9-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code># Visualize data distribution
+# Convert SE object into long data
+longData &lt;- summExp2df(proTissue_Combined$vsn.data, row_id = &#39;Protein.Group&#39;, col_id = &#39;Sample&#39;)
+# Order samples based on cohorts so that same cohorts are clustered in plot
+smpLevels &lt;- dplyr::arrange(longData, Cohort) %&gt;%
+  dplyr::filter(!duplicated(Sample)) %&gt;%
+  dplyr::pull(Sample)
+longData &lt;- dplyr::mutate(longData, Sample = factor(Sample, levels = smpLevels))
+ggplot(longData, aes(x=Sample, y=Value, col=Cohort)) +
+  geom_boxplot(outlier.size = 0.8) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  labs(y = &#39;Log(Abundance)&#39;, title = &#39;Distribution of filtered vsn normalized data&#39;) +
+  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-9-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Visualize mean-sd relationship
+proTissue_Combined$vsn.feat.mean.var +
+  labs(title = &#39;Feature mean-sd relationship after vsn normalization&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-9-3.png" width="960" style="display: block; margin: auto;" /></p>
+<p><font size='4'> <strong>Do metadata-assisted quality control: Tumor
+vs Normal samples</strong> </font><br />
+Note that there exists strong batch effect</p>
+<p><strong>PCA</strong></p>
+<pre class="r"><code># Do PCA
+pcaRes &lt;- doSOA(proTissue_Combined$vsn.data, meta_var = c(&#39;Condition&#39;, &#39;Cohort&#39;),
+                pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2      pVal   pValAdj    Stat   Test
+1 PC1 (28.9%)    Cohort 1.59e-119 6.35e-118 2330.00  ANOVA
+2 PC2 (24.8%)    Cohort  6.09e-48  1.22e-46  230.00  ANOVA
+3 PC3 (20.1%) Condition  1.29e-36  1.72e-35  -16.50 T-test
+4 PC3 (20.1%)    Cohort  1.06e-11  1.06e-10   29.70  ANOVA
+5 PC2 (24.8%) Condition  4.31e-10  3.45e-09   -6.65 T-test
+6    PC7 (2%) Condition  2.13e-02  1.42e-01    2.33 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes$pcTab
+ggplot(pcTab, aes(x=`PC1 (28.9%)`, y=`PC2 (24.8%)`, col=Cohort, shape=Condition)) +
+  geom_point(size = 4) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th #+ theme(axis.title = element_text(size = 28),</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-10-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-10-1">
+Past versions of unnamed-chunk-10-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-10-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-10-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code>#              axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
+#              legend.title = element_text(size = 26), legend.text = element_text(size = 24))
+# ggsave(&#39;./output/Discovery/group_meeting/quality_control_beforeBC_combined_proTissue_Krij_condi.png&#39;,
+#        device = &#39;png&#39;, dpi = 400, height = 8, width = 10)</code></pre>
+<p><strong>Hierarchical clustering</strong></p>
+<pre class="r"><code># Compute sample euclidean distances using top variable features
+abunMat &lt;- assay(proTissue_Combined$vsn.data)
+featSDs &lt;- rowSds(abunMat, na.rm = T)
+topVarFeats &lt;- names(sort(featSDs, decreasing = T)[1:1000])
+abunMatSub &lt;- abunMat[topVarFeats,]
+d &lt;- dist(t(abunMatSub), method = &#39;euclidean&#39;)
+
+# Visualize sample distances by heatmap with clustering
+colAnno &lt;- dplyr::select(proTissueTab_Combined, Sample, Condition, Cohort) %&gt;%
+  dplyr::filter(!duplicated(Sample)) %&gt;%
+  tibble::column_to_rownames(&#39;Sample&#39;)
+pheatmap(as.matrix(d), annotation_col = colAnno, scale = &#39;row&#39;, #row scaling is across columns
+         color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
+         cluster_cols = T, cluster_rows = F, show_rownames = F,
+         clustering_method = &#39;ward.D2&#39;, fontsize_col = 4.5,
+         annotation_colors = list(Cohort = c(Discovery = &#39;grey30&#39;, Discovery_LTP = &#39;grey60&#39;, MethodDev = &#39;grey90&#39;),
+                                  Condition = c(Tumor = &#39;#d95f02&#39;, Normal = &#39;#1b9e77&#39;)))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-11-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-11-1">
+Past versions of unnamed-chunk-11-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-11-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-11-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><font size='4'> <strong>Do batch correction using limma</strong>
+</font><br />
+Batch effect is successfully removed, which supports that existing batch
+effect is linear. Batch factor (Cohort) should be included in linear
+model for statistical analysis.</p>
+<pre class="r"><code># Perform batch correction to see if cohorts can be merged
+datMat_BC &lt;- doBatchCorrection(proTissue_Combined$vsn.data,
+                               wantedVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;, &#39;Condition:Recurrence&#39;),
+                               unwantedVar = &#39;Cohort&#39;)
+proTissueVsn_BC &lt;- proTissue_Combined$vsn.data
+assay(proTissueVsn_BC) &lt;- datMat_BC
+# Save batch corrected data
+# saveRDS(proTissueVsn_BC, &#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+
+# Do PCA
+pcaRes_BC &lt;- doSOA(proTissueVsn_BC, meta_var = c(&#39;Condition&#39;, &#39;Cohort&#39;),
+                   pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes_BC$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal pValAdj Stat   Test
+1 PC1 (40.7%) Condition 2.51e-72   1e-70 32.2 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes_BC$pcTab %&gt;%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% c(&#39;XFKHGP_TU&#39;, &#39;1TK71I_TU&#39;) ~ Sample))
+ggplot(pcTab, aes(x=Condition, y=`PC1 (40.7%)`, col=Condition, fill=Condition, label = Label)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  geom_text_repel(show.legend = F, size = 5) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th #+ theme(axis.title = element_text(size = 28),</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-12-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-12-1">
+Past versions of unnamed-chunk-12-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-12-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-12-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code>#              axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
+#              legend.title = element_text(size = 26), legend.text = element_text(size = 24))
+# ggsave(&#39;./output/Discovery/group_meeting/quality_control_afterBC_combined_proTissue_Krij_condi.png&#39;,
+#        device = &#39;png&#39;, dpi = 400, height = 8, width = 10)</code></pre>
+<pre class="r"><code># Compute sample euclidean distances using top variable features
+abunMat &lt;- assay(proTissueVsn_BC)
+featSDs &lt;- rowSds(abunMat, na.rm = T)
+topVarFeats &lt;- names(sort(featSDs, decreasing = T)[1:1000])
+abunMatSub &lt;- abunMat[topVarFeats,]
+d &lt;- dist(t(abunMatSub), method = &#39;euclidean&#39;)
+
+# Visualize sample distances by heatmap with clustering
+colAnno &lt;- dplyr::select(proTissueTab_Combined, Sample, Condition, Cohort) %&gt;%
+  dplyr::filter(!duplicated(Sample)) %&gt;%
+  tibble::column_to_rownames(&#39;Sample&#39;)
+pheatmap(as.matrix(d), annotation_col = colAnno, scale = &#39;row&#39;, #row scaling is across columns
+         color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100),
+         cluster_cols = T, cluster_rows = F, show_rownames = F,
+         clustering_method = &#39;ward.D2&#39;, fontsize_col = 4.5,
+         annotation_colors = list(Cohort = c(Discovery = &#39;grey30&#39;, Discovery_LTP = &#39;grey60&#39;, MethodDev = &#39;grey90&#39;),
+                                  Condition = c(Tumor = &#39;#d95f02&#39;, Normal = &#39;#1b9e77&#39;)))</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-13-1">
+Past versions of unnamed-chunk-13-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-13-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-13-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><font size='4'> <strong>Show reasons for removing samples</strong>
+</font><br />
+Samples ‘I0HVOL_TU’ and ‘7EAOX7_TU’ got decent tumor purity but still
+got removed due to misclassification in metadata-assisted quality
+control and similar molecular signature as normal samples (Tumor vs
+Normal, PC1, clustering). Samples ‘3M0D40_TU’ and ‘MJMTYR_TU’ are
+removed due to low tumor purity, misclassification, and barely following
+pattern in tumor samples (PC1, clustering). Sample ‘PDIR55_NG’ and
+‘XFKHGP_NG’ are removed because they hardly have molecular signatures of
+normal samples (clustering).</p>
+<p><strong>PCA</strong></p>
+<pre class="r"><code># Prepare preprocessed data containing all samples
+allProTissueVsn &lt;- doPreprocessing(allProTissueTab, feat = &#39;Protein.Group&#39;, smp = &#39;Sample&#39;,
+                                   val = &#39;Abundance&#39;, featAnno = c(&#39;Protein.Names&#39;, &#39;Genes&#39;),
+                                   smpAnno = c(smpAnno, &#39;MissLevel&#39;), do_featFilt = T, cutoff = 0.5)$vsn.data
+# Do batch correction
+datMat_BC &lt;- doBatchCorrection(allProTissueVsn,
+                               wantedVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;, &#39;Condition:Recurrence&#39;),
+                               unwantedVar = &#39;Cohort&#39;)
+allProTissueVsn_BC &lt;- allProTissueVsn
+assay(allProTissueVsn_BC) &lt;- datMat_BC
+# Save batch corrected data
+# saveRDS(allProTissueVsn_BC, &#39;./data/Discovery/AG_Krijgsveld/combined_allProTissueVsnBC.rds&#39;)
+
+# Do PCA
+pcaRes_BC &lt;- doSOA(allProTissueVsn_BC, meta_var = c(&#39;Condition&#39;, &#39;Cohort&#39;),
+                   pca_method = &#39;ppca&#39;, num_PCs = 20, do_onlyPCA = T)
+# Show significant associations between PCs and sample conditions
+pcaRes_BC$pcSigAssoRes</code></pre>
+<pre><code>         Var1      Var2     pVal  pValAdj  Stat   Test
+1 PC1 (39.9%) Condition 8.73e-62 3.49e-60 26.50 T-test
+2  PC6 (3.7%) Condition 3.46e-02 6.93e-01  2.13 T-test</code></pre>
+<pre class="r"><code># Visualize PCs
+pcTab &lt;- pcaRes_BC$pcTab %&gt;%
+  dplyr::mutate(Label = dplyr::case_when(Sample %in% c(&#39;I0HVOL_TU&#39;, &#39;I0HVOL_NG&#39;,
+                                                       &#39;7EAOX7_TU&#39;, &#39;7EAOX7_NG&#39;,
+                                                       &#39;XFKHGP_TU&#39;, &#39;XFKHGP_NG&#39;,
+                                                       &#39;MJMTYR_TU&#39;, &#39;1TK71I_TU&#39;,
+                                                       &#39;3M0D40_TU&#39;, &#39;PDIR55_NG&#39;) ~ Sample),
+                Label2 = dplyr::case_when(Sample %in% &#39;HH3U27K2_TG&#39; ~ Sample))
+ggplot(pcTab, aes(x=`PC1 (39.9%)`, y=`PC2 (8.9%)`, col=Cohort, shape=Condition, label = Label2)) +
+  geom_point(size = 4) +
+  geom_text_repel(show.legend = F, size = 5) +
+  scale_color_brewer(palette = &#39;Set2&#39;) +
+  scale_shape_manual(values = c(0, 16)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-14-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-14-1">
+Past versions of unnamed-chunk-14-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-14-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-14-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code>ggplot(pcTab, aes(x=Condition, y=`PC1 (39.9%)`, col=Condition, fill=Condition, label = Label)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
+  geom_text_repel(show.legend = F, size = 5) +
+  scale_color_brewer(palette = &#39;Dark2&#39;) +
+  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-14-2.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># Display tumor purity and missing levels of misclassified samples and potential outlier
 dplyr::distinct(allProTissueTab, Sample, .keep_all = T) %&gt;%
   dplyr::select(Sample, TumorPurity, MissLevel) %&gt;%
-  dplyr::filter(Sample %in% c(&#39;I0HVOL_TU&#39;, &#39;7EAOX7_TU&#39;, &#39;1LJXIN_TU&#39;, &#39;125CII_TU&#39;,
-                              &#39;1TK71I_TU&#39;, &#39;NG1IWD_TU&#39;, &#39;Q89YQK_NG&#39;)) %&gt;%
+  dplyr::filter(Sample %in% c(&#39;I0HVOL_TU&#39;, &#39;7EAOX7_TU&#39;, &#39;XFKHGP_TU&#39;, &#39;MJMTYR_TU&#39;,
+                              &#39;1TK71I_TU&#39;, &#39;3M0D40_TU&#39;, &#39;PDIR55_NG&#39;, &#39;HH3U27K2_TG&#39;, &#39;XFKHGP_NG&#39;)) %&gt;%
   as.data.frame()</code></pre>
-<pre><code>     Sample TumorPurity MissLevel
-1 I0HVOL_TU          87 0.3462415
-2 1LJXIN_TU          40 0.2705011
-3 Q89YQK_NG          NA 0.7134586
-4 7EAOX7_TU          70 0.2592065
-5 125CII_TU          30 0.5099658
-6 NG1IWD_TU          25 0.2764806
-7 1TK71I_TU          10 0.4129651</code></pre>
+<pre><code>       Sample TumorPurity  MissLevel
+1   I0HVOL_TU          87 0.12762850
+2   XFKHGP_NG          NA 0.08717874
+3   XFKHGP_TU         100 0.38785047
+4   7EAOX7_TU          70 0.27862150
+5   MJMTYR_TU          40 0.27526285
+6   1TK71I_TU          10 0.11331776
+7   3M0D40_TU          15 0.07943925
+8   PDIR55_NG          NA 0.06176986
+9 HH3U27K2_TG          89 0.15917056</code></pre>
 <p>=&gt; Mean of sample tumor cell contents is 67%, ranging from 10% to
 100%.<br />
 =&gt; Mean of sample missing levels is 31%, ranging from 21% to 71%.</p>
-<p></br> </br> <font size='5'> <strong>Check data reproducibility by
-comparing New and Old Proteomics</strong> </font><br />
+<p><strong>Hierarchical clustering</strong><br />
+Top 100 significant features between Tumor and Normal samples are used,
+of which Bad-quality samples were excluded for significance testing.
+Features (rows) are ordered by t-statistics.</p>
+<pre class="r"><code># Check if potential bad-quality Tumor samples get condition-associated molecular
+# signature identified in good-quality samples
+# Prepare top significant features between Tumor and Normal samples
+# subProTissueTab &lt;- dplyr::filter(allProTissueTab, !Cohort %in% &#39;Discovery_LTP&#39;)
+# subProTissueVsn &lt;- doPreprocessing(subProTissueTab, feat = &#39;Protein.Group&#39;, smp = &#39;Sample&#39;,
+#                                    val = &#39;Abundance&#39;, featAnno = c(&#39;Protein.Names&#39;, &#39;Genes&#39;),
+#                                    smpAnno = c(smpAnno, &#39;MissLevel&#39;), do_featFilt = T, cutoff = 0.5)$vsn.data
+# soaRes &lt;- doSOA(subProTissueVsn, meta_var = &#39;Condition&#39;, pca_method = &#39;ppca&#39;, num_PCs = 20,
+#                 use_proDA = T, unwantVar = &#39;Cohort&#39;, level_metaVar = c(&#39;Tumor&#39;, &#39;Normal&#39;))
+# saveRDS(soaRes, &#39;./data/Discovery/AG_Krijgsveld/soaRes/combined_proTissueRes_signature_rmBadSmps.rds&#39;)
+soaRes &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/soaRes/combined_proTissueRes_signature_rmBadSmps.rds&#39;)
+topSigFeatIdx &lt;- order(abs(soaRes$featSigAssoRes$Stat), decreasing = T)[1:100]
+topSigFeats &lt;- soaRes$featSigAssoRes$Var1[topSigFeatIdx]
+# Order top significant features by t-statistics
+topSigFeatStats &lt;- soaRes$featSigAssoRes$Stat[topSigFeatIdx]
+featOrder &lt;- topSigFeats[order(topSigFeatStats, decreasing = T)]
+
+# Prepare batch-corrected abundance matrix of all samples
+datMat_BC &lt;- assay(allProTissueVsn_BC)
+# Cluster samples by sample conditions
+normalSmpIdx &lt;- grep(&#39;_NG&#39; ,colnames(datMat_BC))
+smpOrder &lt;- c(colnames(datMat_BC)[-normalSmpIdx], colnames(datMat_BC)[normalSmpIdx])
+# Prepare sample annotation table
+smpAnnoTab &lt;- dplyr::select(allProTissueTab, Sample, Condition) %&gt;%
+  dplyr::filter(!duplicated(Sample)) %&gt;%
+  tibble::column_to_rownames(&#39;Sample&#39;)
+# Color sample groups as same as in PC plots
+smpAnnoCols &lt;- list(Condition = c(Normal = &#39;#1B9E77&#39;, Tumor = &#39;#D95F02&#39;))
+
+# View molecular signature of all samples
+datMatSub_BC &lt;- datMat_BC[featOrder, smpOrder]
+pheatmap(datMatSub_BC, scale = &#39;row&#39;, annotation_col = smpAnnoTab, annotation_colors = smpAnnoCols,
+         color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100), clustering_method = &#39;ward.D2&#39;,
+         cluster_rows = F, cluster_cols = F, show_rownames = F, fontsize_col = 5,
+         main = &#39;All samples (170)&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-15-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># View molecular signature of bad-quality samples
+# Include &#39;1LJXIN_TU&#39; due to quality control result in Klin. data
+badSmps &lt;- c(unique(proTissueTab_Discovery_LowTP$Sample), c(&#39;I0HVOL_TU&#39;, &#39;I0HVOL_NG&#39;,
+                                                            &#39;7EAOX7_TU&#39;, &#39;7EAOX7_NG&#39;,
+                                                            &#39;MJMTYR_TU&#39;, &#39;MJMTYR_NG&#39;,
+                                                            &#39;XFKHGP_TU&#39;, &#39;XFKHGP_NG&#39;,
+                                                            &#39;HH3U27K2_TG&#39;, &#39;HH3U27K2_NG&#39;,
+                                                            &#39;1LJXIN_TU&#39;, &#39;1LJXIN_NG&#39;))
+datMatSub_BC &lt;- datMat_BC[featOrder, badSmps]
+pheatmap(datMatSub_BC, scale = &#39;row&#39;, annotation_col = smpAnnoTab, annotation_colors = smpAnnoCols,
+         color = colorRampPalette(c(&#39;navy&#39;, &#39;white&#39;, &#39;red&#39;))(100), clustering_method = &#39;ward.D2&#39;,
+         cluster_rows = F, show_rownames = F,
+         main = &#39;Potential bad-quality samples and corresponding normal samples&#39;)</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-15-2.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="comparisons" class="section level1">
+<h1>Comparisons</h1>
+<p>Investigate consistency of results obtained from different datasets.
 Note that only common samples between two datasets are considered.</p>
-<pre class="r"><code># Prepare preprocessed data sharing same sample space
+<div id="new-vs-old-klin.-data" class="section level2">
+<h2>New vs Old Klin. data</h2>
+<pre class="r"><code># Load preprocessed data
 proTissue_Old &lt;- readRDS(&#39;./data/MethodDev/AG_Klingmueller/proTissueVsn.rds&#39;)
-proTissue_New &lt;- dplyr::filter(allProTissueTab, Sample %in% colnames(proTissue_Old)) %&gt;%
-  doPreprocessing(feat = &#39;Feature&#39;, smp = &#39;Sample&#39;, val = &#39;Abundance&#39;, featAnno = &#39;Gene&#39;,
-                  smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5)
-proTissue_New &lt;- proTissue_New$vsn.data
-# Prepare preprocessed data corrected for SVs
-svaRes_New &lt;- doSVA(proTissue_New, wantedVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;), numSV_method = &#39;leek&#39;,
-                    asso_metaVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;, &#39;Gender&#39;, &#39;Age&#39;,
-                                     &#39;Smoking&#39;, &#39;Stage&#39;, &#39;Adjuvant&#39;, &#39;TumorPurity&#39;))
-svaRes_Old &lt;- doSVA(proTissue_Old, wantedVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;), numSV_method = &#39;leek&#39;,
-                    asso_metaVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;, &#39;Gender&#39;, &#39;Age&#39;,
-                                     &#39;Smoking&#39;, &#39;Stage&#39;, &#39;Adjuvant&#39;, &#39;TumorPurity&#39;, &#39;Batch&#39;))
-proTissueSVs_New &lt;- svaRes_New$summExp_SVs
-proTissueSVs_Old &lt;- svaRes_Old$summExp_SVs</code></pre>
+proTissue_New &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/allProTissueVsn.rds&#39;)
+# Subset common samples
+proTissue_New &lt;- proTissue_New[, colnames(proTissue_New) %in% colnames(proTissue_Old)]
+# Prepare data with constructed SVs for statistical testing and data corrected for
+# SVs for computing feature correlations
+svaRes_New &lt;- doSVA(proTissue_New, wantedVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;, &#39;Condition:Recurrence&#39;))</code></pre>
+<pre><code>49.1% of features are complete.</code></pre>
+<pre class="r"><code>svaRes_Old &lt;- doSVA(proTissue_Old, wantedVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;, &#39;Condition:Recurrence&#39;))</code></pre>
+<pre><code>56.9% of features are complete.</code></pre>
+<pre class="r"><code>proTissueSVs_New &lt;- svaRes_New$summExp_SVs
+proTissueSVs_Old &lt;- svaRes_Old$summExp_SVs
+# Prepare protein-gene table for providing gene names
+featInfo &lt;- tibble::as_tibble(rowData(proTissue_New), rownames = &#39;Proteins&#39;) %&gt;%
+  dplyr::rename(Genes = Gene) %&gt;%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, &#39;;.*&#39;),
+                Genes = stringr::str_remove(Genes, &#39;;.*&#39;))</code></pre>
 <p><font size='4'> <strong>Preprocessed data without any covariate
 correction</strong> </font><br />
 <strong>Feature correlations (data1: New data, data2: Old
 data)</strong></p>
 <pre class="r"><code># Compute feature correlations between two datasets
 corrRes &lt;- calcFeatCorr(proTissue_New, proTissue_Old, show_nFeats = T)</code></pre>
-<pre><code>Features in data1: 7408
+<pre><code>Features in data1: 7285
 Features in data2: 8250
-Features in common: 6893</code></pre>
+Features in common: 6820</code></pre>
 <pre class="r"><code># Plot feature correlations
 ggplot(corrRes, aes(x=Correlation)) +
   geom_histogram(binwidth = 0.1) +
   scale_x_continuous(breaks = c(seq(-1, 1, 0.2))) +
   labs(y = &#39;Frequency&#39;, title = &#39;Feature Correlations: New vs Old Proteomics (Uncorrected)&#39;) +
   th</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-18-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-18-1">
+Past versions of unnamed-chunk-18-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-18-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-18-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>  # theme(axis.title = element_text(size = 22),
   #       axis.text = element_text(size = 18))
 # ggsave(&#39;./output/Discovery/25.07.24_LGM/compFeatCorr_combined_proTissue_Klin_new_vs_old.png&#39;,
 #        device = &#39;png&#39;, dpi = 400, height = 8, width = 10)</code></pre>
 <p><strong>log(FC) between Tumor and Normal samples</strong></p>
 <pre class="r"><code># Compute log(FC) and t-statistics between Tumor and Normal tissue samples in two datasets
-# Prepare protein-gene table for providing gene names
-featInfo &lt;- tibble::as_tibble(rowData(proTissue_New), rownames = &#39;Proteins&#39;) %&gt;%
-  dplyr::rename(Genes = Gene) %&gt;%
-  dplyr::mutate(Proteins = stringr::str_remove(Proteins, &#39;;.*&#39;),
-                Genes = stringr::str_remove(Genes, &#39;;.*&#39;))
 # Prepare summarized tables of comparison for visualization
 # condiFeatAssoTabs &lt;- summarizeFeatAssoRes(proTissue_New, proTissue_Old, &#39;New&#39;, &#39;Old&#39;,
 #                                           meta_var = &#39;Condition&#39;, subset = NULL,
 #                                           method = &#39;proDA&#39;, alpha = 0.05, prot_gene_tbl = featInfo)
-condiFeatAssoTabs &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/New_vs_Old_condiFeatAsso.rds&#39;)
+# saveRDS(condiFeatAssoTabs, &#39;./data/Discovery/AG_Klingmueller/soaRes/comparisons/New_vs_Old_condiFeatAsso.rds&#39;)
+condiFeatAssoTabs &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/comparisons/New_vs_Old_condiFeatAsso.rds&#39;)
 
 # Plot log(FC)
 ggplot(condiFeatAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
@@ -1200,7 +2263,7 @@ ggplot(condiFeatAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Directio
   labs(x = &#39;log(FC) of New data&#39;, y = &#39;log(FC) of Old data&#39;,
        title = &#39;log(FC): Tumor vs Normal (Uncorrected)&#39;) +
   th</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-10-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-19-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>  # theme(axis.title = element_text(size = 22),
   #       axis.text = element_text(size = 14),
   #       legend.title = element_text(size = 22),
@@ -1222,7 +2285,44 @@ ggplot(condiFeatAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2),
   annotate(&#39;text&#39;, x = 5, y = 30, size = 4,
            label = paste0(percent, &#39;% of significant results consistent&#39;)) +
   th</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-11-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-20-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-20-1">
+Past versions of unnamed-chunk-20-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-20-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-20-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p></br> <font size='4'> <strong>Preprocessed data accounted for
 SVs</strong> </font><br />
 <strong>Feature correlations</strong></p>
@@ -1234,15 +2334,55 @@ ggplot(corrRes, aes(x=Correlation)) +
   scale_x_continuous(breaks = c(seq(-1, 1, 0.1))) +
   labs(y = &#39;Frequency&#39;, title = &#39;Feature Correlations: New vs Old Proteomics (Corrected)&#39;) +
   th</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-12-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-21-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-21-1">
+Past versions of unnamed-chunk-21-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-21-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-21-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>log(FC) between Tumor and Normal samples</strong></p>
 <pre class="r"><code># Compute log(FC) and t-statistics between Tumor and Normal tissue samples in two datasets
 # Prepare summarized tables of comparison for visualization
 # condiFeatAssoTabs_SVs &lt;- summarizeFeatAssoRes(proTissueSVs_New, proTissueSVs_Old,
 #                                               &#39;New&#39;, &#39;Old&#39;, meta_var = &#39;Condition&#39;,
-#                                               subset = NULL, method = &#39;proDA&#39;, alpha = 0.05,
-#                                               unwantVar1 = &#39;SV1&#39;, unwantVar2 = &#39;SV1&#39;)
-condiFeatAssoTabs_SVs &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/New_vs_Old_condiFeatAsso_SVs_leek.rds&#39;)
+#                                               subset = NULL, method = &#39;proDA&#39;,
+#                                               alpha = 0.05, prot_gene_tbl = featInfo,
+#                                               unwantVar1 = grep(&#39;^SV\\d+$&#39;, colnames(colData(proTissueSVs_New)), value = T),
+#                                               unwantVar2 = grep(&#39;^SV\\d+$&#39;, colnames(colData(proTissueSVs_Old)), value = T))
+# saveRDS(condiFeatAssoTabs_SVs, &#39;./data/Discovery/AG_Klingmueller/soaRes/comparisons/New_vs_Old_condiFeatAsso_SVs.rds&#39;)
+condiFeatAssoTabs_SVs &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/comparisons/New_vs_Old_condiFeatAsso_SVs.rds&#39;)
 
 # Plot log(FC)
 ggplot(condiFeatAssoTabs_SVs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
@@ -1256,7 +2396,44 @@ ggplot(condiFeatAssoTabs_SVs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Dire
   labs(x = &#39;log(FC) of New data&#39;, y = &#39;log(FC) of Old data&#39;,
        title = &#39;log(FC): Tumor vs Normal (SV-Corrected)&#39;) +
   th</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-13-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-22-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-22-1">
+Past versions of unnamed-chunk-22-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-22-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-22-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>p-values (Tumor vs Normal samples, alpha = 0.05)</strong></p>
 <pre class="r"><code># Plot p-values
 # Compute result consistency
@@ -1272,190 +2449,184 @@ ggplot(condiFeatAssoTabs_SVs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_da
   annotate(&#39;text&#39;, x = 5, y = 30, size = 4,
            label = paste0(percent, &#39;% of significant results consistent&#39;)) +
   th</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-14-1.png" width="960" style="display: block; margin: auto;" />
-=&gt; SV-corrected data does not give rise to better result consistency.
-</br> </br> </br> </br></p>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-23-1.png" width="960" style="display: block; margin: auto;" />
+=&gt; SV-corrected data does not give rise to better result
+consistency.</p>
 </div>
-</div>
-<div id="ag-krijgsveld" class="section level2">
-<h2>AG Krijgsveld</h2>
-<p>Combine Method Dev and Discovery cohorts</p>
-<pre class="r"><code># Prepare long data containing original data and needed information
-# Discovery
-# Load original data
-proTissueTab_Discovery &lt;- readr::read_tsv(&#39;./data/Discovery/AG_Krijgsveld/20230815_MarcS_Discovery_Tissue.pg_matrix.tsv&#39;) %&gt;%
-  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %&gt;%
-  tidyr::pivot_longer(cols = -c(&#39;Protein.Group&#39;, &#39;Protein.Names&#39;, &#39;Genes&#39;),
-                      names_to = &#39;Sample&#39;, values_to = &#39;Abundance&#39;) %&gt;%
-  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, &#39;_HUMAN&#39;),
-                Sample = stringr::str_remove_all(Sample, &#39;^.+SC_A_|^.+SC_DIS_A_|4\\.raw$&#39;))
-# Include summarized metadata
-proTissueTab_Discovery &lt;- dplyr::left_join(proTissueTab_Discovery, summMetadat4Krij, by = &#39;Sample&#39;)
-
-# MethodDev
-# Load and tidy up original data and include summarized metadata into it
-summMetadat_Krij &lt;- dplyr::filter(summMetadat, To %in% &#39;KRIJGSVELD&#39;)
-proTissueTab_MethodDev &lt;- readr::read_delim(&#39;./data/MethodDev/AG_Krijgsveld/20230726_Thorax_Method_Est_tissue.txt&#39;) %&gt;%
-  dplyr::select(-c(Protein.Ids, First.Protein.Description)) %&gt;%
-  tidyr::pivot_longer(cols = -c(&#39;Protein.Group&#39;, &#39;Protein.Names&#39;, &#39;Genes&#39;),
-                      names_to = &#39;Aliquot&#39;,
-                      values_to = &#39;Abundance&#39;) %&gt;%
-  dplyr::mutate(Protein.Names = stringr::str_remove_all(Protein.Names, &#39;_HUMAN&#39;),
-                Aliquot = stringr::str_remove_all(Aliquot, &#39;\\.raw$&#39;)) %&gt;%
-  dplyr::left_join(summMetadat_Krij, by = &#39;Aliquot&#39;) %&gt;%
-  dplyr::select(-Aliquot)
-
-# Extract common features for combining data
-featSpace_Discovery &lt;- unique(proTissueTab_Discovery$Protein.Group)
-featSpace_MethodDev &lt;- unique(proTissueTab_MethodDev$Protein.Group)
-cmnFeats &lt;- intersect(featSpace_Discovery, featSpace_MethodDev)
-# Filter common features
-proTissueTab_Discovery &lt;- dplyr::filter(proTissueTab_Discovery, Protein.Group %in% cmnFeats)
-proTissueTab_MethodDev &lt;- dplyr::filter(proTissueTab_MethodDev, Protein.Group %in% cmnFeats)
-# Combine data
-proTissueTab_Combined &lt;- dplyr::bind_rows(proTissueTab_Discovery, proTissueTab_MethodDev)
-
-# Preprocess data
-proTissue_Combined &lt;- doPreprocessing(proTissueTab_Combined, feat = &#39;Protein.Group&#39;, smp = &#39;Sample&#39;,
-                                      val = &#39;Abundance&#39;, featAnno = c(&#39;Protein.Names&#39;, &#39;Genes&#39;),
-                                      smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5, viz_miss = T)#, save_path = &#39;./data/Discovery/AG_Krijgsveld/combined_proTissue&#39;)</code></pre>
-<p>Show dimensions of original combined data (126 samples and 7091
-common features)</p>
-<pre class="r"><code>dim(proTissue_Combined$ori.data)</code></pre>
-<pre><code>[1] 7091  126</code></pre>
-<p>Show missingness of original combined data</p>
-<pre class="r"><code>proTissue_Combined$ori.data.miss +
-  theme(axis.text.x = element_text(size = 7))</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-17-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>Show distribution of original combined data</p>
-<pre class="r"><code># Convert SE object into long data
-longData &lt;- summExp2df(proTissue_Combined$ori.data, row_id = &#39;Protein.Group&#39;, col_id = &#39;Sample&#39;)
-# Order samples based on cohorts so that same cohorts are clustered in plot
-smpLevels &lt;- dplyr::arrange(longData, Cohort) %&gt;%
-  dplyr::filter(!duplicated(Sample)) %&gt;%
-  dplyr::pull(Sample)
-longData &lt;- dplyr::mutate(longData, Sample = factor(Sample, levels = smpLevels))
-ggplot(longData, aes(x=Sample, y=Value, col=Cohort)) +
-  geom_boxplot(outlier.size = 0.8) +
-  scale_color_brewer(palette = &#39;Set2&#39;) +
-  scale_y_log10() +
-  labs(y = &#39;Abundance&#39;) +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-18-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p><strong>Remove features quantified in less than 1/2 of
-samples</strong><br />
-Show dimensions of filtered data (126 samples and 6126 features)</p>
-<pre class="r"><code>dim(proTissue_Combined$filt.data)</code></pre>
-<pre><code>[1] 6126  126</code></pre>
-<p>Show missingness of filtered data</p>
-<pre class="r"><code>proTissue_Combined$filt.data.miss +
-  theme(axis.text.x = element_text(size = 7))</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-20-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p><strong>Normalize filtered data by VSN</strong><br />
-Show distribution of vsn normalized data</p>
-<pre class="r"><code># Convert SE object into long data
-longData &lt;- summExp2df(proTissue_Combined$vsn.data, row_id = &#39;Protein.Group&#39;, col_id = &#39;Sample&#39;)
-# Order samples based on cohorts so that same cohorts are clustered in plot
-smpLevels &lt;- dplyr::arrange(longData, Cohort) %&gt;%
-  dplyr::filter(!duplicated(Sample)) %&gt;%
-  dplyr::pull(Sample)
-longData &lt;- dplyr::mutate(longData, Sample = factor(Sample, levels = smpLevels))
-ggplot(longData, aes(x=Sample, y=Value, col=Cohort)) +
-  geom_boxplot(outlier.size = 0.8) +
-  scale_color_brewer(palette = &#39;Set2&#39;) +
-  labs(y = &#39;Abundance&#39;) +
-  th + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-21-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p>Show feature mean-variance relationship of vsn normalized data</p>
-<pre class="r"><code>proTissue_Combined$vsn.feat.mean.var</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-22-1.png" width="960" style="display: block; margin: auto;" /></p>
-<p><strong>Do metadata-assisted quality control</strong><br />
-Show significant associations between PCs and sample conditions and data
-cohorts</p>
-<pre class="r"><code># Do single-omics analysis
-proTissueSOA_Combined &lt;- doSOA(proTissue_Combined$vsn.data, meta_var = c(&#39;Condition&#39;, &#39;Cohort&#39;),
-                               pca_method = &#39;ppca&#39;, do_onlyPCA = T)
-proTissueSOA_Combined$pcSigAssoRes</code></pre>
-<pre><code>         Var1      Var2     pVal  pValAdj  Stat   Test
-1   PC1 (34%)    Cohort 2.03e-80 8.11e-79 46.60 T-test
-2 PC2 (24.9%) Condition 2.74e-44 5.48e-43 21.80 T-test
-3 PC2 (24.9%)    Cohort 1.47e-02 1.96e-01 -2.47 T-test
-4   PC1 (34%) Condition 2.91e-02 2.91e-01  2.21 T-test</code></pre>
-<p>Visualize significant PCs</p>
-<pre class="r"><code>pcTab &lt;- proTissueSOA_Combined$pcTab
-ggplot(pcTab, aes(x=`PC1 (34%)`, y=`PC2 (24.9%)`, col=Cohort, shape=Condition)) +
-  geom_point(size = 4) +
-  scale_color_brewer(palette = &#39;Set2&#39;) +
-  scale_shape_manual(values = c(0, 16)) +
-  th #+ theme(axis.title = element_text(size = 28),</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-24-1.png" width="960" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>#              axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
-#              legend.title = element_text(size = 26), legend.text = element_text(size = 24))
-# ggsave(&#39;./output/Discovery/group_meeting/quality_control_beforeBC_combined_proTissue_Krij_condi.png&#39;,
-#        device = &#39;png&#39;, dpi = 400, height = 8, width = 10)
-
-# ggplot(pcTab, aes(x=Condition, y=`PC1 (34%)`, col=Condition, fill=Condition)) +
-#   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-#   geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
-#   scale_color_brewer(palette = &#39;Dark2&#39;) +
-#   scale_fill_brewer(palette = &#39;Dark2&#39;) +
-#   ggpubr::stat_compare_means(method = &#39;t.test&#39;, paired = F,
-#                              method.args = list(var.equal = T),
-#                              size = 6, show.legend = F) +
-#   th</code></pre>
-<p><strong>Do batch correction using limma</strong><br />
-There is no PC significantly associated with data cohorts after batch
-correction, which supports that batch effects are linear. Batch factor
-(Cohort) should be included in linear model for statistical
-analysis.</p>
-<pre class="r"><code># Perform batch correction to see if two cohorts can be merged
-# Convert SE object into wide data
-datMat &lt;- SummarizedExperiment::assay(proTissue_Combined$vsn.data)
-# Define design matrix to keep particular effects, e.g., treatments
-smpAnnoTab &lt;- as_tibble(colData(proTissue_Combined$vsn.data), rownames = &#39;Sample&#39;)
-design &lt;- model.matrix(~ smpAnnoTab$Condition + smpAnnoTab$Recurrence)
-# Do batch correction
-datMat_BC &lt;- limma::removeBatchEffect(datMat, batch = smpAnnoTab$Cohort, design = design)
-proTissueSE_BC &lt;- proTissue_Combined$vsn.data
-assay(proTissueSE_BC) &lt;- datMat_BC
-# Save batch corrected data
-# saveRDS(proTissueSE_BC, &#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
-
-# Do single-omics analysis
-proTissueSOA_BC &lt;- doSOA(proTissueSE_BC, meta_var = c(&#39;Condition&#39;, &#39;Cohort&#39;),
-                         pca_method = &#39;ppca&#39;, do_onlyPCA = T)
-proTissueSOA_BC$pcSigAssoRes</code></pre>
-<pre><code>       Var1      Var2     pVal  pValAdj  Stat   Test
-1 PC1 (38%) Condition 6.55e-50 2.62e-48 -24.8 T-test</code></pre>
-<p>Visualize PCs</p>
-<pre class="r"><code>pcTab &lt;- proTissueSOA_BC$pcTab %&gt;%
-  dplyr::mutate(Label = dplyr::case_when(Sample %in% c(&#39;I0HVOL_TU&#39;, &#39;7EAOX7_TU&#39;,
-                                                       &#39;MJMTYR_TU&#39;, &#39;XFKHGP_TU&#39;,
-                                                       &#39;XFKHGP_NG&#39;, &#39;MJMTYR_NG&#39;,
-                                                       &#39;I0HVOL_NG&#39;, &#39;7EAOX7_NG&#39;) ~ Sample))
-ggplot(pcTab, aes(x=`PC1 (38%)`, y=`PC2 (9.2%)`, col=Cohort, shape=Condition)) +
-  geom_point(size = 4) +
-  scale_color_brewer(palette = &#39;Set2&#39;) +
-  scale_shape_manual(values = c(0, 16)) +
-  th #+ theme(axis.title = element_text(size = 28),</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-26-1.png" width="960" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>#              axis.text.x = element_text(size = 24), axis.text.y = element_text(size = 18),
-#              legend.title = element_text(size = 26), legend.text = element_text(size = 24))
-# ggsave(&#39;./output/Discovery/group_meeting/quality_control_afterBC_combined_proTissue_Krij_condi.png&#39;,
-#        device = &#39;png&#39;, dpi = 400, height = 8, width = 10)
-
-ggplot(pcTab, aes(x=Condition, y=`PC1 (38%)`, col=Condition, fill=Condition, label = Label)) +
-  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  geom_jitter(position = position_jitter(0.3), size = 3, show.legend = F) +
-  geom_text_repel(show.legend = F, size = 5) +
-  scale_color_brewer(palette = &#39;Dark2&#39;) +
-  scale_fill_brewer(palette = &#39;Dark2&#39;) +
+<div id="new-klin.-vs-krij.-data" class="section level2">
+<h2>New Klin. vs Krij. data</h2>
+<pre class="r"><code># Load preprocessed data
+proTissue_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/allProTissueVsn.rds&#39;)
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_allProTissueVsnBC.rds&#39;)
+# Subset common samples
+cmnSmps &lt;- intersect(colnames(proTissue_Klin), colnames(proTissue_Krij))
+proTissue_Klin &lt;- proTissue_Klin[, cmnSmps]
+proTissue_Krij &lt;- proTissue_Krij[, cmnSmps]
+# Prepare data with constructed SVs for statistical testing and data corrected for
+# SVs for computing feature correlations
+svaRes_Klin &lt;- doSVA(proTissue_Klin, wantedVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;, &#39;Condition:Recurrence&#39;))</code></pre>
+<pre><code>41% of features are complete.</code></pre>
+<pre class="r"><code>svaRes_Krij &lt;- doSVA(proTissue_Krij, wantedVar = c(&#39;Condition&#39;, &#39;Recurrence&#39;, &#39;Condition:Recurrence&#39;))</code></pre>
+<pre><code>39.6% of features are complete.</code></pre>
+<pre class="r"><code>proTissueSVs_Klin &lt;- svaRes_Klin$summExp_SVs
+proTissueSVs_Krij &lt;- svaRes_Krij$summExp_SVs
+# Prepare protein-gene table for providing gene names
+featInfo &lt;- tibble::as_tibble(rowData(proTissue_Klin), rownames = &#39;Proteins&#39;) %&gt;%
+  dplyr::rename(Genes = Gene) %&gt;%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, &#39;;.*&#39;),
+                Genes = stringr::str_remove(Genes, &#39;;.*&#39;))</code></pre>
+<p><font size='4'> <strong>Preprocessed data without any covariate
+correction</strong> </font><br />
+<strong>Feature correlations (data1: Klin. data, data2: Krij.
+data)</strong></p>
+<pre class="r"><code># Compute feature correlations between two datasets
+corrRes &lt;- calcFeatCorr(proTissue_Klin, proTissue_Krij, show_nFeats = T)</code></pre>
+<pre><code>Features in data1: 7285
+Features in data2: 6244
+Features in common: 5717</code></pre>
+<pre class="r"><code># Plot feature correlations
+ggplot(corrRes, aes(x=Correlation)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(breaks = c(seq(-1, 1, 0.2))) +
+  labs(y = &#39;Frequency&#39;, title = &#39;Feature Correlations: Klin. vs Krij. Proteomics (Uncorrected)&#39;) +
   th</code></pre>
-<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-26-2.png" width="960" style="display: block; margin: auto;" />
-=&gt; Tumor purity: I0HVOL_TU - 87% / 7EAOX7_TU - 70% / MJMTYR_TU - 40%
-/ XFKHGP_TU - 100%<br />
-(Mean of sample tumor cell contents is 74%, ranging from 40% to
-100%.)</p>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-25-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>  # theme(axis.title = element_text(size = 22),
+  #       axis.text = element_text(size = 18))</code></pre>
+<p><strong>log(FC) between Tumor and Normal samples</strong></p>
+<pre class="r"><code># Compute log(FC) and t-statistics between Tumor and Normal tissue samples in two datasets
+# Prepare summarized tables of comparison for visualization
+# condiFeatAssoTabs &lt;- summarizeFeatAssoRes(proTissue_Klin, proTissue_Krij, &#39;Klin.&#39;, &#39;Krij.&#39;,
+#                                           meta_var = &#39;Condition&#39;, subset = NULL,
+#                                           method = &#39;proDA&#39;, alpha = 0.05, prot_gene_tbl = featInfo)
+# saveRDS(condiFeatAssoTabs, &#39;./data/Discovery/AG_Klingmueller/soaRes/comparisons/newKlin_vs_Krij_condiFeatAsso.rds&#39;)
+condiFeatAssoTabs &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/comparisons/newKlin_vs_Krij_condiFeatAsso.rds&#39;)
+
+# Plot log(FC)
+ggplot(condiFeatAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 3) +
+  ggpubr::stat_cor(data = condiFeatAssoTabs$tbl_logFC,
+                   aes(x=logFC_dat1, y=logFC_dat2, col=NULL,
+                       label=paste(..rr.label.., ..p.label.., sep = &quot;~`,`~&quot;)),
+                   size = 7, show.legend = F) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.8) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;log(FC) of Klin. data&#39;, y = &#39;log(FC) of Krij. data&#39;,
+       title = &#39;log(FC): Tumor vs Normal (Uncorrected)&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-26-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-26-1">
+Past versions of unnamed-chunk-26-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-26-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/4263b1c1c39b906ce2e66058fb81d9c99e3820d8/docs/figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-26-1.png" target="_blank">4263b1c</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-07-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<pre class="r"><code>  # theme(axis.title = element_text(size = 22),
+  #       axis.text = element_text(size = 14),
+  #       legend.title = element_text(size = 22),
+  #       legend.text = element_text(size = 20))</code></pre>
+<p><strong>p-values (Tumor vs Normal samples, alpha = 0.05)</strong></p>
+<pre class="r"><code># Plot p-values
+# Compute result consistency
+percent &lt;- round(sum(condiFeatAssoTabs$tbl_pVal$Significance == &#39;Sig. in Both&#39;) /
+                   sum(condiFeatAssoTabs$tbl_pVal$Significance != &#39;Not Sig.&#39;), 3) * 100
+
+ggplot(condiFeatAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.8) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;darkgreen&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;-log10(pVal) of Klin. data&#39;, y = &#39;-log10(pVal) of Krij. data&#39;,
+       title = &#39;p-val: Tumor vs Normal (Uncorrected)&#39;) +
+  annotate(&#39;text&#39;, x = 8, y = 55, size = 4,
+           label = paste0(percent, &#39;% of significant results consistent&#39;)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-27-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p></br> <font size='4'> <strong>Preprocessed data accounted for
+SVs</strong> </font><br />
+<strong>Feature correlations</strong></p>
+<pre class="r"><code># Compute feature correlations between two datasets
+corrRes &lt;- calcFeatCorr(svaRes_Klin$correctDatMat, svaRes_Krij$correctDatMat, show_nFeats = F)
+# Plot feature correlations
+ggplot(corrRes, aes(x=Correlation)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(breaks = c(seq(-1, 1, 0.1))) +
+  labs(y = &#39;Frequency&#39;, title = &#39;Feature Correlations: Klin. vs Krij. Proteomics (Corrected)&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-28-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>log(FC) between Tumor and Normal samples</strong></p>
+<pre class="r"><code># Compute log(FC) and t-statistics between Tumor and Normal tissue samples in two datasets
+# Prepare summarized tables of comparison for visualization
+# condiFeatAssoTabs_SVs &lt;- summarizeFeatAssoRes(proTissueSVs_Klin, proTissueSVs_Krij,
+#                                               &#39;Klin.&#39;, &#39;Krij.&#39;, meta_var = &#39;Condition&#39;,
+#                                               subset = NULL, method = &#39;proDA&#39;,
+#                                               alpha = 0.05, prot_gene_tbl = featInfo,
+#                                               unwantVar1 = grep(&#39;^SV\\d+$&#39;, colnames(colData(proTissueSVs_Klin)), value = T),
+#                                               unwantVar2 = grep(&#39;^SV\\d+$&#39;, colnames(colData(proTissueSVs_Krij)), value = T))
+# saveRDS(condiFeatAssoTabs_SVs, &#39;./data/Discovery/AG_Klingmueller/soaRes/comparisons/newKlin_vs_Krij_condiFeatAsso_SVs.rds&#39;)
+condiFeatAssoTabs_SVs &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/comparisons/newKlin_vs_Krij_condiFeatAsso_SVs.rds&#39;)
+
+# Plot log(FC)
+ggplot(condiFeatAssoTabs_SVs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  ggpubr::stat_cor(data = condiFeatAssoTabs_SVs$tbl_logFC,
+                   aes(x=logFC_dat1, y=logFC_dat2, col=NULL,
+                       label=paste(..rr.label.., ..p.label.., sep = &quot;~`,`~&quot;)),
+                   size = 6, show.legend = F) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.8) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;log(FC) of Klin. data&#39;, y = &#39;log(FC) of Krij. data&#39;,
+       title = &#39;log(FC): Tumor vs Normal (SV-Corrected)&#39;) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-29-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>p-values (Tumor vs Normal samples, alpha = 0.05)</strong></p>
+<pre class="r"><code># Plot p-values
+# Compute result consistency
+percent &lt;- round(sum(condiFeatAssoTabs_SVs$tbl_pVal$Significance == &#39;Sig. in Both&#39;) /
+                   sum(condiFeatAssoTabs_SVs$tbl_pVal$Significance != &#39;Not Sig.&#39;), 3) * 100
+
+ggplot(condiFeatAssoTabs_SVs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = &#39;black&#39;, linewidth = 0.8) +
+  scale_color_manual(values = c(&#39;red&#39;, &#39;darkgreen&#39;, &#39;navy&#39;, &#39;grey&#39;)) +
+  labs(x = &#39;-log10(pVal) of Klin. data&#39;, y = &#39;-log10(pVal) of Krij. data&#39;,
+       title = &#39;p-val: Tumor vs Normal (SV-Corrected)&#39;) +
+  annotate(&#39;text&#39;, x = 8, y = 55, size = 4,
+           label = paste0(percent, &#39;% of significant results consistent&#39;)) +
+  th</code></pre>
+<p><img src="figure/MDev_Dis_01_preprocessing_DIA.Rmd/unnamed-chunk-30-1.png" width="960" style="display: block; margin: auto;" />
+=&gt; Feature significance of New Klin. data is not as good as that of
+Krij. or Old Klin. data while sample spaces are identical.</p>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">

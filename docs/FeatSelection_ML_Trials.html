@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Qian-Wu Liao" />
+
+
+<title>Comparison: ML models</title>
+
+<script src="site_libs/header-attrs-2.27/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.4.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">SMART-CARE: Lung Cancer</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Comparison: ML models</h1>
+<h4 class="author">Qian-Wu Liao</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2024-10-10
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 1
+</p>
+<p>
+<strong>Knit directory:</strong> <code>SMART-CARE_LungCancer/</code>
+<span class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20230425code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20230425)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20230425code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20230425)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
+</p>
+</div>
+<div id="strongFilepathsstrongabsolute" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Using absolute paths to the files within your workflowr project makes it
+difficult for you and others to run your code on a different machine.
+Change the absolute path(s) below to the suggested relative path(s) to
+make your code more reproducible.
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+absolute
+</th>
+<th style="text-align:left;">
+relative
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+/Users/qianwu/Desktop/SMART-CARE_LungCancer
+</td>
+<td style="text-align:left;">
+.
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertreed14c3b30dc8e1ed76939ad796689988321a5f8b6targetblankd14c3b3a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/d14c3b30dc8e1ed76939ad796689988321a5f8b6" target="_blank">d14c3b3</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomLiaoQianWuSMARTCARELungCancertreed14c3b30dc8e1ed76939ad796689988321a5f8b6targetblankd14c3b3a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/tree/d14c3b30dc8e1ed76939ad796689988321a5f8b6" target="_blank">d14c3b3</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    analysis/.DS_Store
+    Ignored:    code/.DS_Store
+    Ignored:    data/.DS_Store
+    Ignored:    data/Discovery/
+    Ignored:    data/MethodDev/
+    Ignored:    data/aliquot_metadata.xlsx
+    Ignored:    data/metadata_latest/
+    Ignored:    data/patient_metadata.xlsx
+    Ignored:    data/sample_metadata.xlsx
+    Ignored:    output/.DS_Store
+    Ignored:    output/Discovery/
+    Ignored:    output/Junyan/
+    Ignored:    output/MethodDev/
+    Ignored:    output/SC_meeting/
+
+Untracked files:
+    Untracked:  analysis/CrossCohort_investigation_EXP.Rmd
+    Untracked:  code/archive/
+    Untracked:  code/data_availability.Rmd
+    Untracked:  code/dataset_list.R
+    Untracked:  code/workflowr_commands.R
+
+Unstaged changes:
+    Modified:   analysis/MDev_Dis_02_soa_annotated_untargeted.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/FeatSelection_ML_Trials.Rmd</code>) and HTML
+(<code>docs/FeatSelection_ML_Trials.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/LiaoQianWu/SMART-CARE_LungCancer/blob/209dfece89b54d399918912772cec601439b8d97/analysis/FeatSelection_ML_Trials.Rmd" target="_blank">209dfec</a>
+</td>
+<td>
+LiaoQianWu
+</td>
+<td>
+2024-10-10
+</td>
+<td>
+Compare model performance trained on data either unadjusted or adjusted
+by SVs and do additional feature filtering on subdatasets before model
+training -&gt; Data adjusted by SVs constructed from whole tissue
+datasets with interaction term (Condition:Recurrence) included is chosen
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<p><font size='4'> Description: Train logistic regression and random
+forest models on data either unadjusted, adjusted for SVs constructed by
+Tumor or Normal subdatasets, or adjusted for SVs constructed by whole
+dataset including Tumor and Normal samples. </font></p>
+<p>Load libraries</p>
+<pre class="r"><code>library(&#39;spsUtil&#39;)
+library(ggh4x)
+library(DT)
+library(&#39;randomForest&#39;)
+library(&#39;missForest&#39;)
+library(xgboost)
+library(&#39;caret&#39;)
+library(&#39;glmnet&#39;)
+library(ggvenn)
+library(&#39;SummarizedExperiment&#39;)
+library(&#39;tidyverse&#39;)
+# Load user-defined functions
+source(&#39;./code/misc.R&#39;)
+source(&#39;./code/ml_funcs.R&#39;)
+
+# Set plot theme
+th &lt;- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = &#39;bold&#39;),
+        axis.text = element_text(face = &#39;bold&#39;),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))</code></pre>
+<div id="ttp-ag-klin." class="section level1">
+<h1>TTP (AG Klin.)</h1>
+<p>Tumor Tissue DIA Proteomics from AG Klingmüller</p>
+<div id="lasso-logistic-regression" class="section level2">
+<h2>Lasso logistic regression</h2>
+<p><font size='5'> <strong>Stability selection</strong> </font></p>
+<p><strong>Performance statistics of 100 models</strong><br />
+<strong>SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM -
+CONDITION:RECURRENCE)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/proTissueVsn.rds&#39;)
+proTumor_Klin &lt;- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% &#39;Tumor&#39;]
+# Load SOA results
+proTumorRes_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/trials/proTumorRes_SVsByProTissueInt.rds&#39;)
+
+# Prepare adjusted data
+adjProTumor_Klin &lt;- proTumor_Klin
+assay(adjProTumor_Klin) &lt;- proTumorRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proTumorRes_Klin$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProTumor_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProTumorVsn_SVsByProTissueInt.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.953
+95% CI: [0.79125, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-1-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION
+TERMS)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/proTissueVsn.rds&#39;)
+proTumor_Klin &lt;- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% &#39;Tumor&#39;]
+# Load SOA results
+proTumorRes_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/trials/proTumorRes_SVsByProTissue.rds&#39;)
+
+# Prepare adjusted data
+adjProTumor_Klin &lt;- proTumor_Klin
+assay(adjProTumor_Klin) &lt;- proTumorRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proTumorRes_Klin$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProTumor_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProTumorVsn_SVsByProTissue.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.959
+95% CI: [0.84125, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-2-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTUMOR)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/proTissueVsn.rds&#39;)
+proTumor_Klin &lt;- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% &#39;Tumor&#39;]
+# Load SOA results
+proTumorRes_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/trials/proTumorRes_SVsByProTumor.rds&#39;)
+
+# Prepare adjusted data
+adjProTumor_Klin &lt;- proTumor_Klin
+assay(adjProTumor_Klin) &lt;- proTumorRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proTumorRes_Klin$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProTumor_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProTumorVsn_SVsByProTumor.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.954
+95% CI: [0.85, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-3-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>UNADJUSTED DATA</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/proTissueVsn.rds&#39;)
+proTumor_Klin &lt;- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% &#39;Tumor&#39;]
+# Load SOA results
+proTumorRes_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/trials/proTumorRes.rds&#39;)
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proTumorRes_Klin$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(proTumor_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_impuProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Klingmueller/impuData/trials/impuProTumorVsn.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_impuProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.766
+95% CI: [0.465, 0.95]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-4-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="rf" class="section level2">
+<h2>RF</h2>
+<p><font size='5'> <strong>Stability selection</strong> </font></p>
+<p><strong>Performance statistics of 100 models</strong><br />
+<strong>SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM -
+CONDITION:RECURRENCE)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.997
+95% CI: [0.9666667, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-5-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION
+TERMS)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.992
+95% CI: [0.95, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-6-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTUMOR)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.992
+95% CI: [0.9333333, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-7-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>UNADJUSTED</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_impuProTumor_0.9r_randSplit_100_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.835
+95% CI: [0.6245833, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-8-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="ntp-ag-klin." class="section level1">
+<h1>NTP (AG Klin.)</h1>
+<p>Normal Tissue DIA Proteomics from AG Klingmüller</p>
+<div id="lasso-logistic-regression-1" class="section level2">
+<h2>Lasso logistic regression</h2>
+<p><font size='5'> <strong>Stability selection</strong> </font></p>
+<p><strong>Performance statistics of 100 models</strong><br />
+<strong>SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM -
+CONDITION:RECURRENCE)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/proTissueVsn.rds&#39;)
+proNormal_Klin &lt;- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% &#39;Normal&#39;]
+# Load SOA results
+proNormalRes_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/trials/proNormalRes_SVsByProTissueInt.rds&#39;)
+
+# Prepare adjusted data
+adjProNormal_Klin &lt;- proNormal_Klin
+assay(adjProNormal_Klin) &lt;- proNormalRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proNormalRes_Klin$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProNormal_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProNormalVsn_SVsByProTissueInt.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 1
+95% CI: [1, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-9-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION
+TERMS)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/proTissueVsn.rds&#39;)
+proNormal_Klin &lt;- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% &#39;Normal&#39;]
+# Load SOA results
+proNormalRes_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/trials/proNormalRes_SVsByProTissue.rds&#39;)
+
+# Prepare adjusted data
+adjProNormal_Klin &lt;- proNormal_Klin
+assay(adjProNormal_Klin) &lt;- proNormalRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proNormalRes_Klin$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProNormal_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProNormalVsn_SVsByProTissue.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.999
+95% CI: [0.9848485, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-10-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PRONORMAL)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/proTissueVsn.rds&#39;)
+proNormal_Klin &lt;- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% &#39;Normal&#39;]
+# Load SOA results
+proNormalRes_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/trials/proNormalRes_SVsByProNormal.rds&#39;)
+
+# Prepare adjusted data
+adjProNormal_Klin &lt;- proNormal_Klin
+assay(adjProNormal_Klin) &lt;- proNormalRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proNormalRes_Klin$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProNormal_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProNormalVsn_SVsByProNormal.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.965
+95% CI: [0.8484848, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-11-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>UNADJUSTED</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/proTissueVsn.rds&#39;)
+proNormal_Klin &lt;- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% &#39;Normal&#39;]
+# Load SOA results
+proNormalRes_Klin &lt;- readRDS(&#39;./data/Discovery/AG_Klingmueller/soaRes/trials/proNormalRes.rds&#39;)
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proNormalRes_Klin$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(proNormal_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_impuProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Klingmueller/impuData/trials/impuProNormalVsn.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_impuProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.708
+95% CI: [0.4393939, 0.9170455]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-12-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># &lt;font size=&#39;5&#39;&gt; **Investigation of model behaviors** &lt;/font&gt;
+
+# Conclusion of this part:
+# Models from different AUC windows can actually capture similar feature set, which
+# implies that factor affecting performance may not be variability of feature sets
+# selected by models. Instead, composition of test data may be factor, meaning that
+# some test sets are probably just easy/hard to predict.
+
+# Show number of unique selected features, i.e., features with non-zero coefficients,
+# from certain subsets of trained models depending on AUC-ROC, e.g., 0.9 &gt;= M &gt; 0.8
+cutoffs &lt;- c(0.9, 0.8, 0.7, 0.6, 0.5)
+numPickedFeats &lt;- c()
+topImpoFeatList &lt;- list()
+for (cuto in cutoffs) {
+  models &lt;- which(lrRes$lrRes$auc_roc &gt; cuto &amp; lrRes$lrRes$auc_roc &lt;= cuto+0.1)
+  coefMat &lt;- lrRes$lrRes$coefficient[, models]
+  topImpoFeats &lt;- as.data.frame(coefMat) %&gt;%
+    dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
+                                                   .x == 0 ~ 0))) %&gt;%
+    tibble::rownames_to_column(&#39;Feature&#39;) %&gt;%
+    tidyr::pivot_longer(cols = -&#39;Feature&#39;, names_to = &#39;Model&#39;, values_to = &#39;Pick&#39;) %&gt;%
+    dplyr::filter(Pick != 0) %&gt;%
+    dplyr::pull(Feature) %&gt;%
+    unique()
+  numPickedFeats &lt;- c(numPickedFeats, length(topImpoFeats))
+  topImpoFeatList[[which(cutoffs == cuto)]] &lt;- topImpoFeats
+}
+numPickedFeatTab &lt;- data.frame(CutoffWindow = paste0(cutoffs+0.1, &#39; &gt;= AUC &gt; &#39;, cutoffs),
+                               NumPickedFeats = numPickedFeats) %&gt;%
+  dplyr::mutate(CutoffWindow = factor(CutoffWindow, levels = CutoffWindow))
+
+ggplot(numPickedFeatTab, aes(x=CutoffWindow, y=NumPickedFeats)) +
+  geom_bar(stat = &#39;identity&#39;, position = position_dodge(), alpha = 0.9) +
+  labs(x = &#39;AUC-ROC window&#39;,
+       y = &#39;Number of unique selected features&#39;,
+       title = &#39;Number of features selected from certain subsets of trained models&#39;) +
+  th
+
+# Show overlaps of selected features from different subsets of trained models
+ggvenn(list(`1 &gt;= AUC &gt; 0.9` = topImpoFeatList[[1]], `0.9 &gt;= AUC &gt; 0.8` = topImpoFeatList[[2]],
+            `0.8 &gt;= AUC &gt; 0.7` = topImpoFeatList[[3]]),
+       fill_color = c(&#39;firebrick1&#39;, &#39;dodgerblue1&#39;, &#39;lightgreen&#39;), fill_alpha = 0.6,
+       set_name_color = c(&#39;firebrick1&#39;, &#39;dodgerblue1&#39;, &#39;lightgreen&#39;), set_name_size = 8,
+       text_size = 6, stroke_size = 1.5) +
+  labs(title = &#39;Overlap of features selected from certain subsets of trained models&#39;)
+ggvenn(list(`1 &gt;= AUC &gt; 0.9` = topImpoFeatList[[1]], `0.7 &gt;= AUC &gt; 0.6` = topImpoFeatList[[4]],
+            `0.6 &gt;= AUC &gt; 0.5` = topImpoFeatList[[5]]),
+       fill_color = c(&#39;firebrick1&#39;, &#39;dodgerblue1&#39;, &#39;lightgreen&#39;), fill_alpha = 0.6,
+       set_name_color = c(&#39;firebrick1&#39;, &#39;dodgerblue1&#39;, &#39;lightgreen&#39;), set_name_size = 8,
+       text_size = 6, stroke_size = 1.5) +
+  labs(title = &#39;Overlap of features selected from certain subsets of trained models&#39;)
+
+
+
+
+# Train models with top important features
+cutoffs &lt;- c(0.9, 0.8, 0.7, 0.6, 0.5)
+# for (cuto in cutoffs) {
+#   models &lt;- which(lrRes$lrRes$auc_roc &gt; cuto &amp; lrRes$lrRes$auc_roc &lt;= cuto+0.1)
+#   coefMat &lt;- lrRes$lrRes$coefficient[, models]
+#   topImpoFeatTab &lt;- as.data.frame(coefMat) %&gt;%
+#     dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
+#                                                    .x == 0 ~ 0))) %&gt;%
+#     tibble::rownames_to_column(&#39;Feature&#39;) %&gt;%
+#     tidyr::pivot_longer(cols = -&#39;Feature&#39;, names_to = &#39;Model&#39;, values_to = &#39;Pick&#39;) %&gt;%
+#     dplyr::group_by(Feature) %&gt;%
+#     dplyr::summarise(Frequency = sum(Pick),
+#                      PickRate = Frequency/length(models)) %&gt;%
+#     dplyr::filter(Frequency != 0) %&gt;%
+#     dplyr::arrange(desc(Frequency))
+#   topImpoFeats &lt;- topImpoFeatTab$Feature
+#   
+#   # Train lasso logistic regression model
+#   x &lt;- t(lrRes$featClusters$reducedData[topImpoFeats,])
+#   y &lt;- colData(impuAdjProNormal_Klin)$Recurrence
+#   lrResSub &lt;- runLogisR(x, y, targetClass = &#39;Yes&#39;, iter = 100, regularized_method = &#39;lasso&#39;,
+#                         cvFold = 5, cvMeasure = &#39;auc&#39;, used_lambda = &#39;lambda.min&#39;,
+#                         trainSet_ratio = 0.8, split_method = &#39;random split&#39;,
+#                         plot_ROC = F, save_model = T)
+#   saveRDS(lrResSub, paste0(&#39;./data/Discovery/logisR/others/AUC&#39;, cuto, &#39;_&#39;, cuto+0.1,
+#                            &#39;_lrResSOA_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds&#39;))
+# }
+
+# Display performance of reduced models
+meanAUC &lt;- c()
+lowerAUC &lt;- c()
+upperAUC &lt;- c()
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+meanAUC &lt;- c(meanAUC, round(mean(auc_roc), 3))
+ci &lt;- calcCI(auc_roc, bootstrap = T)
+lowerAUC &lt;- c(lowerAUC, ci[1])
+upperAUC &lt;- c(upperAUC, ci[2])
+for (cuto in cutoffs) {
+  lrResSub &lt;- readRDS(paste0(&#39;./data/Discovery/logisR/others/AUC&#39;, cuto, &#39;_&#39;, cuto+0.1,
+                             &#39;_lrResSOA_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds&#39;))
+  uselessModels &lt;- which(lrResSub$nNonZero == 0)
+  if (length(uselessModels) != 0) {
+    auc_roc &lt;- lrResSub$auc_roc[-uselessModels]
+  } else {
+    auc_roc &lt;- lrResSub$auc_roc
+  }
+  meanAUC &lt;- c(meanAUC, round(mean(auc_roc), 3))
+  ci &lt;- calcCI(auc_roc, bootstrap = T)
+  lowerAUC &lt;- c(lowerAUC, ci[1])
+  upperAUC &lt;- c(upperAUC, ci[2])
+}
+aucStatTab &lt;- data.frame(FeatSpace = c(&#39;Complete&#39;, paste0(cutoffs+0.1, &#39; &gt;= AUC &gt; &#39;, cutoffs)),
+                         MeanAUC = meanAUC, UpperAUC = upperAUC, LowerAUC = lowerAUC) %&gt;%
+  dplyr::mutate(FeatSpace = factor(FeatSpace, levels = FeatSpace))
+
+ggplot(aucStatTab, aes(x=FeatSpace, y=MeanAUC)) +
+  geom_bar(stat = &#39;identity&#39;, position = position_dodge(), alpha = 0.9) +
+  geom_errorbar(aes(ymin=LowerAUC, ymax=UpperAUC), width = 0.4) +
+  labs(x = &#39;Feature space used to train 100 models&#39;, y = &#39;Mean AUC-ROC&#39;,
+       title = &#39;Reduced models trained on certain subsets of features&#39;) +
+  th</code></pre>
+</div>
+<div id="rf-1" class="section level2">
+<h2>RF</h2>
+<p><font size='5'> <strong>Stability selection</strong> </font></p>
+<p><strong>Performance statistics of 100 models</strong><br />
+<strong>SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM -
+CONDITION:RECURRENCE)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 1
+95% CI: [1, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-14-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION
+TERMS)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.999
+95% CI: [0.9848485, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-15-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PRONORMAL)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.999
+95% CI: [0.9848485, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-16-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>UNADJUSTED</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_impuProNormal_0.9r_randSplit_100_Klin.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.785
+95% CI: [0.5598485, 0.969697]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-17-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="ttp-ag-krij." class="section level1">
+<h1>TTP (AG Krij.)</h1>
+<p>Tumor Tissue DIA Proteomics from AG Krijgsveld</p>
+<div id="lasso-logistic-regression-2" class="section level2">
+<h2>Lasso logistic regression</h2>
+<p><font size='5'> <strong>Stability selection</strong> </font></p>
+<p><strong>Performance statistics of 100 models</strong><br />
+<strong>SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM -
+CONDITION:RECURRENCE)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+proTumor_Krij &lt;- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% &#39;Tumor&#39;]
+# Load SOA results
+proTumorRes_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proTumorRes_SVsByProTissueInt.rds&#39;)
+
+# Prepare adjusted data
+adjProTumor_Krij &lt;- proTumor_Krij
+assay(adjProTumor_Krij) &lt;- proTumorRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proTumorRes_Krij$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProTumor_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProTumorVsn_SVsByProTissueInt.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.967
+95% CI: [0.8579167, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-18-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION
+TERMS)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+proTumor_Krij &lt;- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% &#39;Tumor&#39;]
+# Load SOA results
+proTumorRes_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proTumorRes_SVsByProTissue.rds&#39;)
+
+# Prepare adjusted data
+adjProTumor_Krij &lt;- proTumor_Krij
+assay(adjProTumor_Krij) &lt;- proTumorRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proTumorRes_Krij$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProTumor_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProTumorVsn_SVsByProTissue.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.983
+95% CI: [0.9079167, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-19-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTUMOR)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+proTumor_Krij &lt;- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% &#39;Tumor&#39;]
+# Load SOA results
+proTumorRes_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proTumorRes_SVsByProTumor.rds&#39;)
+
+# Prepare adjusted data
+adjProTumor_Krij &lt;- proTumor_Krij
+assay(adjProTumor_Krij) &lt;- proTumorRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proTumorRes_Krij$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProTumor_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProTumorVsn_SVsByProTumor.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.94
+95% CI: [0.7745833, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-20-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>UNADJUSTED</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+proTumor_Krij &lt;- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% &#39;Tumor&#39;]
+# Load SOA results
+proTumorRes_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proTumorRes.rds&#39;)
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proTumorRes_Krij$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(proTumor_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_impuProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuProTumorVsn.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_impuProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.828
+95% CI: [0.57375, 0.9841667]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-21-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="rf-2" class="section level2">
+<h2>RF</h2>
+<p><font size='5'> <strong>Stability selection</strong> </font></p>
+<p><strong>Performance statistics of 100 models</strong><br />
+<strong>SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM -
+CONDITION:RECURRENCE)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.982
+95% CI: [0.9079167, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-22-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION
+TERMS)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.995
+95% CI: [0.9666667, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-23-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTUMOR)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.986
+95% CI: [0.9333333, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-24-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>UNADJUSTED</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_impuProTumor_0.9r_randSplit_100_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.882
+95% CI: [0.6666667, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-25-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="ntp-ag-krij." class="section level1">
+<h1>NTP (AG Krij.)</h1>
+<p>Normal Tissue DIA Proteomics from AG Krijgsveld</p>
+<div id="lasso-logistic-regression-3" class="section level2">
+<h2>Lasso logistic regression</h2>
+<p><font size='5'> <strong>Stability selection</strong> </font></p>
+<p><strong>Performance statistics of 100 models</strong><br />
+<strong>SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM -
+CONDITION:RECURRENCE)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+proNormal_Krij &lt;- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% &#39;Normal&#39;]
+# Load SOA results
+proNormalRes_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proNormalRes_SVsByProTissueInt.rds&#39;)
+
+# Prepare adjusted data
+adjProNormal_Krij &lt;- proNormal_Krij
+assay(adjProNormal_Krij) &lt;- proNormalRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proNormalRes_Krij$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProNormal_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProNormalVsn_SVsByProTissueInt.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.997
+95% CI: [0.969697, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-26-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION
+TERMS)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+proNormal_Krij &lt;- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% &#39;Normal&#39;]
+# Load SOA results
+proNormalRes_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proNormalRes_SVsByProTissue.rds&#39;)
+
+# Prepare adjusted data
+adjProNormal_Krij &lt;- proNormal_Krij
+assay(adjProNormal_Krij) &lt;- proNormalRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proNormalRes_Krij$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProNormal_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProNormalVsn_SVsByProTissue.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.993
+95% CI: [0.9657197, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-27-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PRONORMAL)</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+proNormal_Krij &lt;- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% &#39;Normal&#39;]
+# Load SOA results
+proNormalRes_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proNormalRes_SVsByProNormal.rds&#39;)
+
+# Prepare adjusted data
+adjProNormal_Krij &lt;- proNormal_Krij
+assay(adjProNormal_Krij) &lt;- proNormalRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proNormalRes_Krij$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(adjProNormal_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProNormalVsn_SVsByProNormal.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.965
+95% CI: [0.8405303, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-28-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>UNADJUSTED DATA</strong></p>
+<pre class="r"><code># Load preprocessed data
+proTissue_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds&#39;)
+proNormal_Krij &lt;- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% &#39;Normal&#39;]
+# Load SOA results
+proNormalRes_Krij &lt;- readRDS(&#39;./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proNormalRes.rds&#39;)
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList &lt;- proNormalRes_Krij$sig.feat.tab$Var1
+# lrRes &lt;- iterLogisR(proNormal_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = &#39;auc&#39;)
+# saveRDS(lrRes, &#39;./data/Discovery/logisR/trials/lrResSOA_impuProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+# saveRDS(lrRes$impuSE, &#39;./data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuProNormalVsn.rds&#39;)
+lrRes &lt;- readRDS(&#39;./data/Discovery/logisR/trials/lrResSOA_impuProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels &lt;- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred &lt;- lrRes$lrRes$y_pred[-uselessModels]
+  truth &lt;- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc &lt;- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred &lt;- lrRes$lrRes$y_pred
+  truth &lt;- lrRes$lrRes$y_truth
+  auc_roc &lt;- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))</code></pre>
+<pre><code>Mean AUC-ROC score: 0.876
+95% CI: [0.6969697, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-29-1.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="rf-3" class="section level2">
+<h2>RF</h2>
+<p><font size='5'> <strong>Stability selection</strong> </font></p>
+<p><strong>Performance statistics of 100 models</strong><br />
+<strong>SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM -
+CONDITION:RECURRENCE)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.997
+95% CI: [0.9848485, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-30-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION
+TERMS)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.994
+95% CI: [0.9617424, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-31-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>SV-ADJUSTED (PRONORMAL)</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.983
+95% CI: [0.9162879, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-32-1.png" width="960" style="display: block; margin: auto;" /></p>
+<p><strong>UNADJUSTED</strong></p>
+<pre class="r"><code># Load trained models
+rfRes &lt;- readRDS(&#39;./data/Discovery/rf/trials/rfResSOA_impuProNormal_0.9r_randSplit_100_Krij.rds&#39;)
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred &lt;- rfRes$rfRes$y_pred
+truth &lt;- rfRes$rfRes$y_truth
+auc_roc &lt;- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)</code></pre>
+<pre><code>Mean AUC-ROC score: 0.885
+95% CI: [0.7193182, 1]</code></pre>
+<p><img src="figure/FeatSelection_ML_Trials.Rmd/unnamed-chunk-33-1.png" width="960" style="display: block; margin: auto;" /></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Sonoma 14.5
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.11.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Warsaw
+tzcode source: internal
+
+attached base packages:
+[1] stats4    grid      stats     graphics  grDevices utils     datasets 
+[8] methods   base     
+
+other attached packages:
+ [1] sva_3.50.0                  BiocParallel_1.36.0        
+ [3] genefilter_1.84.0           mgcv_1.9-1                 
+ [5] nlme_3.1-164                proDA_1.16.0               
+ [7] limma_3.58.1                pcaMethods_1.94.0          
+ [9] lubridate_1.9.3             forcats_1.0.0              
+[11] stringr_1.5.1               purrr_1.0.2                
+[13] readr_2.1.5                 tidyr_1.3.1                
+[15] tibble_3.2.1                tidyverse_2.0.0            
+[17] SummarizedExperiment_1.32.0 Biobase_2.62.0             
+[19] GenomicRanges_1.54.1        GenomeInfoDb_1.38.8        
+[21] IRanges_2.36.0              S4Vectors_0.40.2           
+[23] BiocGenerics_0.48.1         MatrixGenerics_1.14.0      
+[25] matrixStats_1.3.0           ggvenn_0.1.10              
+[27] dplyr_1.1.4                 glmnet_4.1-8               
+[29] Matrix_1.6-5                caret_6.0-94               
+[31] lattice_0.22-6              xgboost_1.7.7.1            
+[33] missForest_1.5              randomForest_4.7-1.1       
+[35] DT_0.33                     ggh4x_0.2.8                
+[37] ggplot2_3.5.1               spsUtil_0.2.2              
+[39] workflowr_1.7.1            
+
+loaded via a namespace (and not attached):
+  [1] splines_4.3.2           later_1.3.2             bitops_1.0-7           
+  [4] ggplotify_0.1.2         hardhat_1.3.1           pROC_1.18.5            
+  [7] XML_3.99-0.16.1         rpart_4.1.23            lifecycle_1.0.4        
+ [10] rstatix_0.7.2           edgeR_4.0.16            rprojroot_2.0.4        
+ [13] globals_0.16.3          processx_3.8.4          MASS_7.3-60.0.1        
+ [16] backports_1.4.1         magrittr_2.0.3          sass_0.4.9             
+ [19] rmarkdown_2.27          jquerylib_0.1.4         yaml_2.3.8             
+ [22] httpuv_1.6.15           doRNG_1.8.6             DBI_1.2.2              
+ [25] abind_1.4-5             zlibbioc_1.48.2         itertools_0.1-3        
+ [28] RCurl_1.98-1.14         yulab.utils_0.1.4       nnet_7.3-19            
+ [31] ipred_0.9-14            git2r_0.33.0            lava_1.8.0             
+ [34] GenomeInfoDbData_1.2.11 listenv_0.9.1           annotate_1.80.0        
+ [37] parallelly_1.37.1       codetools_0.2-20        DelayedArray_0.28.0    
+ [40] tidyselect_1.2.1        shape_1.4.6.1           jsonlite_1.8.8         
+ [43] e1071_1.7-14            survival_3.5-8          iterators_1.0.14       
+ [46] foreach_1.5.2           tools_4.3.2             Rcpp_1.0.12            
+ [49] glue_1.7.0              prodlim_2023.08.28      SparseArray_1.2.4      
+ [52] xfun_0.44               withr_3.0.0             fastmap_1.2.0          
+ [55] fansi_1.0.6             callr_3.7.6             digest_0.6.35          
+ [58] timechange_0.3.0        R6_2.5.1                gridGraphics_0.5-1     
+ [61] colorspace_2.1-0        RSQLite_2.3.6           utf8_1.2.4             
+ [64] generics_0.1.3          data.table_1.15.4       recipes_1.0.10         
+ [67] class_7.3-22            httr_1.4.7              htmlwidgets_1.6.4      
+ [70] S4Arrays_1.2.1          whisker_0.4.1           ModelMetrics_1.2.2.2   
+ [73] pkgconfig_2.0.3         gtable_0.3.5            timeDate_4032.109      
+ [76] blob_1.2.4              XVector_0.42.0          htmltools_0.5.8.1      
+ [79] carData_3.0-5           scales_1.3.0            png_0.1-8              
+ [82] gower_1.0.1             knitr_1.47              rstudioapi_0.16.0      
+ [85] tzdb_0.4.0              reshape2_1.4.4          proxy_0.4-27           
+ [88] cachem_1.1.0            parallel_4.3.2          AnnotationDbi_1.64.1   
+ [91] pillar_1.9.0            vctrs_0.6.5             promises_1.3.0         
+ [94] ggpubr_0.6.0            car_3.1-2               xtable_1.8-4           
+ [97] evaluate_0.23           cli_3.6.2               locfit_1.5-9.9         
+[100] compiler_4.3.2          rlang_1.1.4             crayon_1.5.2           
+[103] rngtools_1.5.2          future.apply_1.11.2     ggsignif_0.6.4         
+[106] ps_1.7.6                getPass_0.2-4           plyr_1.8.9             
+[109] fs_1.6.4                stringi_1.8.4           munsell_0.5.1          
+[112] Biostrings_2.70.3       hms_1.1.3               bit64_4.0.5            
+[115] future_1.33.2           KEGGREST_1.42.0         statmod_1.5.0          
+[118] highr_0.11              broom_1.0.5             memoise_2.0.1          
+[121] bslib_0.7.0             bit_4.0.5              </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
