@@ -636,9 +636,8 @@ doSVA <- function(summExp, wantedVar, unwantedVar = NULL, numSV_method = 'be',
   keptFeats <- apply(datMat, 1, function(featVec) {
     !any(is.na(featVec))
   })
-  if (length(keptFeats)/nrow(datMat) < 0.33) {
-    message("Complete features less than one third in data...")
-  }
+  # Show completeness of feature space
+  message(paste0(round(sum(keptFeats)/nrow(datMat)*100, 1), '% of features are complete.'))
   datMat <- datMat[keptFeats,]
   metadatTab <- colData(summExp) %>%
     tibble::as_tibble(rownames = 'Sample')

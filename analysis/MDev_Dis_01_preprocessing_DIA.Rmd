@@ -11,14 +11,16 @@ output:
 <font size='4'> Description: Preprocess and combine Method Development and Discovery
 Tissue DIA Proteomics generated from AG Klingmüller and AG Krijgsveld, including
 data cleansing, filtering, normalization (VSN), and data merging. All needed information
-was then stored in SummarizedExperiment objects for further analyses.
+was then stored in SummarizedExperiment objects for further analyses. At end, feature
+correlations and result consistency (Tumor vs Normal samples) between datasets before
+and after data adjustment is investigated.
 
-For Klin. data: Sample **Q89YQK_NG**, **1TK71I_TU**, **NG1IWD_TU**, **125CII_TU**,
-**1LJXIN_TU**, **I0HVOL_TU**, **7EAOX7_TU**, and **PDIR55_NG** were excluded. (Check
+For Klin. data: Sample **Q89YQK_NG**, **I0HVOL_TU**, **7EAOX7_TU**, **PDIR55_NG**,
+**1TK71I_TU**, **NG1IWD_TU**, **125CII_TU**, and **1LJXIN_TU** were excluded. (Check
 Section '**Show reasons for removing samples**' for more details)
 
-For Krij. data: Sample **I0HVOL_TU**, **7EAOX7_TU**, **3M0D40_TU**, **MJMTYR_TU**,
-**PDIR55_NG**, and **XFKHGP_NG** were excluded.
+For Krij. data: Sample **I0HVOL_TU**, **7EAOX7_TU**, **PDIR55_NG**, **3M0D40_TU**,
+**MJMTYR_TU**, and **XFKHGP_NG** were excluded.
 (Check Section '**Show reasons for removing samples**' for more details). </font>
 
 ```{r setup, include=FALSE}
@@ -209,6 +211,15 @@ proTissuePrepro <- doPreprocessing(proTissueTab, feat = 'Feature', smp = 'Sample
                                    val = 'Abundance', smpAnno = c(smpAnno, 'MissLevel'),
                                    featAnno = 'Gene', do_featFilt = T, cutoff = 0.5, viz_miss = T)
                                    # save_path = './data/Discovery/AG_Klingmueller/proTissue'
+
+# Save preprocessed data containing all samples except Q89YQK_NG
+# tmp_proTissueTab <- dplyr::filter(allProTissueTab, !Sample %in% 'Q89YQK_NG')
+# proTissuePrepro <- doPreprocessing(tmp_proTissueTab, feat = 'Feature', smp = 'Sample',
+#                                    val = 'Abundance', smpAnno = c(smpAnno, 'MissLevel'),
+#                                    featAnno = 'Gene', do_featFilt = T, cutoff = 0.5, viz_miss = T,
+#                                    save_path = './data/Discovery/AG_Klingmueller/allProTissue')
+# rm(tmp_proTissueTab)
+
 # Show dimensions of data
 cat('Data dimensions:', dim(proTissuePrepro$ori.data)[2], 'samples and',
     dim(proTissuePrepro$ori.data)[1], 'features')
@@ -308,8 +319,7 @@ allProTissueVsn <- doPreprocessing(allProTissueTab, feat = 'Feature', smp = 'Sam
                                    val = 'Abundance', smpAnno = c(smpAnno, 'MissLevel'),
                                    featAnno = 'Gene', do_featFilt = T, cutoff = 0.5)$vsn.data
 # Do PCA
-pcaRes <- doSOA(allProTissueVsn, meta_var = 'Condition', pca_method = 'ppca', num_PCs = 20,
-                do_onlyPCA = T)
+pcaRes <- doSOA(allProTissueVsn, meta_var = 'Condition', pca_method = 'ppca', num_PCs = 20, do_onlyPCA = T)
 # Show significant associations between PCs and sample conditions
 pcaRes$pcSigAssoRes
 # Visualize PCs
@@ -368,13 +378,13 @@ ordered by t-statistics.
 # signature identified in good-quality samples
 # Prepare top significant features between Tumor and Normal samples
 # subProTissueTab <- dplyr::filter(allProTissueTab, !Sample %in% badSmps_Dis)
-# proTissueVsn <- doPreprocessing(subProTissueTab, feat = 'Feature', smp = 'Sample',
-#                                 val = 'Abundance', smpAnno = c(smpAnno, 'MissLevel'),
-#                                 featAnno = 'Gene', do_featFilt = T, cutoff = 0.5)$vsn.data
-# soaRes <- doSOA(proTissueVsn, meta_var = 'Condition', pca_method = 'ppca',
+# subProTissueVsn <- doPreprocessing(subProTissueTab, feat = 'Feature', smp = 'Sample',
+#                                    val = 'Abundance', smpAnno = c(smpAnno, 'MissLevel'),
+#                                    featAnno = 'Gene', do_featFilt = T, cutoff = 0.5)$vsn.data
+# soaRes <- doSOA(subProTissueVsn, meta_var = 'Condition', pca_method = 'ppca',
 #                 num_PCs = 20, use_proDA = T, level_metaVar = c('Tumor', 'Normal'))
-# saveRDS(soaRes, './data/Discovery/AG_Klingmueller/soaRes/proTissueRes_rmBadSmps.rds')
-soaRes <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proTissueRes_rmBadSmps.rds')
+# saveRDS(soaRes, './data/Discovery/AG_Klingmueller/soaRes/proTissueRes_signature_rmBadSmps.rds')
+soaRes <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proTissueRes_signature_rmBadSmps.rds')
 topSigFeatIdx <- order(abs(soaRes$featSigAssoRes$Stat), decreasing = T)[1:100]
 topSigFeats <- soaRes$featSigAssoRes$Var1[topSigFeatIdx]
 # Order top significant features by t-statistics
@@ -382,10 +392,7 @@ topSigFeatStats <- soaRes$featSigAssoRes$Stat[topSigFeatIdx]
 featOrder <- topSigFeats[order(topSigFeatStats, decreasing = T)]
 
 # Prepare preprocessed abundance matrix of all samples
-proTissueVsn <- doPreprocessing(allProTissueTab, feat = 'Feature', smp = 'Sample',
-                                val = 'Abundance', smpAnno = c(smpAnno, 'MissLevel'),
-                                featAnno = 'Gene', do_featFilt = T, cutoff = 0.5)$vsn.data
-datMat <- assay(proTissueVsn)
+datMat <- assay(allProTissueVsn)
 # Cluster samples by sample conditions
 normalSmpIdx <- grep('_NG' ,colnames(datMat))
 smpOrder <- c(colnames(datMat)[-normalSmpIdx], colnames(datMat)[normalSmpIdx])
@@ -414,232 +421,6 @@ pheatmap(datMatSub, scale = 'row', annotation_col = smpAnnoTab, annotation_color
          cluster_rows = F, show_rownames = F,
          main = 'Potential bad-quality samples and corresponding normal samples')
 ```
-
-
-
-
-</br>
-</br>
-<font size='5'> **Check data reproducibility by comparing New and Old Proteomics** </font>\
-Note that only common samples between two datasets are considered.
-```{r}
-# Prepare preprocessed data sharing same sample space
-proTissue_Old <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
-proTissue_New <- dplyr::filter(allProTissueTab, Sample %in% colnames(proTissue_Old)) %>%
-  doPreprocessing(feat = 'Feature', smp = 'Sample', val = 'Abundance', featAnno = 'Gene',
-                  smpAnno = smpAnno, do_featFilt = T, cutoff = 0.5)
-proTissue_New <- proTissue_New$vsn.data
-# Prepare preprocessed data corrected for SVs
-svaRes_New <- doSVA(proTissue_New, wantedVar = c('Condition', 'Recurrence'), numSV_method = 'leek',
-                    asso_metaVar = c('Condition', 'Recurrence', 'Gender', 'Age',
-                                     'Smoking', 'Stage', 'Adjuvant', 'TumorPurity'))
-svaRes_Old <- doSVA(proTissue_Old, wantedVar = c('Condition', 'Recurrence'), numSV_method = 'leek',
-                    asso_metaVar = c('Condition', 'Recurrence', 'Gender', 'Age',
-                                     'Smoking', 'Stage', 'Adjuvant', 'TumorPurity', 'Batch'))
-proTissueSVs_New <- svaRes_New$summExp_SVs
-proTissueSVs_Old <- svaRes_Old$summExp_SVs
-```
-
-```{r message=F, include=F, eval=F}
-# <font size='4'> **Raw intensity data** </font>\
-# **Feature correlations (data1: New data, data2: Old data)**
-
-# Prepare raw intensity data sharing same sample space
-# Old data
-# Load and tidy unpreprocessed data
-proTissueRaw_Old <- readr::read_tsv(
-  './data/MethodDev/AG_Klingmueller/20230309_103228_SmartCare_TumorFree_Tumor_Yang001_Report.tsv'
-) %>%
-  dplyr::select(-c(PG.ProteinDescriptions, contains('PG.NrOfPrecursorsIdentified'),
-                   contains('PG.IBAQ'), contains('PG.IsIdentified'))) %>%
-  tidyr::pivot_longer(cols = -c('PG.ProteinGroups', 'PG.Genes'),
-                      names_to = 'Experiment_ID',
-                      values_to = 'Abundance') %>%
-  dplyr::mutate(Experiment_ID = stringr::str_remove_all(Experiment_ID, '\\[.*\\] |\\.PG\\.Quantity'),
-                Abundance = gsub(',', '\\.', Abundance),
-                Abundance = as.numeric(Abundance))
-# Convert NaN to NA for vsn
-proTissueRaw_Old$Abundance[is.nan(proTissueRaw_Old$Abundance)] <- NA
-
-# Load experimental ID annotations
-idAnnoTab <- readxl::read_excel('./data/MethodDev/AG_Klingmueller/230620_SMART-CARE_overview_OpenBIS_BH.xlsx') %>%
-  dplyr::select(`Experimental ID`, `Aliquot ID`, Batch) %>%
-  dplyr::rename(Aliquot = `Aliquot ID`, Experiment_ID = `Experimental ID`) %>%
-  dplyr::mutate(Batch = dplyr::case_when(Batch == 'first' ~ '1', Batch == 'second' ~ '2'))
-# Manually correct typo
-idAnnoTab[which(idAnnoTab$Experiment_ID == 'Recurrence _TumorFree_P21'), 'Experiment_ID'] <- 'Recurrence_TumorFree_P21'
-idAnnoTab[which(idAnnoTab$Experiment_ID == 'Recurrence _Tumor_P21'), 'Experiment_ID'] <- 'Recurrence_Tumor_P21'
-
-# Convert long data to wide data
-# Include summarized metadata
-proTissueRaw_Old <- dplyr::left_join(proTissueRaw_Old, idAnnoTab, by = 'Experiment_ID') %>%
-  dplyr::left_join(summMetadat, by = 'Aliquot') %>%
-  dplyr::select(PG.ProteinGroups, Sample, Abundance) %>%
-  dplyr::group_by(PG.ProteinGroups) %>%
-  # Compute proportion of observed data points of each group (feature)
-  dplyr::mutate(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
-  dplyr::ungroup() %>%
-  # Keep features observed in more than certain proportion of samples
-  dplyr::filter(frac_nonNA >= 0.5) %>%
-  dplyr::select(-frac_nonNA) %>%
-  tidyr::pivot_wider(names_from = 'Sample', values_from = 'Abundance') %>%
-  tibble::column_to_rownames('PG.ProteinGroups') %>%
-  as.matrix()
-
-# New data
-# Convert long data to wide data
-proTissueRaw_New <- dplyr::filter(allProTissueTab, Sample %in% colnames(proTissueRaw_Old)) %>%
-  dplyr::select(Feature, Sample, Abundance) %>%
-  dplyr::group_by(Feature) %>%
-  # Compute proportion of observed data points of each group (feature)
-  dplyr::mutate(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
-  dplyr::ungroup() %>%
-  # Keep features observed in more than certain proportion of samples
-  dplyr::filter(frac_nonNA >= 0.5) %>%
-  dplyr::select(-frac_nonNA) %>%
-  tidyr::pivot_wider(names_from = 'Sample', values_from = 'Abundance') %>%
-  tibble::column_to_rownames('Feature') %>%
-  as.matrix()
-
-# Compute feature correlations between two datasets
-corrRes <- calcFeatCorr(proTissueRaw_New, proTissueRaw_Old, show_nFeats = T)
-# Plot feature correlations
-ggplot(corrRes, aes(x=Correlation)) +
-  geom_histogram(binwidth = 0.1) +
-  scale_x_continuous(breaks = c(seq(-1, 1, 0.1))) +
-  labs(y = 'Frequency', title = 'Feature Correlations: New vs Old Proteomics (Raw)') +
-  th
-```
-
-<font size='4'> **Preprocessed data without any covariate correction** </font>\
-**Feature correlations (data1: New data, data2: Old data)**
-```{r}
-# Compute feature correlations between two datasets
-corrRes <- calcFeatCorr(proTissue_New, proTissue_Old, show_nFeats = T)
-# Plot feature correlations
-ggplot(corrRes, aes(x=Correlation)) +
-  geom_histogram(binwidth = 0.1) +
-  scale_x_continuous(breaks = c(seq(-1, 1, 0.2))) +
-  labs(y = 'Frequency', title = 'Feature Correlations: New vs Old Proteomics (Uncorrected)') +
-  th
-  # theme(axis.title = element_text(size = 22),
-  #       axis.text = element_text(size = 18))
-# ggsave('./output/Discovery/25.07.24_LGM/compFeatCorr_combined_proTissue_Klin_new_vs_old.png',
-#        device = 'png', dpi = 400, height = 8, width = 10)
-```
-
-**log(FC) between Tumor and Normal samples**
-```{r}
-# Compute log(FC) and t-statistics between Tumor and Normal tissue samples in two datasets
-# Prepare protein-gene table for providing gene names
-featInfo <- tibble::as_tibble(rowData(proTissue_New), rownames = 'Proteins') %>%
-  dplyr::rename(Genes = Gene) %>%
-  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
-                Genes = stringr::str_remove(Genes, ';.*'))
-# Prepare summarized tables of comparison for visualization
-# condiFeatAssoTabs <- summarizeFeatAssoRes(proTissue_New, proTissue_Old, 'New', 'Old',
-#                                           meta_var = 'Condition', subset = NULL,
-#                                           method = 'proDA', alpha = 0.05, prot_gene_tbl = featInfo)
-condiFeatAssoTabs <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/New_vs_Old_condiFeatAsso.rds')
-
-# Plot log(FC)
-ggplot(condiFeatAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
-  geom_point(size = 3) +
-  ggpubr::stat_cor(data = condiFeatAssoTabs$tbl_logFC,
-                   aes(x=logFC_dat1, y=logFC_dat2, col=NULL,
-                       label=paste(..rr.label.., ..p.label.., sep = "~`,`~")),
-                   size = 7, show.legend = F) +
-  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
-  scale_color_manual(values = c('red', 'navy', 'grey')) +
-  labs(x = 'log(FC) of New data', y = 'log(FC) of Old data',
-       title = 'log(FC): Tumor vs Normal (Uncorrected)') +
-  th
-  # theme(axis.title = element_text(size = 22),
-  #       axis.text = element_text(size = 14),
-  #       legend.title = element_text(size = 22),
-  #       legend.text = element_text(size = 20))
-# ggsave('./output/Discovery/25.07.24_LGM/compLogFC_combined_proTissue_Klin_new_vs_old_condi.png',
-#        device = 'png', dpi = 400, height = 8, width = 11)
-```
-
-**p-values (Tumor vs Normal samples, alpha = 0.05)**
-```{r}
-# Plot p-values
-# Compute result consistency
-percent <- round(sum(condiFeatAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
-                   sum(condiFeatAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
-
-ggplot(condiFeatAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
-  geom_point(size = 2) +
-  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
-  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
-  labs(x = '-log10(pVal) of New data', y = '-log10(pVal) of Old data',
-       title = 'p-val: Tumor vs Normal (Uncorrected)') +
-  annotate('text', x = 5, y = 30, size = 4,
-           label = paste0(percent, '% of significant results consistent')) +
-  th
-```
-
-</br>
-<font size='4'> **Preprocessed data accounted for SVs** </font>\
-**Feature correlations**
-```{r}
-# Compute feature correlations between two datasets
-corrRes <- calcFeatCorr(svaRes_New$correctDatMat, svaRes_Old$correctDatMat, show_nFeats = F)
-# Plot feature correlations
-ggplot(corrRes, aes(x=Correlation)) +
-  geom_histogram(binwidth = 0.1) +
-  scale_x_continuous(breaks = c(seq(-1, 1, 0.1))) +
-  labs(y = 'Frequency', title = 'Feature Correlations: New vs Old Proteomics (Corrected)') +
-  th
-```
-
-**log(FC) between Tumor and Normal samples**
-```{r}
-# Compute log(FC) and t-statistics between Tumor and Normal tissue samples in two datasets
-# Prepare summarized tables of comparison for visualization
-# condiFeatAssoTabs_SVs <- summarizeFeatAssoRes(proTissueSVs_New, proTissueSVs_Old,
-#                                               'New', 'Old', meta_var = 'Condition',
-#                                               subset = NULL, method = 'proDA', alpha = 0.05,
-#                                               unwantVar1 = 'SV1', unwantVar2 = 'SV1')
-condiFeatAssoTabs_SVs <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/New_vs_Old_condiFeatAsso_SVs_leek.rds')
-
-# Plot log(FC)
-ggplot(condiFeatAssoTabs_SVs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
-  geom_point(size = 2) +
-  ggpubr::stat_cor(data = condiFeatAssoTabs_SVs$tbl_logFC,
-                   aes(x=logFC_dat1, y=logFC_dat2, col=NULL,
-                       label=paste(..rr.label.., ..p.label.., sep = "~`,`~")),
-                   size = 6, show.legend = F) +
-  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
-  scale_color_manual(values = c('red', 'navy', 'grey')) +
-  labs(x = 'log(FC) of New data', y = 'log(FC) of Old data',
-       title = 'log(FC): Tumor vs Normal (SV-Corrected)') +
-  th
-```
-
-**p-values (Tumor vs Normal samples, alpha = 0.05)**
-```{r}
-# Plot p-values
-# Compute result consistency
-percent <- round(sum(condiFeatAssoTabs_SVs$tbl_pVal$Significance == 'Sig. in Both') /
-                   sum(condiFeatAssoTabs_SVs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
-
-ggplot(condiFeatAssoTabs_SVs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
-  geom_point(size = 2) +
-  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
-  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
-  labs(x = '-log10(pVal) of New data', y = '-log10(pVal) of Old data',
-       title = 'p-val: Tumor vs Normal (SV-Corrected)') +
-  annotate('text', x = 5, y = 30, size = 4,
-           label = paste0(percent, '% of significant results consistent')) +
-  th
-```
-=> SV-corrected data does not give rise to better result consistency.
-</br>
-</br>
-</br>
-</br>
 
 
 
@@ -719,6 +500,12 @@ proTissue_Combined <- doPreprocessing(proTissueTab_Combined, feat = 'Protein.Gro
                                       val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                                       smpAnno = c(smpAnno, 'MissLevel'), do_featFilt = T, cutoff = 0.5, viz_miss = T)
                                       # save_path = './data/Discovery/AG_Krijgsveld/combined_proTissue'
+
+# Save preprocessed data containing all samples
+# proTissue_Combined <- doPreprocessing(allProTissueTab, feat = 'Protein.Group', smp = 'Sample',
+#                                       val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
+#                                       smpAnno = c(smpAnno, 'MissLevel'), do_featFilt = T, cutoff = 0.5, viz_miss = T,
+#                                       save_path = './data/Discovery/AG_Krijgsveld/combined_allProTissue')
 
 # Show dimensions of data
 cat('Data dimensions:', dim(proTissue_Combined$ori.data)[2], 'samples and',
@@ -825,15 +612,9 @@ Batch effect is successfully removed, which supports that existing batch effect 
 Batch factor (Cohort) should be included in linear model for statistical analysis.
 ```{r}
 # Perform batch correction to see if cohorts can be merged
-# Convert SE object into wide data
-datMat <- SummarizedExperiment::assay(proTissue_Combined$vsn.data)
-# Define design matrix to keep particular effects, e.g., treatments
-smpAnnoTab <- as_tibble(colData(proTissue_Combined$vsn.data), rownames = 'Sample')
-design <- model.matrix(~ Condition + Recurrence + Cohort, data = smpAnnoTab)
-wantedDesign <- design[, seq_len(3)]
-unwantedDesign <- design[, -seq_len(3)]
-# Do batch correction
-datMat_BC <- limma::removeBatchEffect(datMat, design = wantedDesign, covariates = unwantedDesign)
+datMat_BC <- doBatchCorrection(proTissue_Combined$vsn.data,
+                               wantedVar = c('Condition', 'Recurrence', 'Condition:Recurrence'),
+                               unwantedVar = 'Cohort')
 proTissueVsn_BC <- proTissue_Combined$vsn.data
 assay(proTissueVsn_BC) <- datMat_BC
 # Save batch corrected data
@@ -895,14 +676,13 @@ allProTissueVsn <- doPreprocessing(allProTissueTab, feat = 'Protein.Group', smp 
                                    val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
                                    smpAnno = c(smpAnno, 'MissLevel'), do_featFilt = T, cutoff = 0.5)$vsn.data
 # Do batch correction
-datMat <- SummarizedExperiment::assay(allProTissueVsn)
-smpAnnoTab <- as_tibble(colData(allProTissueVsn), rownames = 'Sample')
-design <- model.matrix(~ Condition + Recurrence + Cohort, data = smpAnnoTab)
-wantedDesign <- design[, seq_len(3)]
-unwantedDesign <- design[, -seq_len(3)]
-datMat_BC <- limma::removeBatchEffect(datMat, design = wantedDesign, covariates = unwantedDesign)
+datMat_BC <- doBatchCorrection(allProTissueVsn,
+                               wantedVar = c('Condition', 'Recurrence', 'Condition:Recurrence'),
+                               unwantedVar = 'Cohort')
 allProTissueVsn_BC <- allProTissueVsn
 assay(allProTissueVsn_BC) <- datMat_BC
+# Save batch corrected data
+# saveRDS(allProTissueVsn_BC, './data/Discovery/AG_Krijgsveld/combined_allProTissueVsnBC.rds')
 
 # Do PCA
 pcaRes_BC <- doSOA(allProTissueVsn_BC, meta_var = c('Condition', 'Cohort'),
@@ -951,30 +731,21 @@ ordered by t-statistics.
 # signature identified in good-quality samples
 # Prepare top significant features between Tumor and Normal samples
 # subProTissueTab <- dplyr::filter(allProTissueTab, !Cohort %in% 'Discovery_LTP')
-# proTissueVsn <- doPreprocessing(subProTissueTab, feat = 'Protein.Group', smp = 'Sample',
-#                                 val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
-#                                 smpAnno = c(smpAnno, 'MissLevel'), do_featFilt = T, cutoff = 0.5)$vsn.data
-# soaRes <- doSOA(proTissueVsn, meta_var = 'Condition', pca_method = 'ppca', num_PCs = 20,
+# subProTissueVsn <- doPreprocessing(subProTissueTab, feat = 'Protein.Group', smp = 'Sample',
+#                                    val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
+#                                    smpAnno = c(smpAnno, 'MissLevel'), do_featFilt = T, cutoff = 0.5)$vsn.data
+# soaRes <- doSOA(subProTissueVsn, meta_var = 'Condition', pca_method = 'ppca', num_PCs = 20,
 #                 use_proDA = T, unwantVar = 'Cohort', level_metaVar = c('Tumor', 'Normal'))
-# saveRDS(soaRes, './data/Discovery/AG_Krijgsveld/soaRes/proTissueRes_rmBadSmps.rds')
-soaRes <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/proTissueRes_rmBadSmps.rds')
+# saveRDS(soaRes, './data/Discovery/AG_Krijgsveld/soaRes/combined_proTissueRes_signature_rmBadSmps.rds')
+soaRes <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/combined_proTissueRes_signature_rmBadSmps.rds')
 topSigFeatIdx <- order(abs(soaRes$featSigAssoRes$Stat), decreasing = T)[1:100]
 topSigFeats <- soaRes$featSigAssoRes$Var1[topSigFeatIdx]
 # Order top significant features by t-statistics
 topSigFeatStats <- soaRes$featSigAssoRes$Stat[topSigFeatIdx]
 featOrder <- topSigFeats[order(topSigFeatStats, decreasing = T)]
 
-# Prepare preprocessed abundance matrix of all samples
-proTissueVsn <- doPreprocessing(allProTissueTab, feat = 'Protein.Group', smp = 'Sample',
-                                val = 'Abundance', featAnno = c('Protein.Names', 'Genes'),
-                                smpAnno = c(smpAnno, 'MissLevel'), do_featFilt = T, cutoff = 0.5)$vsn.data
-# Do batch correction
-datMat <- SummarizedExperiment::assay(proTissueVsn)
-smpAnnoTab <- as_tibble(colData(proTissueVsn), rownames = 'Sample')
-design <- model.matrix(~ Condition + Recurrence + Cohort, data = smpAnnoTab)
-wantedDesign <- design[, seq_len(3)]
-unwantedDesign <- design[, -seq_len(3)]
-datMat_BC <- limma::removeBatchEffect(datMat, design = wantedDesign, covariates = unwantedDesign)
+# Prepare batch-corrected abundance matrix of all samples
+datMat_BC <- assay(allProTissueVsn_BC)
 # Cluster samples by sample conditions
 normalSmpIdx <- grep('_NG' ,colnames(datMat_BC))
 smpOrder <- c(colnames(datMat_BC)[-normalSmpIdx], colnames(datMat_BC)[normalSmpIdx])
@@ -1006,3 +777,372 @@ pheatmap(datMatSub_BC, scale = 'row', annotation_col = smpAnnoTab, annotation_co
          cluster_rows = F, show_rownames = F,
          main = 'Potential bad-quality samples and corresponding normal samples')
 ```
+
+
+
+
+# Comparisons
+Investigate consistency of results obtained from different datasets. Note that only
+common samples between two datasets are considered.
+
+## New vs Old Klin. data
+
+```{r}
+# Load preprocessed data
+proTissue_Old <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
+proTissue_New <- readRDS('./data/Discovery/AG_Klingmueller/allProTissueVsn.rds')
+# Subset common samples
+proTissue_New <- proTissue_New[, colnames(proTissue_New) %in% colnames(proTissue_Old)]
+# Prepare data with constructed SVs for statistical testing and data corrected for
+# SVs for computing feature correlations
+svaRes_New <- doSVA(proTissue_New, wantedVar = c('Condition', 'Recurrence', 'Condition:Recurrence'))
+svaRes_Old <- doSVA(proTissue_Old, wantedVar = c('Condition', 'Recurrence', 'Condition:Recurrence'))
+proTissueSVs_New <- svaRes_New$summExp_SVs
+proTissueSVs_Old <- svaRes_Old$summExp_SVs
+# Prepare protein-gene table for providing gene names
+featInfo <- tibble::as_tibble(rowData(proTissue_New), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = Gene) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+```
+
+```{r message=F, include=F, eval=F}
+# <font size='4'> **Raw intensity data** </font>\
+# **Feature correlations (data1: New data, data2: Old data)**
+
+# Prepare raw intensity data sharing same sample space
+# Old data
+# Load and tidy unpreprocessed data
+proTissueRaw_Old <- readr::read_tsv(
+  './data/MethodDev/AG_Klingmueller/20230309_103228_SmartCare_TumorFree_Tumor_Yang001_Report.tsv'
+) %>%
+  dplyr::select(-c(PG.ProteinDescriptions, contains('PG.NrOfPrecursorsIdentified'),
+                   contains('PG.IBAQ'), contains('PG.IsIdentified'))) %>%
+  tidyr::pivot_longer(cols = -c('PG.ProteinGroups', 'PG.Genes'),
+                      names_to = 'Experiment_ID',
+                      values_to = 'Abundance') %>%
+  dplyr::mutate(Experiment_ID = stringr::str_remove_all(Experiment_ID, '\\[.*\\] |\\.PG\\.Quantity'),
+                Abundance = gsub(',', '\\.', Abundance),
+                Abundance = as.numeric(Abundance))
+# Convert NaN to NA for vsn
+proTissueRaw_Old$Abundance[is.nan(proTissueRaw_Old$Abundance)] <- NA
+
+# Load experimental ID annotations
+idAnnoTab <- readxl::read_excel('./data/MethodDev/AG_Klingmueller/230620_SMART-CARE_overview_OpenBIS_BH.xlsx') %>%
+  dplyr::select(`Experimental ID`, `Aliquot ID`, Batch) %>%
+  dplyr::rename(Aliquot = `Aliquot ID`, Experiment_ID = `Experimental ID`) %>%
+  dplyr::mutate(Batch = dplyr::case_when(Batch == 'first' ~ '1', Batch == 'second' ~ '2'))
+# Manually correct typo
+idAnnoTab[which(idAnnoTab$Experiment_ID == 'Recurrence _TumorFree_P21'), 'Experiment_ID'] <- 'Recurrence_TumorFree_P21'
+idAnnoTab[which(idAnnoTab$Experiment_ID == 'Recurrence _Tumor_P21'), 'Experiment_ID'] <- 'Recurrence_Tumor_P21'
+
+# Convert long data to wide data
+# Include summarized metadata
+proTissueRaw_Old <- dplyr::left_join(proTissueRaw_Old, idAnnoTab, by = 'Experiment_ID') %>%
+  dplyr::left_join(summMetadat, by = 'Aliquot') %>%
+  dplyr::select(PG.ProteinGroups, Sample, Abundance) %>%
+  dplyr::group_by(PG.ProteinGroups) %>%
+  # Compute proportion of observed data points of each group (feature)
+  dplyr::mutate(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
+  dplyr::ungroup() %>%
+  # Keep features observed in more than certain proportion of samples
+  dplyr::filter(frac_nonNA >= 0.5) %>%
+  dplyr::select(-frac_nonNA) %>%
+  tidyr::pivot_wider(names_from = 'Sample', values_from = 'Abundance') %>%
+  tibble::column_to_rownames('PG.ProteinGroups') %>%
+  as.matrix()
+
+# New data
+# Convert long data to wide data
+proTissueRaw_New <- dplyr::filter(allProTissueTab, Sample %in% colnames(proTissueRaw_Old)) %>%
+  dplyr::select(Feature, Sample, Abundance) %>%
+  dplyr::group_by(Feature) %>%
+  # Compute proportion of observed data points of each group (feature)
+  dplyr::mutate(frac_nonNA = round(sum(!is.na(Abundance)) / length(Abundance), 2)) %>%
+  dplyr::ungroup() %>%
+  # Keep features observed in more than certain proportion of samples
+  dplyr::filter(frac_nonNA >= 0.5) %>%
+  dplyr::select(-frac_nonNA) %>%
+  tidyr::pivot_wider(names_from = 'Sample', values_from = 'Abundance') %>%
+  tibble::column_to_rownames('Feature') %>%
+  as.matrix()
+
+# Compute feature correlations between two datasets
+corrRes <- calcFeatCorr(proTissueRaw_New, proTissueRaw_Old, show_nFeats = T)
+# Plot feature correlations
+ggplot(corrRes, aes(x=Correlation)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(breaks = c(seq(-1, 1, 0.1))) +
+  labs(y = 'Frequency', title = 'Feature Correlations: New vs Old Proteomics (Raw)') +
+  th
+```
+
+<font size='4'> **Preprocessed data without any covariate correction** </font>\
+**Feature correlations (data1: New data, data2: Old data)**
+```{r}
+# Compute feature correlations between two datasets
+corrRes <- calcFeatCorr(proTissue_New, proTissue_Old, show_nFeats = T)
+# Plot feature correlations
+ggplot(corrRes, aes(x=Correlation)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(breaks = c(seq(-1, 1, 0.2))) +
+  labs(y = 'Frequency', title = 'Feature Correlations: New vs Old Proteomics (Uncorrected)') +
+  th
+  # theme(axis.title = element_text(size = 22),
+  #       axis.text = element_text(size = 18))
+# ggsave('./output/Discovery/25.07.24_LGM/compFeatCorr_combined_proTissue_Klin_new_vs_old.png',
+#        device = 'png', dpi = 400, height = 8, width = 10)
+```
+
+**log(FC) between Tumor and Normal samples**
+```{r}
+# Compute log(FC) and t-statistics between Tumor and Normal tissue samples in two datasets
+# Prepare summarized tables of comparison for visualization
+# condiFeatAssoTabs <- summarizeFeatAssoRes(proTissue_New, proTissue_Old, 'New', 'Old',
+#                                           meta_var = 'Condition', subset = NULL,
+#                                           method = 'proDA', alpha = 0.05, prot_gene_tbl = featInfo)
+# saveRDS(condiFeatAssoTabs, './data/Discovery/AG_Klingmueller/soaRes/comparisons/New_vs_Old_condiFeatAsso.rds')
+condiFeatAssoTabs <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/comparisons/New_vs_Old_condiFeatAsso.rds')
+
+# Plot log(FC)
+ggplot(condiFeatAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 3) +
+  ggpubr::stat_cor(data = condiFeatAssoTabs$tbl_logFC,
+                   aes(x=logFC_dat1, y=logFC_dat2, col=NULL,
+                       label=paste(..rr.label.., ..p.label.., sep = "~`,`~")),
+                   size = 7, show.legend = F) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of New data', y = 'log(FC) of Old data',
+       title = 'log(FC): Tumor vs Normal (Uncorrected)') +
+  th
+  # theme(axis.title = element_text(size = 22),
+  #       axis.text = element_text(size = 14),
+  #       legend.title = element_text(size = 22),
+  #       legend.text = element_text(size = 20))
+# ggsave('./output/Discovery/25.07.24_LGM/compLogFC_combined_proTissue_Klin_new_vs_old_condi.png',
+#        device = 'png', dpi = 400, height = 8, width = 11)
+```
+
+**p-values (Tumor vs Normal samples, alpha = 0.05)**
+```{r}
+# Plot p-values
+# Compute result consistency
+percent <- round(sum(condiFeatAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(condiFeatAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+
+ggplot(condiFeatAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  labs(x = '-log10(pVal) of New data', y = '-log10(pVal) of Old data',
+       title = 'p-val: Tumor vs Normal (Uncorrected)') +
+  annotate('text', x = 5, y = 30, size = 4,
+           label = paste0(percent, '% of significant results consistent')) +
+  th
+```
+
+</br>
+<font size='4'> **Preprocessed data accounted for SVs** </font>\
+**Feature correlations**
+```{r}
+# Compute feature correlations between two datasets
+corrRes <- calcFeatCorr(svaRes_New$correctDatMat, svaRes_Old$correctDatMat, show_nFeats = F)
+# Plot feature correlations
+ggplot(corrRes, aes(x=Correlation)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(breaks = c(seq(-1, 1, 0.1))) +
+  labs(y = 'Frequency', title = 'Feature Correlations: New vs Old Proteomics (Corrected)') +
+  th
+```
+
+**log(FC) between Tumor and Normal samples**
+```{r}
+# Compute log(FC) and t-statistics between Tumor and Normal tissue samples in two datasets
+# Prepare summarized tables of comparison for visualization
+# condiFeatAssoTabs_SVs <- summarizeFeatAssoRes(proTissueSVs_New, proTissueSVs_Old,
+#                                               'New', 'Old', meta_var = 'Condition',
+#                                               subset = NULL, method = 'proDA',
+#                                               alpha = 0.05, prot_gene_tbl = featInfo,
+#                                               unwantVar1 = grep('^SV\\d+$', colnames(colData(proTissueSVs_New)), value = T),
+#                                               unwantVar2 = grep('^SV\\d+$', colnames(colData(proTissueSVs_Old)), value = T))
+# saveRDS(condiFeatAssoTabs_SVs, './data/Discovery/AG_Klingmueller/soaRes/comparisons/New_vs_Old_condiFeatAsso_SVs.rds')
+condiFeatAssoTabs_SVs <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/comparisons/New_vs_Old_condiFeatAsso_SVs.rds')
+
+# Plot log(FC)
+ggplot(condiFeatAssoTabs_SVs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  ggpubr::stat_cor(data = condiFeatAssoTabs_SVs$tbl_logFC,
+                   aes(x=logFC_dat1, y=logFC_dat2, col=NULL,
+                       label=paste(..rr.label.., ..p.label.., sep = "~`,`~")),
+                   size = 6, show.legend = F) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of New data', y = 'log(FC) of Old data',
+       title = 'log(FC): Tumor vs Normal (SV-Corrected)') +
+  th
+```
+
+**p-values (Tumor vs Normal samples, alpha = 0.05)**
+```{r}
+# Plot p-values
+# Compute result consistency
+percent <- round(sum(condiFeatAssoTabs_SVs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(condiFeatAssoTabs_SVs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+
+ggplot(condiFeatAssoTabs_SVs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  labs(x = '-log10(pVal) of New data', y = '-log10(pVal) of Old data',
+       title = 'p-val: Tumor vs Normal (SV-Corrected)') +
+  annotate('text', x = 5, y = 30, size = 4,
+           label = paste0(percent, '% of significant results consistent')) +
+  th
+```
+=> SV-corrected data does not give rise to better result consistency.
+
+## New Klin. vs Krij. data
+
+```{r}
+# Load preprocessed data
+proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/allProTissueVsn.rds')
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_allProTissueVsnBC.rds')
+# Subset common samples
+cmnSmps <- intersect(colnames(proTissue_Klin), colnames(proTissue_Krij))
+proTissue_Klin <- proTissue_Klin[, cmnSmps]
+proTissue_Krij <- proTissue_Krij[, cmnSmps]
+# Prepare data with constructed SVs for statistical testing and data corrected for
+# SVs for computing feature correlations
+svaRes_Klin <- doSVA(proTissue_Klin, wantedVar = c('Condition', 'Recurrence', 'Condition:Recurrence'))
+svaRes_Krij <- doSVA(proTissue_Krij, wantedVar = c('Condition', 'Recurrence', 'Condition:Recurrence'))
+proTissueSVs_Klin <- svaRes_Klin$summExp_SVs
+proTissueSVs_Krij <- svaRes_Krij$summExp_SVs
+# Prepare protein-gene table for providing gene names
+featInfo <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Proteins') %>%
+  dplyr::rename(Genes = Gene) %>%
+  dplyr::mutate(Proteins = stringr::str_remove(Proteins, ';.*'),
+                Genes = stringr::str_remove(Genes, ';.*'))
+```
+
+<font size='4'> **Preprocessed data without any covariate correction** </font>\
+**Feature correlations (data1: Klin. data, data2: Krij. data)**
+```{r}
+# Compute feature correlations between two datasets
+corrRes <- calcFeatCorr(proTissue_Klin, proTissue_Krij, show_nFeats = T)
+# Plot feature correlations
+ggplot(corrRes, aes(x=Correlation)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(breaks = c(seq(-1, 1, 0.2))) +
+  labs(y = 'Frequency', title = 'Feature Correlations: Klin. vs Krij. Proteomics (Uncorrected)') +
+  th
+  # theme(axis.title = element_text(size = 22),
+  #       axis.text = element_text(size = 18))
+```
+
+**log(FC) between Tumor and Normal samples**
+```{r}
+# Compute log(FC) and t-statistics between Tumor and Normal tissue samples in two datasets
+# Prepare summarized tables of comparison for visualization
+# condiFeatAssoTabs <- summarizeFeatAssoRes(proTissue_Klin, proTissue_Krij, 'Klin.', 'Krij.',
+#                                           meta_var = 'Condition', subset = NULL,
+#                                           method = 'proDA', alpha = 0.05, prot_gene_tbl = featInfo)
+# saveRDS(condiFeatAssoTabs, './data/Discovery/AG_Klingmueller/soaRes/comparisons/newKlin_vs_Krij_condiFeatAsso.rds')
+condiFeatAssoTabs <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/comparisons/newKlin_vs_Krij_condiFeatAsso.rds')
+
+# Plot log(FC)
+ggplot(condiFeatAssoTabs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 3) +
+  ggpubr::stat_cor(data = condiFeatAssoTabs$tbl_logFC,
+                   aes(x=logFC_dat1, y=logFC_dat2, col=NULL,
+                       label=paste(..rr.label.., ..p.label.., sep = "~`,`~")),
+                   size = 7, show.legend = F) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of Klin. data', y = 'log(FC) of Krij. data',
+       title = 'log(FC): Tumor vs Normal (Uncorrected)') +
+  th
+  # theme(axis.title = element_text(size = 22),
+  #       axis.text = element_text(size = 14),
+  #       legend.title = element_text(size = 22),
+  #       legend.text = element_text(size = 20))
+```
+
+**p-values (Tumor vs Normal samples, alpha = 0.05)**
+```{r}
+# Plot p-values
+# Compute result consistency
+percent <- round(sum(condiFeatAssoTabs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(condiFeatAssoTabs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+
+ggplot(condiFeatAssoTabs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  labs(x = '-log10(pVal) of Klin. data', y = '-log10(pVal) of Krij. data',
+       title = 'p-val: Tumor vs Normal (Uncorrected)') +
+  annotate('text', x = 8, y = 55, size = 4,
+           label = paste0(percent, '% of significant results consistent')) +
+  th
+```
+
+</br>
+<font size='4'> **Preprocessed data accounted for SVs** </font>\
+**Feature correlations**
+```{r}
+# Compute feature correlations between two datasets
+corrRes <- calcFeatCorr(svaRes_Klin$correctDatMat, svaRes_Krij$correctDatMat, show_nFeats = F)
+# Plot feature correlations
+ggplot(corrRes, aes(x=Correlation)) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(breaks = c(seq(-1, 1, 0.1))) +
+  labs(y = 'Frequency', title = 'Feature Correlations: Klin. vs Krij. Proteomics (Corrected)') +
+  th
+```
+
+**log(FC) between Tumor and Normal samples**
+```{r}
+# Compute log(FC) and t-statistics between Tumor and Normal tissue samples in two datasets
+# Prepare summarized tables of comparison for visualization
+# condiFeatAssoTabs_SVs <- summarizeFeatAssoRes(proTissueSVs_Klin, proTissueSVs_Krij,
+#                                               'Klin.', 'Krij.', meta_var = 'Condition',
+#                                               subset = NULL, method = 'proDA',
+#                                               alpha = 0.05, prot_gene_tbl = featInfo,
+#                                               unwantVar1 = grep('^SV\\d+$', colnames(colData(proTissueSVs_Klin)), value = T),
+#                                               unwantVar2 = grep('^SV\\d+$', colnames(colData(proTissueSVs_Krij)), value = T))
+# saveRDS(condiFeatAssoTabs_SVs, './data/Discovery/AG_Klingmueller/soaRes/comparisons/newKlin_vs_Krij_condiFeatAsso_SVs.rds')
+condiFeatAssoTabs_SVs <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/comparisons/newKlin_vs_Krij_condiFeatAsso_SVs.rds')
+
+# Plot log(FC)
+ggplot(condiFeatAssoTabs_SVs$tbl_logFC, aes(x=logFC_dat1, y=logFC_dat2, col=Direction)) +
+  geom_point(size = 2) +
+  ggpubr::stat_cor(data = condiFeatAssoTabs_SVs$tbl_logFC,
+                   aes(x=logFC_dat1, y=logFC_dat2, col=NULL,
+                       label=paste(..rr.label.., ..p.label.., sep = "~`,`~")),
+                   size = 6, show.legend = F) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'navy', 'grey')) +
+  labs(x = 'log(FC) of Klin. data', y = 'log(FC) of Krij. data',
+       title = 'log(FC): Tumor vs Normal (SV-Corrected)') +
+  th
+```
+
+**p-values (Tumor vs Normal samples, alpha = 0.05)**
+```{r}
+# Plot p-values
+# Compute result consistency
+percent <- round(sum(condiFeatAssoTabs_SVs$tbl_pVal$Significance == 'Sig. in Both') /
+                   sum(condiFeatAssoTabs_SVs$tbl_pVal$Significance != 'Not Sig.'), 3) * 100
+
+ggplot(condiFeatAssoTabs_SVs$tbl_pVal, aes(x=-log10(pVal_dat1), y=-log10(pVal_dat2), col=Significance)) +
+  geom_point(size = 2) +
+  geom_abline(intercept = 0, slope = 1, col = 'black', linewidth = 0.8) +
+  scale_color_manual(values = c('red', 'darkgreen', 'navy', 'grey')) +
+  labs(x = '-log10(pVal) of Klin. data', y = '-log10(pVal) of Krij. data',
+       title = 'p-val: Tumor vs Normal (SV-Corrected)') +
+  annotate('text', x = 8, y = 55, size = 4,
+           label = paste0(percent, '% of significant results consistent')) +
+  th
+```
+=> Feature significance of New Klin. data is not as good as that of Krij. or Old Klin.
+data while sample spaces are identical.
