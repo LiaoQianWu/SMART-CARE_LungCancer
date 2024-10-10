@@ -8,6 +8,92 @@ editor_options:
   chunk_output_type: console
 ---
 
+## **Combined data**
+Method Development cohort + Discovery cohort\
+**Established analysis pipeline implemented in this section is up to date.**
+
+Data Availability:
+![](dataAvailability.png)
+
+---
+
+### 1. Data Preprocessing
+
+### 1.1 [Tissue DIA Proteomics (Klingmüller & Krijgsveld)](MDev_Dis_01_preprocessing_DIA.html)
+### 1.2 [Partially Annotated Tissue Untargeted Lipidomics](MDev_Dis_01_preprocessing_annotated_untargeted.html)
+
+---
+
+### 2. Preliminary (Single-Omics) Analysis
+
+### 2.1 [Tissue DIA Proteomics (Klingmüller & Krijgsveld)](MDev_Dis_02_soa_DIA.html)
+### 2.2 [Trials: Tissue DIA Proteomics (Klingmüller & Krijgsveld)](MDev_Dis_02_soa_DIA_Trials.html)
+Compare results from data either unadjusted or adjusted by surrogate variables =>
+Data adjusted by SVs constructed from whole Tissue datasets is chosen (interaction
+*Condition:Recurrence* included).
+
+---
+
+### 3. [MOFA Models](MDev_Dis_mofa_downstream.html)
+**Results are old version and need rerun.**\
+Reprogramming of lipid metabolism has been demonstrated to contribute to lung cancer
+development and chemoresistance. (Whether receiving adjuvant chemotherapy lowers
+chance of developing tumor recurrence?) For now, story could be tumor-free lung
+tissue cells with altered lipid metabolism have abnormal membrane dynamics, higher
+energy production, etc., which enables them to become cancerous cells with chemoresistance
+over time, even after surgical resection of primary lung tumors.
+
+---
+
+### 4. Machine Learning Models
+
+### 4.1 [Feature Filtered Tissue DIA Proteomics (Klingmüller & Krijgsveld)](FeatSelection_ML_FeatFilt.html)
+Additional feature filtering is conducted on subdatasets before model training,
+i.e., Tumor or Normal Tissue data.
+
+### 4.2 [Tissue DIA Proteomics (Klingmüller & Krijgsveld)](FeatSelection_ML.html)
+Additional feature filtering is not conducted, and top important features selected
+by models are mostly highly missing. There may be risk that imputation method (missForest)
+used in our workflow introducing biases and impeding true but weaker signals contributed
+by features more complete.
+
+### 4.3 [Trials: Tissue DIA Proteomics (Klingmüller & Krijgsveld)](FeatSelection_ML_Trials.html)
+
+---
+
+<font size='5'>
+**&darr;&darr;&darr;&darr;**
+**All results down below are old version and has not been rerun with up-to-date**
+**analysis pipeline, so please contact me if anything is of interest.**
+</font>
+
+## **Discovery cohort**
+Discovery cohort is defined by 84 Lung Cancer patients and 17 of them were also
+included in Method Development cohort (Baseline and Follow-up Plasma samples).
+65 patients got Tumor and Normal Tissues, where 22 of them got bad-quality Tumor
+Tissue samples. 81 patients got Plasma samples and 80 of them got Baseline Plasma
+samples, where 17 Baseline Plasma samples were included in Method Development cohort.
+
+---
+
+### 1. Data Preprocessing
+
+### 1.1 [Tissue and Plasma DIA Proteomics (Krijgsveld)](Discovery_01_preprocessing_DIA_Krij.html)
+### 1.2 [Tissue and Plasma Untargeted Lipidomics](Discovery_01_preprocessing_untargeted.html)
+
+---
+
+### 2. Preliminary (Single-Omics) Analysis
+
+### 2.1 [Tissue and Plasma DIA Proteomics (Krijgsveld)](Discovery_02_soa_DIA_Krij.html)
+### 2.2 [Tissue and Plasma Untargeted Lipidomics](Discovery_02_soa_untargeted.html)
+
+---
+
+### 3. Cross-Cohort Analysis: [Tissue DIA Proteomics](CrossCohort_investigation.html)
+
+---
+
 ## **Method Development cohort**
 
 Method Development cohort is defined by 20 Lung Cancer (Adenocarcinoma) patients.
@@ -93,67 +179,3 @@ these models, we then added or removed omics to see changes in model performance
 ### 4.3 [Old: Trained MOFA Models](mofa_varied_omics_combinations.html)
 The results show that, in general, the model trained on the combination composed
 of Untargeted Plasma Metabolomics, Plasma Lipidomics, and Plasma Proteomics performs best.
-
----
-
-## **Discovery cohort**
-Discovery cohort is defined by 84 Lung Cancer patients and 17 of them were also
-included in Method Development cohort (Baseline and Follow-up Plasma samples).
-65 patients got Tumor and Normal Tissues, where 22 of them got bad-quality Tumor
-Tissue samples. 81 patients got Plasma samples and 80 of them got Baseline Plasma
-samples, where 17 Baseline Plasma samples were included in Method Development cohort.
-
-Data Availability:
-![](dataAvailability.png)
-
----
-
-### 1. Data Preprocessing
-
-### 1.1 [Tissue and Plasma DIA Proteomics (Krijgsveld)](Discovery_01_preprocessing_DIA_Krij.html)
-### 1.2 [Tissue and Plasma Untargeted Lipidomics](Discovery_01_preprocessing_untargeted.html)
-
----
-
-### 2. Preliminary (Single-Omics) Analysis
-
-### 2.1 [Tissue and Plasma DIA Proteomics (Krijgsveld)](Discovery_02_soa_DIA_Krij.html)
-### 2.2 [Tissue and Plasma Untargeted Lipidomics](Discovery_02_soa_untargeted.html)
-
----
-
-### 3. Cross-Cohort Analysis: [Tissue DIA Proteomics](CrossCohort_investigation.html)
-
----
-
-## **Combined data**
-Method Development + Discovery
-
----
-
-### 1. Data Preprocessing
-
-### 1.1 [Tissue DIA Proteomics (Klingmüller & Krijgsveld)](MDev_Dis_01_preprocessing_DIA.html)
-### 1.2 [Partially Annotated Tissue Untargeted Lipidomics](MDev_Dis_01_preprocessing_annotated_untargeted.html)
-
----
-
-### 2. Preliminary (Single-Omics) Analysis
-
-### 2.1 [Tissue DIA Proteomics (Klingmüller & Krijgsveld)](MDev_Dis_02_soa_DIA.html)
-
----
-
-### 3. [MOFA Models](MDev_Dis_mofa_downstream.html)
-Reprogramming of lipid metabolism has been demonstrated to contribute to lung cancer
-development and chemoresistance. (Whether receiving adjuvant chemotherapy lowers
-chance of developing tumor recurrence?) For now, story could be tumor-free lung
-tissue cells with altered lipid metabolism have abnormal membrane dynamics, higher
-energy production, etc., which enables them to become cancerous cells with chemoresistance
-over time, even after surgical resection of primary lung tumors.
-
----
-
-### 4. Machine Learning Models
-
-### 4.1 [Tissue DIA Proteomics (Klingmüller & Krijgsveld)](FeatSelection_ML.html)
