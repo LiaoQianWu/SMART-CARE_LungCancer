@@ -1,0 +1,990 @@
+---
+title: 'Comparison: ML models'
+author: "Qian-Wu Liao"
+output:
+  workflowr::wflow_html:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+<font size='4'> Description: Train logistic regression and random forest models
+on data either unadjusted, adjusted for SVs constructed by Tumor or Normal subdatasets,
+or adjusted for SVs constructed by whole dataset including Tumor and Normal samples. </font>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
+knitr::opts_knit$set(root.dir = '/Users/qianwu/Desktop/SMART-CARE_LungCancer')
+```
+
+Load libraries
+```{r library loading, message = F}
+library('spsUtil')
+library(ggh4x)
+library(DT)
+library('randomForest')
+library('missForest')
+library(xgboost)
+library('caret')
+library('glmnet')
+library(ggvenn)
+library('SummarizedExperiment')
+library('tidyverse')
+# Load user-defined functions
+source('./code/misc.R')
+source('./code/ml_funcs.R')
+
+# Set plot theme
+th <- theme_bw(base_size = 15) +
+  theme(axis.title = element_text(face = 'bold'),
+        axis.text = element_text(face = 'bold'),
+        axis.ticks = element_line(linewidth = 0.8),
+        legend.text = element_text(size = 15))
+```
+
+# TTP (AG Klin.)
+Tumor Tissue DIA Proteomics from AG Klingmüller
+
+## Lasso logistic regression
+
+<font size='5'> **Stability selection** </font>
+
+**Performance statistics of 100 models**\
+**SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM - CONDITION:RECURRENCE)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
+proTumor_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Tumor']
+# Load SOA results
+proTumorRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/trials/proTumorRes_SVsByProTissueInt.rds')
+
+# Prepare adjusted data
+adjProTumor_Klin <- proTumor_Klin
+assay(adjProTumor_Klin) <- proTumorRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proTumorRes_Klin$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProTumor_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProTumorVsn_SVsByProTissueInt.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION TERMS)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
+proTumor_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Tumor']
+# Load SOA results
+proTumorRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/trials/proTumorRes_SVsByProTissue.rds')
+
+# Prepare adjusted data
+adjProTumor_Klin <- proTumor_Klin
+assay(adjProTumor_Klin) <- proTumorRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proTumorRes_Klin$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProTumor_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProTumorVsn_SVsByProTissue.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**SV-ADJUSTED (PROTUMOR)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
+proTumor_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Tumor']
+# Load SOA results
+proTumorRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/trials/proTumorRes_SVsByProTumor.rds')
+
+# Prepare adjusted data
+adjProTumor_Klin <- proTumor_Klin
+assay(adjProTumor_Klin) <- proTumorRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proTumorRes_Klin$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProTumor_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProTumorVsn_SVsByProTumor.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**UNADJUSTED DATA**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
+proTumor_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Tumor']
+# Load SOA results
+proTumorRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/trials/proTumorRes.rds')
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proTumorRes_Klin$sig.feat.tab$Var1
+# lrRes <- iterLogisR(proTumor_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_impuProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuData/trials/impuProTumorVsn.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_impuProTumor_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+## RF
+
+<font size='5'> **Stability selection** </font>
+
+**Performance statistics of 100 models**\
+**SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM - CONDITION:RECURRENCE)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION TERMS)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**SV-ADJUSTED (PROTUMOR)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**UNADJUSTED**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_impuProTumor_0.9r_randSplit_100_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+# NTP (AG Klin.)
+Normal Tissue DIA Proteomics from AG Klingmüller
+
+## Lasso logistic regression
+
+<font size='5'> **Stability selection** </font>
+
+**Performance statistics of 100 models**\
+**SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM - CONDITION:RECURRENCE)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
+proNormal_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Normal']
+# Load SOA results
+proNormalRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/trials/proNormalRes_SVsByProTissueInt.rds')
+
+# Prepare adjusted data
+adjProNormal_Klin <- proNormal_Klin
+assay(adjProNormal_Klin) <- proNormalRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proNormalRes_Klin$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProNormal_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProNormalVsn_SVsByProTissueInt.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION TERMS)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
+proNormal_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Normal']
+# Load SOA results
+proNormalRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/trials/proNormalRes_SVsByProTissue.rds')
+
+# Prepare adjusted data
+adjProNormal_Klin <- proNormal_Klin
+assay(adjProNormal_Klin) <- proNormalRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proNormalRes_Klin$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProNormal_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProNormalVsn_SVsByProTissue.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**SV-ADJUSTED (PRONORMAL)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
+proNormal_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Normal']
+# Load SOA results
+proNormalRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/trials/proNormalRes_SVsByProNormal.rds')
+
+# Prepare adjusted data
+adjProNormal_Klin <- proNormal_Klin
+assay(adjProNormal_Klin) <- proNormalRes_Klin$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proNormalRes_Klin$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProNormal_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuData/trials/impuAdjProNormalVsn_SVsByProNormal.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**UNADJUSTED**
+```{r}
+# Load preprocessed data
+proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
+proNormal_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Normal']
+# Load SOA results
+proNormalRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/trials/proNormalRes.rds')
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proNormalRes_Klin$sig.feat.tab$Var1
+# lrRes <- iterLogisR(proNormal_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_impuProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuData/trials/impuProNormalVsn.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_impuProNormal_0.9r_randSplit_100_5fold_auc_lmin_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+```{r eval=F}
+# <font size='5'> **Investigation of model behaviors** </font>
+
+# Conclusion of this part:
+# Models from different AUC windows can actually capture similar feature set, which
+# implies that factor affecting performance may not be variability of feature sets
+# selected by models. Instead, composition of test data may be factor, meaning that
+# some test sets are probably just easy/hard to predict.
+
+# Show number of unique selected features, i.e., features with non-zero coefficients,
+# from certain subsets of trained models depending on AUC-ROC, e.g., 0.9 >= M > 0.8
+cutoffs <- c(0.9, 0.8, 0.7, 0.6, 0.5)
+numPickedFeats <- c()
+topImpoFeatList <- list()
+for (cuto in cutoffs) {
+  models <- which(lrRes$lrRes$auc_roc > cuto & lrRes$lrRes$auc_roc <= cuto+0.1)
+  coefMat <- lrRes$lrRes$coefficient[, models]
+  topImpoFeats <- as.data.frame(coefMat) %>%
+    dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
+                                                   .x == 0 ~ 0))) %>%
+    tibble::rownames_to_column('Feature') %>%
+    tidyr::pivot_longer(cols = -'Feature', names_to = 'Model', values_to = 'Pick') %>%
+    dplyr::filter(Pick != 0) %>%
+    dplyr::pull(Feature) %>%
+    unique()
+  numPickedFeats <- c(numPickedFeats, length(topImpoFeats))
+  topImpoFeatList[[which(cutoffs == cuto)]] <- topImpoFeats
+}
+numPickedFeatTab <- data.frame(CutoffWindow = paste0(cutoffs+0.1, ' >= AUC > ', cutoffs),
+                               NumPickedFeats = numPickedFeats) %>%
+  dplyr::mutate(CutoffWindow = factor(CutoffWindow, levels = CutoffWindow))
+
+ggplot(numPickedFeatTab, aes(x=CutoffWindow, y=NumPickedFeats)) +
+  geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
+  labs(x = 'AUC-ROC window',
+       y = 'Number of unique selected features',
+       title = 'Number of features selected from certain subsets of trained models') +
+  th
+
+# Show overlaps of selected features from different subsets of trained models
+ggvenn(list(`1 >= AUC > 0.9` = topImpoFeatList[[1]], `0.9 >= AUC > 0.8` = topImpoFeatList[[2]],
+            `0.8 >= AUC > 0.7` = topImpoFeatList[[3]]),
+       fill_color = c('firebrick1', 'dodgerblue1', 'lightgreen'), fill_alpha = 0.6,
+       set_name_color = c('firebrick1', 'dodgerblue1', 'lightgreen'), set_name_size = 8,
+       text_size = 6, stroke_size = 1.5) +
+  labs(title = 'Overlap of features selected from certain subsets of trained models')
+ggvenn(list(`1 >= AUC > 0.9` = topImpoFeatList[[1]], `0.7 >= AUC > 0.6` = topImpoFeatList[[4]],
+            `0.6 >= AUC > 0.5` = topImpoFeatList[[5]]),
+       fill_color = c('firebrick1', 'dodgerblue1', 'lightgreen'), fill_alpha = 0.6,
+       set_name_color = c('firebrick1', 'dodgerblue1', 'lightgreen'), set_name_size = 8,
+       text_size = 6, stroke_size = 1.5) +
+  labs(title = 'Overlap of features selected from certain subsets of trained models')
+
+
+
+
+# Train models with top important features
+cutoffs <- c(0.9, 0.8, 0.7, 0.6, 0.5)
+# for (cuto in cutoffs) {
+#   models <- which(lrRes$lrRes$auc_roc > cuto & lrRes$lrRes$auc_roc <= cuto+0.1)
+#   coefMat <- lrRes$lrRes$coefficient[, models]
+#   topImpoFeatTab <- as.data.frame(coefMat) %>%
+#     dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
+#                                                    .x == 0 ~ 0))) %>%
+#     tibble::rownames_to_column('Feature') %>%
+#     tidyr::pivot_longer(cols = -'Feature', names_to = 'Model', values_to = 'Pick') %>%
+#     dplyr::group_by(Feature) %>%
+#     dplyr::summarise(Frequency = sum(Pick),
+#                      PickRate = Frequency/length(models)) %>%
+#     dplyr::filter(Frequency != 0) %>%
+#     dplyr::arrange(desc(Frequency))
+#   topImpoFeats <- topImpoFeatTab$Feature
+#   
+#   # Train lasso logistic regression model
+#   x <- t(lrRes$featClusters$reducedData[topImpoFeats,])
+#   y <- colData(impuAdjProNormal_Klin)$Recurrence
+#   lrResSub <- runLogisR(x, y, targetClass = 'Yes', iter = 100, regularized_method = 'lasso',
+#                         cvFold = 5, cvMeasure = 'auc', used_lambda = 'lambda.min',
+#                         trainSet_ratio = 0.8, split_method = 'random split',
+#                         plot_ROC = F, save_model = T)
+#   saveRDS(lrResSub, paste0('./data/Discovery/logisR/others/AUC', cuto, '_', cuto+0.1,
+#                            '_lrResSOA_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds'))
+# }
+
+# Display performance of reduced models
+meanAUC <- c()
+lowerAUC <- c()
+upperAUC <- c()
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
+ci <- calcCI(auc_roc, bootstrap = T)
+lowerAUC <- c(lowerAUC, ci[1])
+upperAUC <- c(upperAUC, ci[2])
+for (cuto in cutoffs) {
+  lrResSub <- readRDS(paste0('./data/Discovery/logisR/others/AUC', cuto, '_', cuto+0.1,
+                             '_lrResSOA_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds'))
+  uselessModels <- which(lrResSub$nNonZero == 0)
+  if (length(uselessModels) != 0) {
+    auc_roc <- lrResSub$auc_roc[-uselessModels]
+  } else {
+    auc_roc <- lrResSub$auc_roc
+  }
+  meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
+  ci <- calcCI(auc_roc, bootstrap = T)
+  lowerAUC <- c(lowerAUC, ci[1])
+  upperAUC <- c(upperAUC, ci[2])
+}
+aucStatTab <- data.frame(FeatSpace = c('Complete', paste0(cutoffs+0.1, ' >= AUC > ', cutoffs)),
+                         MeanAUC = meanAUC, UpperAUC = upperAUC, LowerAUC = lowerAUC) %>%
+  dplyr::mutate(FeatSpace = factor(FeatSpace, levels = FeatSpace))
+
+ggplot(aucStatTab, aes(x=FeatSpace, y=MeanAUC)) +
+  geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
+  geom_errorbar(aes(ymin=LowerAUC, ymax=UpperAUC), width = 0.4) +
+  labs(x = 'Feature space used to train 100 models', y = 'Mean AUC-ROC',
+       title = 'Reduced models trained on certain subsets of features') +
+  th
+```
+
+## RF
+
+<font size='5'> **Stability selection** </font>
+
+**Performance statistics of 100 models**\
+**SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM - CONDITION:RECURRENCE)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION TERMS)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**SV-ADJUSTED (PRONORMAL)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**UNADJUSTED**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_impuProNormal_0.9r_randSplit_100_Klin.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+
+
+
+# TTP (AG Krij.)
+Tumor Tissue DIA Proteomics from AG Krijgsveld
+
+## Lasso logistic regression
+
+<font size='5'> **Stability selection** </font>
+
+**Performance statistics of 100 models**\
+**SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM - CONDITION:RECURRENCE)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+proTumor_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Tumor']
+# Load SOA results
+proTumorRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proTumorRes_SVsByProTissueInt.rds')
+
+# Prepare adjusted data
+adjProTumor_Krij <- proTumor_Krij
+assay(adjProTumor_Krij) <- proTumorRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proTumorRes_Krij$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProTumor_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProTumorVsn_SVsByProTissueInt.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION TERMS)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+proTumor_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Tumor']
+# Load SOA results
+proTumorRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proTumorRes_SVsByProTissue.rds')
+
+# Prepare adjusted data
+adjProTumor_Krij <- proTumor_Krij
+assay(adjProTumor_Krij) <- proTumorRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proTumorRes_Krij$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProTumor_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProTumorVsn_SVsByProTissue.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**SV-ADJUSTED (PROTUMOR)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+proTumor_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Tumor']
+# Load SOA results
+proTumorRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proTumorRes_SVsByProTumor.rds')
+
+# Prepare adjusted data
+adjProTumor_Krij <- proTumor_Krij
+assay(adjProTumor_Krij) <- proTumorRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proTumorRes_Krij$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProTumor_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProTumorVsn_SVsByProTumor.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**UNADJUSTED**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+proTumor_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Tumor']
+# Load SOA results
+proTumorRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proTumorRes.rds')
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proTumorRes_Krij$sig.feat.tab$Var1
+# lrRes <- iterLogisR(proTumor_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_impuProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuProTumorVsn.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_impuProTumor_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+## RF
+
+<font size='5'> **Stability selection** </font>
+
+**Performance statistics of 100 models**\
+**SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM - CONDITION:RECURRENCE)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_100_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION TERMS)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProTissue_impuAdjProTumor_0.9r_randSplit_100_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**SV-ADJUSTED (PROTUMOR)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProTumor_impuAdjProTumor_0.9r_randSplit_100_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**UNADJUSTED**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_impuProTumor_0.9r_randSplit_100_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+# NTP (AG Krij.)
+Normal Tissue DIA Proteomics from AG Krijgsveld
+
+## Lasso logistic regression
+
+<font size='5'> **Stability selection** </font>
+
+**Performance statistics of 100 models**\
+**SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM - CONDITION:RECURRENCE)**
+```{r}
+# Load preprocessed data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+proNormal_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Normal']
+# Load SOA results
+proNormalRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proNormalRes_SVsByProTissueInt.rds')
+
+# Prepare adjusted data
+adjProNormal_Krij <- proNormal_Krij
+assay(adjProNormal_Krij) <- proNormalRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proNormalRes_Krij$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProNormal_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProNormalVsn_SVsByProTissueInt.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION TERMS)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+proNormal_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Normal']
+# Load SOA results
+proNormalRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proNormalRes_SVsByProTissue.rds')
+
+# Prepare adjusted data
+adjProNormal_Krij <- proNormal_Krij
+assay(adjProNormal_Krij) <- proNormalRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proNormalRes_Krij$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProNormal_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProNormalVsn_SVsByProTissue.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**SV-ADJUSTED (PRONORMAL)**
+```{r warning=T}
+# Load preprocessed data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+proNormal_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Normal']
+# Load SOA results
+proNormalRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proNormalRes_SVsByProNormal.rds')
+
+# Prepare adjusted data
+adjProNormal_Krij <- proNormal_Krij
+assay(adjProNormal_Krij) <- proNormalRes_Krij$SOA.res$dataCorrect
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proNormalRes_Krij$sig.feat.tab$Var1
+# lrRes <- iterLogisR(adjProNormal_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuAdjProNormalVsn_SVsByProNormal.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+**UNADJUSTED DATA**
+```{r}
+# Load preprocessed data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+proNormal_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Normal']
+# Load SOA results
+proNormalRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/trials/combined_proNormalRes.rds')
+
+# Train models iteratively
+# Prepare significant feature list
+sigFeatList <- proNormalRes_Krij$sig.feat.tab$Var1
+# lrRes <- iterLogisR(proNormal_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 100, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/trials/lrResSOA_impuProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/impuData/trials/combined_impuProNormalVsn.rds')
+lrRes <- readRDS('./data/Discovery/logisR/trials/lrResSOA_impuProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
+```
+
+## RF
+
+<font size='5'> **Stability selection** </font>
+
+**Performance statistics of 100 models**\
+**SV-ADJUSTED (PROTISSUE WITH INTERACTION TERM - CONDITION:RECURRENCE)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_100_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**SV-ADJUSTED (PROTISSUE WITHOUT INTERACTION TERMS)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProTissue_impuAdjProNormal_0.9r_randSplit_100_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**SV-ADJUSTED (PRONORMAL)**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_SVsByProNormal_impuAdjProNormal_0.9r_randSplit_100_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```
+
+**UNADJUSTED**
+```{r}
+# Load trained models
+rfRes <- readRDS('./data/Discovery/rf/trials/rfResSOA_impuProNormal_0.9r_randSplit_100_Krij.rds')
+
+# Report summarized scores
+# Prepare predictions and ground truths
+pred <- rfRes$rfRes$y_pred
+truth <- rfRes$rfRes$y_truth
+auc_roc <- rfRes$rfRes$auc_roc
+summarizePredPower(pred, truth, auc_roc)
+```

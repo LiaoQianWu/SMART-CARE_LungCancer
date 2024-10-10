@@ -8,10 +8,19 @@ output:
     code_folding: hide
 ---
 
-<font size='4'> Description: Do feature selection with machine learning models trained
-on combined data of cohorts (Method Development and Discovery) to identify potential
-biomarkers for predicting lung cancer recurrence. ML models used currently include
-lasso logistic regression, random forest, and XGBoost. </font>
+<font size='4'> Description: Do feature selection with lasso logistic regression
+models trained on combined data of cohorts (Method Development and Discovery) to
+identify potential biomarkers for predicting lung cancer recurrence. Additional
+feature filtering on subdatasets is not conducted, so top important features selected
+by models are mostly highly missing. There is risk that imputation method (missForest)
+used in our workflow introducing biases and impeding true but weaker signals contributed
+by features more complete. On other hand, with brief literature research, those
+top important features with high level of missingness seem associated with lung
+adenocarcinoma. Moreover, imputed values seem sensible because they are usually of
+low abundance, which matches property of MS-based data that missingness is often
+MNAR. Next action will be using data imputed by our developing imputation method
+(msBayesImpute) to train models to do feature selection and checking result consistency,
+which may provides more confidence in our findings. </font>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.height = 8, fig.width = 10, warning = F)
@@ -29,6 +38,7 @@ library(xgboost)
 library('caret')
 library('glmnet')
 library(ggvenn)
+library(pheatmap)
 library('SummarizedExperiment')
 library('tidyverse')
 # Load user-defined functions
@@ -43,705 +53,35 @@ th <- theme_bw(base_size = 15) +
         legend.text = element_text(size = 15))
 ```
 
-# NTP (AG Klin.)
-Normal Tissue DIA Proteomics from AG Klingmüller
-
-## Lasso logistic regression
-
-<font size='5'> **Stability selection** </font>
-
-**Performance statistics of 1000 models**\
-**ADJUSTED DATA**
-```{r warning=T}
-# Load preprocessed data
-proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
-proNormal_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Normal']
-# Load SOA results
-proNormalRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proNormalRes_Stage.rds')
-
-# Prepare adjusted data
-adjProNormal_Klin <- proNormal_Klin
-assay(adjProNormal_Klin) <- proNormalRes_Klin$SOA.res$dataCorrect
-
-# Train models iteratively
-# Prepare significant feature list
-sigFeatList <- proNormalRes_Klin$sig.feat.tab$Var1
-# 'auc' is not applicable for CV when too few (< 10) observations per fold. Instead,
-# 'deviance' will be used.
-# lrRes <- iterLogisR(adjProNormal_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
-#                     doFeatClustering = T, iter = 1000, cvFold = 5, cvMeasure = 'auc')
-# saveRDS(lrRes, './data/Discovery/logisR/lrResSOA_Stage_impuAdjProNormal_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
-# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuAdjProNormalVsn_Stage.rds')
-lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_Stage_impuAdjProNormal_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
-impuAdjProNormal_Klin <- lrRes$impuSE
-
-# Pinpoint useless models that will be removed, i.e., models with no any non-zero beta
-uselessModels <- which(lrRes$lrRes$nNonZero == 0) #higher lambda results in simpler model
-# for (i in uselessModels) {
-#   pred <- lrRes$lrRes$y_pred[[i]]
-#   truth <- lrRes$lrRes$y_truth[[i]]
-#   scores <- caret::confusionMatrix(data = pred, reference = truth, positive = '1')
-#   cat(scores$overall[['Accuracy']], '\n')
-# } # Models that got only intercept make random predictions, 0.5 accuracy and AUC-ROC
-
-# Report summarized scores
-# Prepare predictions and ground truths where results from useless models are removed
-if (length(uselessModels) != 0) {
-  pred <- lrRes$lrRes$y_pred[-uselessModels]
-  truth <- lrRes$lrRes$y_truth[-uselessModels]
-  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
-} else {
-  pred <- lrRes$lrRes$y_pred
-  truth <- lrRes$lrRes$y_truth
-  auc_roc <- lrRes$lrRes$auc_roc
-}
-suppressWarnings(summarizePredPower(pred, truth, auc_roc)) #warning due to sometimes only pos or neg predictions
-```
-
-**UNADJUSTED DATA**
-```{r}
-tmp_lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_Stage_impuProNormal_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths where results from useless models are removed
-uselessModels <- which(tmp_lrRes$lrRes$nNonZero == 0)
-if (length(uselessModels) != 0) {
-  pred <- tmp_lrRes$lrRes$y_pred[-uselessModels]
-  truth <- tmp_lrRes$lrRes$y_truth[-uselessModels]
-  auc_roc <- tmp_lrRes$lrRes$auc_roc[-uselessModels]
-} else {
-  pred <- tmp_lrRes$lrRes$y_pred
-  truth <- tmp_lrRes$lrRes$y_truth
-  auc_roc <- tmp_lrRes$lrRes$auc_roc
-}
-suppressWarnings(summarizePredPower(pred, truth, auc_roc))
-```
-
-**Top important features that are most frequently selected**
-```{r}
-# Visualize top important features
-# Prepare feature annotation table
-featAnno <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Feature')
-topImpoFeatViz <- vizTopImpoFeatsLR(lrRes, featAnno = featAnno, num_p1TopFeats = 30)
-topImpoFeatViz$pick
-```
-
-**Full feature importance table**
-```{r}
-# Display full feature importance table
-DT::datatable(topImpoFeatViz$fullImpoFeatTab)
-```
-
-<font size='5'> **Systematic training and evaluation** </font>
-
-**Performance of models trained with different numbers of top important features**
-```{r}
-# Systematically train models with different numbers of top important features
-# sysTrainModels <- doSysTrainLogisR(lrRes, impuAdjProNormal_Klin, max_numTopFeats = 50)
-# saveRDS(sysTrainModels, './data/Discovery/logisR/sysTrain_lrResSOA_Stage_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds')
-sysTrainModels <- readRDS('./data/Discovery/logisR/sysTrain_lrResSOA_Stage_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds')
-
-# Visualize systematic training
-vizSysTrainModelPerf(sysTrainModels, numTopFeats = 30)
-# ggsave('./output/Junyan/stabSelec_Stats_proNormal.png', device = 'png', dpi = 400, height = 8, width = 10)
-```
-=> Top 13 important features are selected, resulting in model with AUC of 0.953 [0.83,1].\
-=> Top 18 important features are selected, resulting in model with AUC of 0.954 [0.86,1].
-
-**Noninformative models that demonstrate effects of top important features**
-```{r}
-se <- impuAdjProNormal_Klin
-# Train models without top important features, aka noninformative models
-numTopImpoFeats <- c(10, 20, 30, 40, 50)
-# for (num in numTopImpoFeats) {
-#   topImpoFeats <- topImpoFeatViz$fullImpoFeatTab$Feature[1:num]
-#   # Train lasso logistic regression model
-#   reducedData <- lrRes$featClusters$reducedData
-#   x <- t(reducedData[!rownames(reducedData) %in% topImpoFeats,])
-#   y <- colData(se)$Recurrence
-#   lrResNonInfo <- runLogisR(x, y, targetClass = 'Yes', iter = 100, regularized_method = 'lasso',
-#                             cvFold = 5, cvMeasure = 'auc', used_lambda = 'lambda.min',
-#                             trainSet_ratio = 0.8, split_method = 'random split',
-#                             plot_ROC = F, save_model = T)
-#   saveRDS(lrResNonInfo, paste0('./data/Discovery/logisR/NonInfo_rmTop', num, '_lrResSOA_Stage_',
-#                                'impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds'))
-# }
-
-# Display performance of noninformative models
-meanAUC <- c()
-lowerAUC <- c()
-upperAUC <- c()
-uselessModels <- which(lrRes$lrRes$nNonZero == 0)
-if (length(uselessModels) != 0) {
-  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
-} else {
-  auc_roc <- lrRes$lrRes$auc_roc
-}
-meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
-ci <- calcCI(auc_roc, bootstrap = T)
-lowerAUC <- c(lowerAUC, ci[1])
-upperAUC <- c(upperAUC, ci[2])
-for (num in numTopImpoFeats) {
-  lrResNonInfo <- readRDS(paste0('./data/Discovery/logisR/NonInfo_rmTop', num, '_lrResSOA_Stage_',
-                                 'impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds'))
-  uselessModels <- which(lrResNonInfo$nNonZero == 0)
-  if (length(uselessModels) != 0) {
-    auc_roc <- lrResNonInfo$auc_roc[-uselessModels]
-  } else {
-    auc_roc <- lrResNonInfo$auc_roc
-  }
-  meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
-  ci <- calcCI(auc_roc, bootstrap = T)
-  lowerAUC <- c(lowerAUC, ci[1])
-  upperAUC <- c(upperAUC, ci[2])
-}
-aucStatTab <- data.frame(FeatSpace = c('Complete', paste0('-Top ', numTopImpoFeats)),
-                         MeanAUC = meanAUC, UpperAUC = upperAUC, LowerAUC = lowerAUC) %>%
-  dplyr::mutate(FeatSpace = factor(FeatSpace, levels = FeatSpace))
-
-ggplot(aucStatTab, aes(x=FeatSpace, y=MeanAUC)) +
-  geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
-  geom_errorbar(aes(ymin=LowerAUC, ymax=UpperAUC), width = 0.4) +
-  labs(x = 'Feature space used to train 100 models', y = 'Mean AUC-ROC',
-       title = 'Noninformative models') +
-  th
-```
-
-<font size='5'> **Investigation of core features** </font>
-
-<font size='3'> Imputed data: </font>\
-**Heatmap where samples are ordered by linear regression scores**
-```{r}
-coreFeatPlotsImpu <- vizCoreFeats(lrRes, sysTrainModels, impuAdjProNormal_Klin,
-                                  heatmap_numCoreFeats = 13, colFeatAnno = 'Gene',
-                                  scatter_twoCoreFeats = c('LMTK2', 'HLA-DQB1'),
-                                  fontsize = 10, fontsize_col = 7, fontsize_row = 11,
-                                  cellwidth = 6, cellheight = 18)
-coreFeatPlotsImpu$heatmap
-# ggsave('./output/Junyan/stabSelec_heatmap_proNormal_impu.png', device = 'png', dpi = 400, height = 8, width = 10)
-```
-
-**Scatterplot of two core features**
-```{r}
-coreFeatPlotsImpu$scatterplot
-# ggsave('./output/Junyan/stabSelec_top2_proNormal_impu.png', device = 'png', dpi = 400, height = 8, width = 10)
-```
-
-<font size='3'> Original data: </font>\
-**Heatmap**
-```{r}
-coreFeatPlots <- vizCoreFeats(lrRes, sysTrainModels, adjProNormal_Klin,
-                              heatmap_numCoreFeats = 13, colFeatAnno = 'Gene',
-                              scatter_twoCoreFeats = c('LMTK2', 'HLA-DQB1'),
-                              fontsize = 10, fontsize_col = 7, fontsize_row = 11,
-                              cellwidth = 6, cellheight = 18)
-coreFeatPlots$heatmap
-# ggsave('./output/Junyan/stabSelec_heatmap_proNormal_ori.png', device = 'png', dpi = 400, height = 8, width = 10)
-```
-
-**Scatterplot**
-```{r}
-coreFeatPlots$scatterplot
-# ggsave('./output/Junyan/stabSelec_top2_proNormal_ori.png', device = 'png', dpi = 400, height = 8, width = 10)
-```
-
-**Missingness and availability of core features**
-```{r message=F}
-numTopImpoFeats <- 13
-# Prepare top important feature list
-topImpoFeats <- topImpoFeatViz$fullImpoFeatTab$Feature[1:numTopImpoFeats] %>%
-  stringr::str_remove(';.+')
-topImpoFeatAnnos <- topImpoFeatViz$fullImpoFeatTab$Annotation[1:numTopImpoFeats] %>%
-  stringr::str_remove(';.+')
-
-# Show data missingness
-proNormal_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Normal']
-featAnnoTab <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Feature') %>%
-  dplyr::mutate(Feature = stringr::str_remove(Feature, ';.+'),
-                Gene = stringr::str_remove(Gene, ';.+'))
-featAvailTab <- summExp2df(proNormal_Klin, row_id = 'Feature', col_id = 'Sample') %>%
-  dplyr::select(Feature, Value, Recurrence) %>%
-  dplyr::mutate(Value = dplyr::case_when(!is.na(Value) ~ 'Observed',
-                                         is.na(Value) ~ 'Missing'),
-                Feature = stringr::str_remove(Feature, ';.+'),
-                Recurrence = dplyr::case_when(Recurrence %in% 'Yes' ~ 'Recurrence',
-                                              Recurrence %in% 'No' ~ 'Non-Recurrence')) %>%
-  dplyr::filter(Feature %in% topImpoFeats) %>%
-  dplyr::group_by(Recurrence, Feature) %>%
-  dplyr::mutate(SmpNumber = length(Feature)) %>%
-  dplyr::ungroup() %>%
-  dplyr::group_by(Recurrence, SmpNumber, Feature, Value) %>%
-  dplyr::summarise(Count = dplyr::n()) %>%
-  dplyr::ungroup() %>%
-  dplyr::left_join(featAnnoTab, by = 'Feature') %>%
-  dplyr::mutate(Gene = factor(Gene, levels = topImpoFeatAnnos),
-                Recurrence = factor(Recurrence, levels = c('Recurrence', 'Non-Recurrence')),
-                Value = factor(Value, levels = c('Missing', 'Observed')),
-                Proportion = Count/SmpNumber)
-
-ggplot(featAvailTab, aes(x=Gene, y=Proportion, fill=Value)) +
-  geom_col(position = 'stack') +
-  facet_wrap(vars(Recurrence), scales = 'free') +
-  scale_fill_manual(values = c(Missing = 'grey', Observed = 'black')) +
-  labs(title = 'Normal Tissue Proteomics') +
-  theme_bw() +
-  theme(axis.text.x = element_text(size = 18, face = 'bold', angle = 90, hjust = 1, vjust = 0.5),
-        axis.text.y = element_text(size = 12, face = 'bold'),
-        axis.title = element_text(size = 20, face = 'bold'),
-        legend.title = element_blank(), legend.text = element_text(size = 18),
-        strip.text = element_text(size = 18, face = 'bold'),
-        plot.title = element_text(size = 22, face = 'bold', hjust = 0.5, vjust = 1.5))
-
-
-# Show availability of top important features in other datasets
-# Prepare feature space of other datasets
-# Klingmüller Preprocessed Combined dataset
-old_proTissue_Combined_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
-featSpace_old_Prepro_Combined_Klin <- rownames(old_proTissue_Combined_Klin) %>%
-  stringr::str_remove(';.+')
-# Klingmüller Original Combined dataset
-featSpace_old_Ori_Combined_Klin <- readr::read_tsv(paste0('./data/MethodDev/AG_Klingmueller/',
-                                                          '20230309_103228_SmartCare_TumorFree_Tumor_Yang001_Report.tsv')) %>%
-  dplyr::pull(PG.ProteinGroups) %>%
-  stringr::str_remove(';.+')
-# Krijgsveld Preprocessed Combined dataset
-proTissue_Combined_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
-featSpace_Prepro_Combined_Krij <- rownames(proTissue_Combined_Krij) %>%
-  stringr::str_remove(';.+')
-# Krijgsveld Original Discovery dataset
-featSpace_Ori_Discovery_Krij <- readr::read_tsv(paste0('./data/Discovery/AG_Krijgsveld/',
-                                                       '20230815_MarcS_Discovery_Tissue.pg_matrix.tsv')) %>%
-  dplyr::pull(Protein.Group) %>%
-  stringr::str_remove(';.+')
-# Krijgsveld Original Method Development dataset
-featSpace_Ori_MethodDev_Krij <- readr::read_delim(paste0('./data/MethodDev/AG_Krijgsveld/',
-                                                         '20230726_Thorax_Method_Est_tissue.txt')) %>%
-  dplyr::pull(Protein.Group) %>%
-  stringr::str_remove(';.+')
-# Collect all feature spaces into a list
-featSpaceList <- list(Ori_Old_Klin = featSpace_old_Ori_Combined_Klin, Prepro_Old_Klin = featSpace_old_Prepro_Combined_Klin,
-                      Ori_MDev_Krij = featSpace_Ori_MethodDev_Krij, Ori_Dis_Krij = featSpace_Ori_Discovery_Krij,
-                      Prepro_Comb_Krij = featSpace_Prepro_Combined_Krij)
-# Store feature availability in a matrix
-featAvailMat <- matrix(nrow = 5, ncol = numTopImpoFeats,
-                       dimnames = list(c('Ori_Old_Klin', 'Prepro_Old_Klin', 'Ori_MDev_Krij',
-                                         'Ori_Dis_Krij', 'Prepro_Comb_Krij'), topImpoFeats))
-for (i in seq_len(nrow(featAvailMat))) {
-  for (j in seq_len(ncol(featAvailMat))) {
-    if (colnames(featAvailMat)[j] %in% featSpaceList[[rownames(featAvailMat)[i]]]) {
-      featAvailMat[i, j] <- 'Yes'
-    } else {
-      featAvailMat[i, j] <- 'No'
-    }
-  }
-}
-# Convert matrix to long data for visualization
-featAvailMat <- tibble::as_tibble(featAvailMat, rownames = 'Dataset') %>%
-  tidyr::pivot_longer(cols = -'Dataset', names_to = 'Feature', values_to = 'Captured') %>%
-  dplyr::mutate(Dataset = factor(Dataset, levels = rev(names(featSpaceList))),
-                Captured = factor(Captured, levels = c('Yes', 'No')),
-                Feature = plyr::mapvalues(Feature, from = topImpoFeats, to = topImpoFeatAnnos),
-                Feature = factor(Feature, levels = topImpoFeatAnnos))
-
-ggplot(featAvailMat, aes(x=Feature, y=Dataset, fill=Captured)) +
-  geom_tile() +
-  scale_fill_manual(values = c('black', 'grey80')) +
-  labs(title = 'Normal Tissue Proteomics') +
-  theme(axis.ticks = element_blank(), panel.grid = element_blank(), panel.background = element_blank(),
-        axis.text.x = element_text(size = 18, face = 'bold', angle = 45, hjust = 1, vjust = 1),
-        axis.text.y = element_text(size = 18, face = 'bold'),
-        axis.title = element_text(size = 20, face = 'bold'),
-        legend.title = element_text(size = 20), legend.text = element_text(size = 18),
-        plot.title = element_text(size = 28, face = 'bold', hjust = 0.5, vjust = 1.5))
-```
-
-```{r eval=F}
-# <font size='5'> **Investigation of model behaviors** </font>
-
-# Conclusion of this part:
-# Models from different AUC windows can actually capture similar feature set, which
-# implies that factor affecting performance may not be variability of feature sets
-# selected by models. Instead, composition of test data may be factor, meaning that
-# some test sets are probably just easy/hard to predict.
-
-# Show number of unique selected features, i.e., features with non-zero coefficients,
-# from certain subsets of trained models depending on AUC-ROC, e.g., 0.9 >= M > 0.8
-cutoffs <- c(0.9, 0.8, 0.7, 0.6, 0.5)
-numPickedFeats <- c()
-topImpoFeatList <- list()
-for (cuto in cutoffs) {
-  models <- which(lrRes$lrRes$auc_roc > cuto & lrRes$lrRes$auc_roc <= cuto+0.1)
-  coefMat <- lrRes$lrRes$coefficient[, models]
-  topImpoFeats <- as.data.frame(coefMat) %>%
-    dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
-                                                   .x == 0 ~ 0))) %>%
-    tibble::rownames_to_column('Feature') %>%
-    tidyr::pivot_longer(cols = -'Feature', names_to = 'Model', values_to = 'Pick') %>%
-    dplyr::filter(Pick != 0) %>%
-    dplyr::pull(Feature) %>%
-    unique()
-  numPickedFeats <- c(numPickedFeats, length(topImpoFeats))
-  topImpoFeatList[[which(cutoffs == cuto)]] <- topImpoFeats
-}
-numPickedFeatTab <- data.frame(CutoffWindow = paste0(cutoffs+0.1, ' >= AUC > ', cutoffs),
-                               NumPickedFeats = numPickedFeats) %>%
-  dplyr::mutate(CutoffWindow = factor(CutoffWindow, levels = CutoffWindow))
-
-ggplot(numPickedFeatTab, aes(x=CutoffWindow, y=NumPickedFeats)) +
-  geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
-  labs(x = 'AUC-ROC window',
-       y = 'Number of unique selected features',
-       title = 'Number of features selected from certain subsets of trained models') +
-  th
-
-# Show overlaps of selected features from different subsets of trained models
-ggvenn(list(`1 >= AUC > 0.9` = topImpoFeatList[[1]], `0.9 >= AUC > 0.8` = topImpoFeatList[[2]],
-            `0.8 >= AUC > 0.7` = topImpoFeatList[[3]]),
-       fill_color = c('firebrick1', 'dodgerblue1', 'lightgreen'), fill_alpha = 0.6,
-       set_name_color = c('firebrick1', 'dodgerblue1', 'lightgreen'), set_name_size = 8,
-       text_size = 6, stroke_size = 1.5) +
-  labs(title = 'Overlap of features selected from certain subsets of trained models')
-ggvenn(list(`1 >= AUC > 0.9` = topImpoFeatList[[1]], `0.7 >= AUC > 0.6` = topImpoFeatList[[4]],
-            `0.6 >= AUC > 0.5` = topImpoFeatList[[5]]),
-       fill_color = c('firebrick1', 'dodgerblue1', 'lightgreen'), fill_alpha = 0.6,
-       set_name_color = c('firebrick1', 'dodgerblue1', 'lightgreen'), set_name_size = 8,
-       text_size = 6, stroke_size = 1.5) +
-  labs(title = 'Overlap of features selected from certain subsets of trained models')
-
-
-
-
-# Train models with top important features
-cutoffs <- c(0.9, 0.8, 0.7, 0.6, 0.5)
-# for (cuto in cutoffs) {
-#   models <- which(lrRes$lrRes$auc_roc > cuto & lrRes$lrRes$auc_roc <= cuto+0.1)
-#   coefMat <- lrRes$lrRes$coefficient[, models]
-#   topImpoFeatTab <- as.data.frame(coefMat) %>%
-#     dplyr::mutate(across(everything(), ~ case_when(.x != 0 ~ 1,
-#                                                    .x == 0 ~ 0))) %>%
-#     tibble::rownames_to_column('Feature') %>%
-#     tidyr::pivot_longer(cols = -'Feature', names_to = 'Model', values_to = 'Pick') %>%
-#     dplyr::group_by(Feature) %>%
-#     dplyr::summarise(Frequency = sum(Pick),
-#                      PickRate = Frequency/length(models)) %>%
-#     dplyr::filter(Frequency != 0) %>%
-#     dplyr::arrange(desc(Frequency))
-#   topImpoFeats <- topImpoFeatTab$Feature
-#   
-#   # Train lasso logistic regression model
-#   x <- t(lrRes$featClusters$reducedData[topImpoFeats,])
-#   y <- colData(impuAdjProNormal_Klin)$Recurrence
-#   lrResSub <- runLogisR(x, y, targetClass = 'Yes', iter = 100, regularized_method = 'lasso',
-#                         cvFold = 5, cvMeasure = 'auc', used_lambda = 'lambda.min',
-#                         trainSet_ratio = 0.8, split_method = 'random split',
-#                         plot_ROC = F, save_model = T)
-#   saveRDS(lrResSub, paste0('./data/Discovery/logisR/others/AUC', cuto, '_', cuto+0.1,
-#                            '_lrResSOA_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds'))
-# }
-
-# Display performance of reduced models
-meanAUC <- c()
-lowerAUC <- c()
-upperAUC <- c()
-uselessModels <- which(lrRes$lrRes$nNonZero == 0)
-if (length(uselessModels) != 0) {
-  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
-} else {
-  auc_roc <- lrRes$lrRes$auc_roc
-}
-meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
-ci <- calcCI(auc_roc, bootstrap = T)
-lowerAUC <- c(lowerAUC, ci[1])
-upperAUC <- c(upperAUC, ci[2])
-for (cuto in cutoffs) {
-  lrResSub <- readRDS(paste0('./data/Discovery/logisR/others/AUC', cuto, '_', cuto+0.1,
-                             '_lrResSOA_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds'))
-  uselessModels <- which(lrResSub$nNonZero == 0)
-  if (length(uselessModels) != 0) {
-    auc_roc <- lrResSub$auc_roc[-uselessModels]
-  } else {
-    auc_roc <- lrResSub$auc_roc
-  }
-  meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
-  ci <- calcCI(auc_roc, bootstrap = T)
-  lowerAUC <- c(lowerAUC, ci[1])
-  upperAUC <- c(upperAUC, ci[2])
-}
-aucStatTab <- data.frame(FeatSpace = c('Complete', paste0(cutoffs+0.1, ' >= AUC > ', cutoffs)),
-                         MeanAUC = meanAUC, UpperAUC = upperAUC, LowerAUC = lowerAUC) %>%
-  dplyr::mutate(FeatSpace = factor(FeatSpace, levels = FeatSpace))
-
-ggplot(aucStatTab, aes(x=FeatSpace, y=MeanAUC)) +
-  geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
-  geom_errorbar(aes(ymin=LowerAUC, ymax=UpperAUC), width = 0.4) +
-  labs(x = 'Feature space used to train 100 models', y = 'Mean AUC-ROC',
-       title = 'Reduced models trained on certain subsets of features') +
-  th
-```
-
-## RF
-
-<font size='5'> **Stability selection** </font>
-
-**Performance statistics of 1000 models**
-```{r}
-# Load imputed adjusted data
-impuAdjProNormal_Klin <- readRDS('./data/Discovery/AG_Klingmueller/impuAdjProNormalVsn_Stage.rds')
-# Load SOA results for retrieving significant feature list for initial feature selection
-proNormalRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proNormalRes_Stage.rds')
-
-# Train models iteratively
-# Prepare significant feature list
-sigFeatList <- proNormalRes_Klin$sig.feat.tab$Var1
-# rfRes <- iterRF(impuAdjProNormal_Klin, doImputation = F, doInitFeatSelection = T,
-#                 sigFeatList = sigFeatList, doFeatClustering = T, iter = 1000)
-# saveRDS(rfRes, './data/Discovery/rf/rfResSOA_Stage_impuAdjProNormal_0.9r_randSplit_1000_Klin.rds')
-rfRes <- readRDS('./data/Discovery/rf/rfResSOA_Stage_impuAdjProNormal_0.9r_randSplit_1000_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- rfRes$rfRes$y_pred
-truth <- rfRes$rfRes$y_truth
-auc_roc <- rfRes$rfRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-**Top important features with highest median ranks**
-```{r}
-# Visualize top important features
-# Prepare feature annotation table
-proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
-featAnno <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Feature')
-topImpoFeatViz <- vizTopImpoFeatsRF(rfRes, featAnno = featAnno, num_p1TopFeats = 30)
-topImpoFeatViz$rank + theme(axis.title = element_text(size = 28),
-                            axis.text = element_text(size = 16))
-# ggsave('./output/Discovery/group_meeting/rf_topImpo_combined_proNormal_Klin.png',
-#        device = 'png', dpi = 400, height = 8, width = 10)
-```
-
-**Full feature importance table**
-```{r}
-DT::datatable(topImpoFeatViz$fullImpoFeatTab)
-```
-
-<font size='5'> **Systematic training and evaluation** </font>
-
-**Performance of models trained with different numbers of top important features**
-```{r}
-# Systematically train models with different numbers of top important features
-# sysTrainModels <- doSysTrainRF(rfRes, impuAdjProNormal_Klin, max_numTopFeats = 100)
-# saveRDS(sysTrainModels, './data/Discovery/rf/sysTrain_rfResSOA_Stage_impuAdjProNormal_randSplit_100_Klin.rds')
-sysTrainModels <- readRDS('./data/Discovery/rf/sysTrain_rfResSOA_Stage_impuAdjProNormal_randSplit_100_Klin.rds')
-
-# Visualize systematic training
-vizSysTrainModelPerf(sysTrainModels, numTopFeats = 40)
-```
-=> Top 24, resulting in model with AUC of 0.934 [0.8,1]
-
-```{r eval=F, include=F}
-# **Noninformative models that demonstrate effects of top important features**
-
-se <- impuAdjProNormal_Klin
-# Train models without top important features, aka noninformative models
-numTopImpoFeats <- c(10, 50, 100, 200, 300, 400, 500)
-# for (num in numTopImpoFeats) {
-#   topImpoFeats <- topImpoFeatViz$fullImpoFeatTab$Feature[1:num]
-#   # Train lasso logistic regression model
-#   reducedData <- rfRes$featClusters$reducedData
-#   x <- t(reducedData[!rownames(reducedData) %in% topImpoFeats,])
-#   y <- colData(se)$Recurrence
-#   rfResNonInfo <- runRF(x, y, targetClass = 'Yes', iter = 100, split_method = 'random split',
-#                         trainSet_ratio = 0.8, ntree = 10000, plot_ROC = F, save_model = T)
-#   saveRDS(rfResNonInfo, paste0('./data/Discovery/rf/NonInfo_rmTop', num, '_rfResSOA_Stage_',
-#                                'impuAdjProNormal_randSplit_100_Klin.rds'))
-# }
-
-# Display performance of noninformative models
-meanAUC <- c()
-lowerAUC <- c()
-upperAUC <- c()
-auc_roc <- rfRes$rfRes$auc_roc
-meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
-ci <- calcCI(auc_roc, bootstrap = T)
-lowerAUC <- c(lowerAUC, ci[1])
-upperAUC <- c(upperAUC, ci[2])
-for (num in numTopImpoFeats) {
-  lrResNonInfo <- readRDS(paste0('./data/Discovery/rf/NonInfo_rmTop', num, '_rfResSOA_Stage_',
-                                 'impuAdjProNormal_randSplit_100_Klin.rds'))
-  
-  auc_roc <- lrResNonInfo$auc_roc
-  meanAUC <- c(meanAUC, round(mean(auc_roc), 3))
-  ci <- calcCI(auc_roc, bootstrap = T)
-  lowerAUC <- c(lowerAUC, ci[1])
-  upperAUC <- c(upperAUC, ci[2])
-}
-aucStatTab <- data.frame(FeatSpace = c('Complete', paste0('-Top ', numTopImpoFeats)),
-                         MeanAUC = meanAUC, UpperAUC = upperAUC, LowerAUC = lowerAUC) %>%
-  dplyr::mutate(FeatSpace = factor(FeatSpace, levels = FeatSpace))
-
-ggplot(aucStatTab, aes(x=FeatSpace, y=MeanAUC)) +
-  geom_bar(stat = 'identity', position = position_dodge(), alpha = 0.9) +
-  geom_errorbar(aes(ymin=LowerAUC, ymax=UpperAUC), width = 0.4) +
-  labs(x = 'Feature space used to train 100 models', y = 'Mean AUC-ROC',
-       title = 'Noninformative models') +
-  th
-```
-
-## XGBoost
-
-<font size='5'> **Linear booster** </font>
-
-**Models trained with core features selected by lasso logistic regression**
-```{r}
-###############
-# Change here #
-################################################################################
-# Load imputed adjusted data
-se <- readRDS('./data/Discovery/AG_Klingmueller/impuAdjProNormalVsn_Stage.rds')
-# Load trained models
-lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_Stage_impuAdjProNormal_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
-# Specify number of core features selected by lasso logistic regression
-numTopImpoFeats <- 13
-################################################################################
-
-# Retrieve core feature list
-coreFeats <- vizTopImpoFeatsLR(lrRes)$fullImpoFeatTab$Feature[1:numTopImpoFeats]
-# Subset core features from data
-coreSE <- se[rownames(se) %in% coreFeats,]
-
-# Train models iteratively
-# linearBoostRes <- iterXGBoost(coreSE, booster = 'gblinear', iter = 100, nrounds = 1000)
-# saveRDS(linearBoostRes, './data/Discovery/xgboost/linear_xgbRes_Stage_coreImpuAdjProNormal_randSplit_rmse_nR1000_iter100_Klin.rds')
-linearBoostRes <- readRDS('./data/Discovery/xgboost/linear_xgbRes_Stage_coreImpuAdjProNormal_randSplit_rmse_nR1000_iter100_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- linearBoostRes$xgbRes$y_pred
-truth <- linearBoostRes$xgbRes$y_truth
-auc_roc <- linearBoostRes$xgbRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-**Models trained with grouped recurrence-related features**
-```{r}
-###############
-# Change here #
-################################################################################
-# Load imputed adjusted data
-se <- readRDS('./data/Discovery/AG_Klingmueller/impuAdjProNormalVsn_Stage.rds')
-# Load SOA results for retrieving significant feature list for initial feature selection
-soaRes <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proNormalRes_Stage.rds')
-################################################################################
-
-# Train models iteratively
-# Prepare significant feature list
-sigFeatList <- soaRes$sig.feat.tab$Var1
-# linearBoostRes <- iterXGBoost(se, doImputation = F, doInitFeatSelection = T,
-#                               sigFeatList = sigFeatList, doFeatClustering = T,
-#                               booster = 'gblinear', iter = 100, nrounds = 1000)
-# saveRDS(linearBoostRes, './data/Discovery/xgboost/linear_xgbRes_Stage_impuAdjProNormal_randSplit_rmse_nR1000_iter100_Klin.rds')
-linearBoostRes <- readRDS('./data/Discovery/xgboost/linear_xgbRes_Stage_impuAdjProNormal_randSplit_rmse_nR1000_iter100_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- linearBoostRes$xgbRes$y_pred
-truth <- linearBoostRes$xgbRes$y_truth
-auc_roc <- linearBoostRes$xgbRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-```{r eval=F, include=F}
-# <font size='5'> **Tree booster** </font>
-# 
-# **Models trained with core features selected by random forest**
-
-###############
-# Change here #
-################################################################################
-# Load imputed adjusted data
-se <- readRDS('./data/Discovery/AG_Klingmueller/impuAdjProNormalVsn_Stage.rds')
-# Load trained models
-rfRes <- readRDS('./data/Discovery/rf/rfResSOA_Stage_impuAdjProNormal_0.9r_randSplit_1000_Klin.rds')
-# Specify number of core features selected by random forest
-numTopImpoFeats <- 24
-################################################################################
-
-# Retrieve core feature list
-coreFeats <- vizTopImpoFeatsRF(rfRes)$fullImpoFeatTab$Feature[1:numTopImpoFeats]
-# Subset core features from data
-coreSE <- se[rownames(se) %in% coreFeats,]
-
-# Train models iteratively
-# treeBoostRes <- iterXGBoost(coreSE, booster = 'gbtree', iter = 100, nrounds = 1000)
-# saveRDS(treeBoostRes, './data/Discovery/xgboost/tree_xgbRes_Stage_coreImpuAdjProNormal_randSplit_auc_nR1000_iter100_Klin.rds')
-treeBoostRes <- readRDS('./data/Discovery/xgboost/tree_xgbRes_Stage_coreImpuAdjProNormal_randSplit_auc_nR1000_iter100_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- treeBoostRes$xgbRes$y_pred
-truth <- treeBoostRes$xgbRes$y_truth
-auc_roc <- treeBoostRes$xgbRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-```{r eval=F, include=F}
-# **Models trained with grouped recurrence-related features**
-
-###############
-# Change here #
-################################################################################
-# Load imputed adjusted data
-se <- readRDS('./data/Discovery/AG_Klingmueller/impuAdjProNormalVsn_Stage.rds')
-# Load SOA results for retrieving significant feature list for initial feature selection
-soaRes <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proNormalRes_Stage.rds')
-################################################################################
-
-# Train models iteratively
-# Prepare significant feature list
-sigFeatList <- soaRes$sig.feat.tab$Var1
-# treeBoostRes <- iterXGBoost(se, doImputation = F, doInitFeatSelection = T,
-#                             sigFeatList = sigFeatList, doFeatClustering = T,
-#                             booster = 'gbtree', iter = 100, nrounds = 1000)
-# saveRDS(treeBoostRes, './data/Discovery/xgboost/tree_xgbRes_Stage_impuAdjProNormal_randSplit_logloss_nR1000_iter100_Klin.rds')
-treeBoostRes <- readRDS('./data/Discovery/xgboost/tree_xgbRes_Stage_impuAdjProNormal_randSplit_logloss_nR1000_iter100_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- treeBoostRes$xgbRes$y_pred
-truth <- treeBoostRes$xgbRes$y_truth
-auc_roc <- treeBoostRes$xgbRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
+<font size='6'> Lasso logistic regression </font>
 
 # TTP (AG Klin.)
 Tumor Tissue DIA Proteomics from AG Klingmüller
 
-## Lasso logistic regression
-
 <font size='5'> **Stability selection** </font>
 
-**Performance statistics of 1000 models**\
-# **ADJUSTED DATA**
+**Performance statistics of 1000 models**
 ```{r warning=T}
 # Load preprocessed data
 proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
 proTumor_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Tumor']
 # Load SOA results
-proTumorRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proTumorRes_SVs.rds')
-
+proTumorRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proTumorRes_SVsByProTissueInt.rds')
 # Prepare adjusted data
 adjProTumor_Klin <- proTumor_Klin
 assay(adjProTumor_Klin) <- proTumorRes_Klin$SOA.res$dataCorrect
 
+# Load imputed adjusted data
+impuAdjProTumor_Klin <- readRDS('./data/Discovery/AG_Klingmueller/impuData/impuAdjProTumorVsn_SVsByProTissueInt.rds')
+
 # Train models iteratively
 # Prepare significant feature list
 sigFeatList <- proTumorRes_Klin$sig.feat.tab$Var1
-# lrRes <- iterLogisR(adjProTumor_Klin, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+# lrRes <- iterLogisR(impuAdjProTumor_Klin, doImputation = F, doInitFeatSelection = T, sigFeatList = sigFeatList,
 #                     doFeatClustering = T, iter = 1000, cvFold = 5, cvMeasure = 'auc')
-# saveRDS(lrRes, './data/Discovery/logisR/lrResSOA_SVs_impuAdjProTumor_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
-# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuAdjProTumorVsn_SVs.rds')
-lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_SVs_impuAdjProTumor_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
-impuAdjProTumor_Klin <- lrRes$impuSE
+# saveRDS(lrRes, './data/Discovery/logisR/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuData/impuAdjProTumorVsn_SVsByProTissueInt.rds')
+lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
 
 # Report summarized scores
 # Prepare predictions and ground truths where results from useless models are removed
@@ -754,25 +94,6 @@ if (length(uselessModels) != 0) {
   pred <- lrRes$lrRes$y_pred
   truth <- lrRes$lrRes$y_truth
   auc_roc <- lrRes$lrRes$auc_roc
-}
-suppressWarnings(summarizePredPower(pred, truth, auc_roc))
-```
-
-**UNADJUSTED DATA**
-```{r eval=F}
-tmp_lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_SVs_impuProTumor_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths where results from useless models are removed
-uselessModels <- which(tmp_lrRes$lrRes$nNonZero == 0)
-if (length(uselessModels) != 0) {
-  pred <- tmp_lrRes$lrRes$y_pred[-uselessModels]
-  truth <- tmp_lrRes$lrRes$y_truth[-uselessModels]
-  auc_roc <- tmp_lrRes$lrRes$auc_roc[-uselessModels]
-} else {
-  pred <- tmp_lrRes$lrRes$y_pred
-  truth <- tmp_lrRes$lrRes$y_truth
-  auc_roc <- tmp_lrRes$lrRes$auc_roc
 }
 suppressWarnings(summarizePredPower(pred, truth, auc_roc))
 ```
@@ -797,22 +118,20 @@ DT::datatable(topImpoFeatViz$fullImpoFeatTab)
 ```{r}
 # Systematically train models with different numbers of top important features
 # sysTrainModels <- doSysTrainLogisR(lrRes, impuAdjProTumor_Klin, max_numTopFeats = 50)
-# saveRDS(sysTrainModels, './data/Discovery/logisR/sysTrain_lrResSOA_SVs_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Klin.rds')
-sysTrainModels <- readRDS('./data/Discovery/logisR/sysTrain_lrResSOA_SVs_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Klin.rds')
+# saveRDS(sysTrainModels, './data/Discovery/logisR/sysTrain_lrResSOA_SVsByProTissueInt_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Klin.rds')
+sysTrainModels <- readRDS('./data/Discovery/logisR/sysTrain_lrResSOA_SVsByProTissueInt_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Klin.rds')
 
 # Visualize systematic training
 vizSysTrainModelPerf(sysTrainModels, numTopFeats = 30)
 # ggsave('./output/Junyan/stabSelec_Stats_proTumor.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
-=> Top 5 important features are selected, resulting in model with AUC of 0.986 [0.93,1].\
-=> Top 11 important features are selected, resulting in model with AUC of 0.988 [0.92,1].\
-=> Top 16 important features are selected, resulting in model with AUC of 0.988 [0.92,1].
+=> Top 18 important features are selected, resulting in model with AUC of 0.993 [0.95,1].
 
 **Noninformative models that demonstrate effects of top important features**
 ```{r}
 se <- impuAdjProTumor_Klin
 # Train models without top important features, aka noninformative models
-numTopImpoFeats <- c(10, 20, 30, 40, 50)
+numTopImpoFeats <- c(5, 10, 15, 20)
 # for (num in numTopImpoFeats) {
 #   topImpoFeats <- topImpoFeatViz$fullImpoFeatTab$Feature[1:num]
 #   # Train lasso logistic regression model
@@ -823,8 +142,8 @@ numTopImpoFeats <- c(10, 20, 30, 40, 50)
 #                             cvFold = 5, cvMeasure = 'auc', used_lambda = 'lambda.min',
 #                             trainSet_ratio = 0.8, split_method = 'random split',
 #                             plot_ROC = F, save_model = T)
-#   saveRDS(lrResNonInfo, paste0('./data/Discovery/logisR/NonInfo_rmTop', num, '_lrResSOA_SVs_',
-#                                'impuAdjProTumor_randSplit_100_5fold_auc_lmin_Klin.rds'))
+#   saveRDS(lrResNonInfo, paste0('./data/Discovery/logisR/noninfo/NonInfo_rmTop', num,
+#                                '_lrResSOA_SVsByProTissueInt_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Klin.rds'))
 # }
 
 # Display performance of noninformative models
@@ -842,8 +161,8 @@ ci <- calcCI(auc_roc, bootstrap = T)
 lowerAUC <- c(lowerAUC, ci[1])
 upperAUC <- c(upperAUC, ci[2])
 for (num in numTopImpoFeats) {
-  lrResNonInfo <- readRDS(paste0('./data/Discovery/logisR/NonInfo_rmTop', num, '_lrResSOA_SVs_',
-                                 'impuAdjProTumor_randSplit_100_5fold_auc_lmin_Klin.rds'))
+  lrResNonInfo <- readRDS(paste0('./data/Discovery/logisR/noninfo/NonInfo_rmTop', num,
+                                 '_lrResSOA_SVsByProTissueInt_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Klin.rds'))
   uselessModels <- which(lrResNonInfo$nNonZero == 0)
   if (length(uselessModels) != 0) {
     auc_roc <- lrResNonInfo$auc_roc[-uselessModels]
@@ -874,8 +193,8 @@ ggplot(aucStatTab, aes(x=FeatSpace, y=MeanAUC)) +
 **Heatmap where samples are ordered by linear regression scores**
 ```{r}
 coreFeatPlotsImpu <- vizCoreFeats(lrRes, sysTrainModels, impuAdjProTumor_Klin,
-                                  heatmap_numCoreFeats = 5, colFeatAnno = 'Gene',
-                                  scatter_twoCoreFeats = c('FABP4', 'LDB3'),
+                                  heatmap_numCoreFeats = 18, colFeatAnno = 'Gene',
+                                  scatter_twoCoreFeats = c('LDB3', 'FMO5'),
                                   fontsize = 10, fontsize_col = 7, fontsize_row = 11,
                                   cellwidth = 6, cellheight = 18)
 coreFeatPlotsImpu$heatmap
@@ -892,8 +211,8 @@ coreFeatPlotsImpu$scatterplot
 **Heatmap**
 ```{r}
 coreFeatPlots <- vizCoreFeats(lrRes, sysTrainModels, adjProTumor_Klin,
-                              heatmap_numCoreFeats = 6, colFeatAnno = 'Gene',
-                              scatter_twoCoreFeats = c('FABP4', 'LDB3'),
+                              heatmap_numCoreFeats = 18, colFeatAnno = 'Gene',
+                              scatter_twoCoreFeats = c('LDB3', 'FABP4'),
                               fontsize = 10, fontsize_col = 7, fontsize_row = 11,
                               cellwidth = 6, cellheight = 18)
 coreFeatPlots$heatmap
@@ -907,7 +226,7 @@ coreFeatPlots$scatterplot
 
 **Missingness and availability of core features**
 ```{r message=F}
-numTopImpoFeats <- 5
+numTopImpoFeats <- 18
 # Prepare top important feature list
 topImpoFeats <- topImpoFeatViz$fullImpoFeatTab$Feature[1:numTopImpoFeats] %>%
   stringr::str_remove(';.+')
@@ -1015,226 +334,39 @@ ggplot(featAvailMat, aes(x=Feature, y=Dataset, fill=Captured)) +
         plot.title = element_text(size = 28, face = 'bold', hjust = 0.5, vjust = 1.5))
 ```
 
-## RF
+# NTP (AG Klin.)
+Normal Tissue DIA Proteomics from AG Klingmüller
 
 <font size='5'> **Stability selection** </font>
 
 **Performance statistics of 1000 models**
-```{r}
-# Load imputed adjusted data
-impuAdjProTumor_Klin <- readRDS('./data/Discovery/AG_Klingmueller/impuAdjProTumorVsn_SVs.rds')
-# Load SOA results for retrieving significant feature list for initial feature selection
-proTumorRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proTumorRes_SVs.rds')
-
-# Train models iteratively
-# Prepare significant feature list
-sigFeatList <- proTumorRes_Klin$sig.feat.tab$Var1
-# rfRes <- iterRF(impuAdjProTumor_Klin, doImputation = F, doInitFeatSelection = T,
-#                 sigFeatList = sigFeatList, doFeatClustering = T, iter = 1000)
-# saveRDS(rfRes, './data/Discovery/rf/rfResSOA_SVs_impuAdjProTumor_0.9r_randSplit_1000_Klin.rds')
-rfRes <- readRDS('./data/Discovery/rf/rfResSOA_SVs_impuAdjProTumor_0.9r_randSplit_1000_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- rfRes$rfRes$y_pred
-truth <- rfRes$rfRes$y_truth
-auc_roc <- rfRes$rfRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-**Top important features with highest median ranks**
-```{r}
-# Visualize top important features
-# Prepare feature annotation table
-proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
-featAnno <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Feature')
-topImpoFeatViz <- vizTopImpoFeatsRF(rfRes, featAnno = featAnno, num_p1TopFeats = 30)
-topImpoFeatViz$rank
-```
-
-**Full feature importance table**
-```{r}
-DT::datatable(topImpoFeatViz$fullImpoFeatTab)
-```
-
-<font size='5'> **Systematic training and evaluation** </font>
-
-**Performance of models trained with different numbers of top important features**
-```{r}
-# Systematically train models with different numbers of top important features
-# sysTrainModels <- doSysTrainRF(rfRes, impuAdjProTumor_Klin, max_numTopFeats = 100)
-# saveRDS(sysTrainModels, './data/Discovery/rf/sysTrain_rfResSOA_SVs_impuAdjProTumor_randSplit_100_Klin.rds')
-sysTrainModels <- readRDS('./data/Discovery/rf/sysTrain_rfResSOA_SVs_impuAdjProTumor_randSplit_100_Klin.rds')
-
-# Visualize systematic training
-vizSysTrainModelPerf(sysTrainModels, numTopFeats = 40)
-```
-=> Top 21, resulting in model with AUC of 0.999 [1,1]\
-=> Top 28, resulting in model with AUC of 1 [1,1] ????
-
-## XGBoost
-
-<font size='5'> **Linear booster** </font>
-
-**Models trained with core features selected by lasso logistic regression**
-```{r}
-###############
-# Change here #
-################################################################################
-# Load imputed adjusted data
-se <- readRDS('./data/Discovery/AG_Klingmueller/impuAdjProTumorVsn_SVs.rds')
-# Load trained models
-lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_SVs_impuAdjProTumor_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
-# Specify number of core features selected by lasso logistic regression
-numTopImpoFeats <- 5
-################################################################################
-
-# Retrieve core feature list
-coreFeats <- vizTopImpoFeatsLR(lrRes)$fullImpoFeatTab$Feature[1:numTopImpoFeats]
-# Subset core features from data
-coreSE <- se[rownames(se) %in% coreFeats,]
-
-# Train models iteratively
-# linearBoostRes <- iterXGBoost(coreSE, booster = 'gblinear', iter = 100, nrounds = 1000)
-# saveRDS(linearBoostRes, './data/Discovery/xgboost/linear_xgbRes_SVs_coreImpuAdjProTumor_randSplit_rmse_nR1000_iter100_Klin.rds')
-linearBoostRes <- readRDS('./data/Discovery/xgboost/linear_xgbRes_SVs_coreImpuAdjProTumor_randSplit_rmse_nR1000_iter100_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- linearBoostRes$xgbRes$y_pred
-truth <- linearBoostRes$xgbRes$y_truth
-auc_roc <- linearBoostRes$xgbRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-**Models trained with grouped recurrence-related features**
-```{r}
-###############
-# Change here #
-################################################################################
-# Load imputed adjusted data
-se <- readRDS('./data/Discovery/AG_Klingmueller/impuAdjProTumorVsn_SVs.rds')
-# Load SOA results for retrieving significant feature list for initial feature selection
-soaRes <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proTumorRes_SVs.rds')
-################################################################################
-
-# Train models iteratively
-# Prepare significant feature list
-sigFeatList <- soaRes$sig.feat.tab$Var1
-# linearBoostRes <- iterXGBoost(se, doImputation = F, doInitFeatSelection = T,
-#                               sigFeatList = sigFeatList, doFeatClustering = T,
-#                               booster = 'gblinear', iter = 100, nrounds = 1000)
-# saveRDS(linearBoostRes, './data/Discovery/xgboost/linear_xgbRes_SVs_impuAdjProTumor_randSplit_rmse_nR1000_iter100_Klin.rds')
-linearBoostRes <- readRDS('./data/Discovery/xgboost/linear_xgbRes_SVs_impuAdjProTumor_randSplit_rmse_nR1000_iter100_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- linearBoostRes$xgbRes$y_pred
-truth <- linearBoostRes$xgbRes$y_truth
-auc_roc <- linearBoostRes$xgbRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-```{r eval=F, include=F}
-# <font size='5'> **Tree booster** </font>
-# 
-# **Models trained with core features selected by random forest**
-
-###############
-# Change here #
-################################################################################
-# Load imputed adjusted data
-se <- readRDS('./data/Discovery/AG_Klingmueller/impuAdjProTumorVsn_SVs.rds')
-# Load trained models
-rfRes <- readRDS('./data/Discovery/rf/rfResSOA_SVs_impuAdjProTumor_0.9r_randSplit_1000_Klin.rds')
-# Specify number of core features selected by random forest
-numTopImpoFeats <- 34
-################################################################################
-
-# Retrieve core feature list
-coreFeats <- vizTopImpoFeatsRF(rfRes)$fullImpoFeatTab$Feature[1:numTopImpoFeats]
-# Subset core features from data
-coreSE <- se[rownames(se) %in% coreFeats,]
-
-# Train models iteratively
-# treeBoostRes <- iterXGBoost(coreSE, booster = 'gbtree', iter = 100, nrounds = 1000)
-# saveRDS(treeBoostRes, './data/Discovery/xgboost/tree_xgbRes_SVs_coreImpuAdjProTumor_randSplit_auc_nR1000_iter100_Klin.rds')
-treeBoostRes <- readRDS('./data/Discovery/xgboost/tree_xgbRes_SVs_coreImpuAdjProTumor_randSplit_auc_nR1000_iter100_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- treeBoostRes$xgbRes$y_pred
-truth <- treeBoostRes$xgbRes$y_truth
-auc_roc <- treeBoostRes$xgbRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-```{r eval=F, include=F}
-# **Models trained with grouped recurrence-related features**
-
-###############
-# Change here #
-################################################################################
-# Load imputed adjusted data
-se <- readRDS('./data/Discovery/AG_Klingmueller/impuAdjProTumorVsn_SVs.rds')
-# Load SOA results for retrieving significant feature list for initial feature selection
-soaRes <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proTumorRes_SVs.rds')
-################################################################################
-
-# Train models iteratively
-# Prepare significant feature list
-sigFeatList <- soaRes$sig.feat.tab$Var1
-# treeBoostRes <- iterXGBoost(se, doImputation = F, doInitFeatSelection = T,
-#                             sigFeatList = sigFeatList, doFeatClustering = T,
-#                             booster = 'gbtree', iter = 100, nrounds = 1000)
-# saveRDS(treeBoostRes, './data/Discovery/xgboost/tree_xgbRes_SVs_impuAdjProTumor_randSplit_auc_nR1000_iter100_Klin.rds')
-treeBoostRes <- readRDS('./data/Discovery/xgboost/tree_xgbRes_SVs_impuAdjProTumor_randSplit_auc_nR1000_iter100_Klin.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- treeBoostRes$xgbRes$y_pred
-truth <- treeBoostRes$xgbRes$y_truth
-auc_roc <- treeBoostRes$xgbRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-
-
-
-# NTP (AG Krij.)
-Normal Tissue DIA Proteomics from AG Krijgsveld
-
-## Lasso logistic regression
-
-<font size='5'> **Stability selection** </font>
-
-**Performance statistics of 1000 models**\
-**ADJUSTED DATA**
 ```{r warning=T}
 # Load preprocessed data
-proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
-proNormal_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Normal']
-# Load SOA results
-proNormalRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/combined_proNormalRes_Smoking_Gender.rds')
+proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
+proNormal_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Normal']
+# # Load SOA results
+proNormalRes_Klin <- readRDS('./data/Discovery/AG_Klingmueller/soaRes/proNormalRes_SVsByProTissueInt.rds')
+# # Prepare adjusted data
+adjProNormal_Klin <- proNormal_Klin
+assay(adjProNormal_Klin) <- proNormalRes_Klin$SOA.res$dataCorrect
 
-# Prepare adjusted data
-adjProNormal_Krij <- proNormal_Krij
-assay(adjProNormal_Krij) <- proNormalRes_Krij$SOA.res$dataCorrect
+# Load imputed adjusted data
+impuAdjProNormal_Klin <- readRDS('./data/Discovery/AG_Klingmueller/impuData/impuAdjProNormalVsn_SVsByProTissueInt.rds')
 
 # Train models iteratively
 # Prepare significant feature list
-sigFeatList <- proNormalRes_Krij$sig.feat.tab$Var1
-# lrRes <- iterLogisR(adjProNormal_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+sigFeatList <- proNormalRes_Klin$sig.feat.tab$Var1
+# 'auc' is not applicable for CV when too few (< 10) observations per fold. Instead,
+# 'deviance' will be used.
+# lrRes <- iterLogisR(impuAdjProNormal_Klin, doImputation = F, doInitFeatSelection = T, sigFeatList = sigFeatList,
 #                     doFeatClustering = T, iter = 1000, cvFold = 5, cvMeasure = 'auc')
-# saveRDS(lrRes, './data/Discovery/logisR/lrResSOA_Smoking_Gender_impuAdjProNormal_0.9r_randSplit_1000_5fold_auc_lmin_Krij.rds')
-# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/combined_impuAdjProNormalVsn_Smoking_Gender.rds')
-lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_Smoking_Gender_impuAdjProNormal_0.9r_randSplit_1000_5fold_auc_lmin_Krij.rds')
-impuAdjProNormal_Krij <- lrRes$impuSE
+# saveRDS(lrRes, './data/Discovery/logisR/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Klingmueller/impuData/impuAdjProNormalVsn_SVsByProTissueInt.rds')
+lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_1000_5fold_auc_lmin_Klin.rds')
 
 # Report summarized scores
-# Pinpoint useless models that will be removed, i.e., models with no any non-zero beta
-uselessModels <- which(lrRes$lrRes$nNonZero == 0)
 # Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
 if (length(uselessModels) != 0) {
   pred <- lrRes$lrRes$y_pred[-uselessModels]
   truth <- lrRes$lrRes$y_truth[-uselessModels]
@@ -1247,29 +379,11 @@ if (length(uselessModels) != 0) {
 suppressWarnings(summarizePredPower(pred, truth, auc_roc))
 ```
 
-**UNADJUSTED DATA**
-```{r}
-tmp_lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_Smoking_Gender_impuProNormal_0.9r_randSplit_100_5fold_auc_lmin_Krij.rds')
-uselessModels <- which(tmp_lrRes$lrRes$nNonZero == 0)
-if (length(uselessModels) != 0) {
-  pred <- tmp_lrRes$lrRes$y_pred[-uselessModels]
-  truth <- tmp_lrRes$lrRes$y_truth[-uselessModels]
-  auc_roc <- tmp_lrRes$lrRes$auc_roc[-uselessModels]
-} else {
-  pred <- tmp_lrRes$lrRes$y_pred
-  truth <- tmp_lrRes$lrRes$y_truth
-  auc_roc <- tmp_lrRes$lrRes$auc_roc
-}
-suppressWarnings(summarizePredPower(pred, truth, auc_roc))
-```
-
 **Top important features that are most frequently selected**
 ```{r}
 # Visualize top important features
 # Prepare feature annotation table
-featAnno <- tibble::as_tibble(rowData(proTissue_Krij), rownames = 'Feature') %>%
-  dplyr::select(Feature, Genes) %>%
-  dplyr::rename(Gene = Genes)
+featAnno <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Feature')
 topImpoFeatViz <- vizTopImpoFeatsLR(lrRes, featAnno = featAnno, num_p1TopFeats = 30)
 topImpoFeatViz$pick
 ```
@@ -1285,21 +399,20 @@ DT::datatable(topImpoFeatViz$fullImpoFeatTab)
 **Performance of models trained with different numbers of top important features**
 ```{r}
 # Systematically train models with different numbers of top important features
-# sysTrainModels <- doSysTrainLogisR(lrRes, impuAdjProNormal_Krij, max_numTopFeats = 50)
-# saveRDS(sysTrainModels, './data/Discovery/logisR/sysTrain_lrResSOA_Smoking_Gender_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Krij.rds')
-sysTrainModels <- readRDS('./data/Discovery/logisR/sysTrain_lrResSOA_Smoking_Gender_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Krij.rds')
+# sysTrainModels <- doSysTrainLogisR(lrRes, impuAdjProNormal_Klin, max_numTopFeats = 30)
+# saveRDS(sysTrainModels, './data/Discovery/logisR/sysTrain_lrResSOA_SVsByProTissueInt_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds')
+sysTrainModels <- readRDS('./data/Discovery/logisR/sysTrain_lrResSOA_SVsByProTissueInt_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds')
 
 # Visualize systematic training
 vizSysTrainModelPerf(sysTrainModels, numTopFeats = 30)
+# ggsave('./output/Junyan/stabSelec_Stats_proNormal.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
-=> Top 12 important features are selected, resulting in model with AUC of 0.985 [0.94,1].\
-=> Top 19&20 important features are selected, resulting in model with AUC of 0.988 [0.93,1].
 
 **Noninformative models that demonstrate effects of top important features**
 ```{r}
-se <- impuAdjProNormal_Krij
+se <- impuAdjProNormal_Klin
 # Train models without top important features, aka noninformative models
-numTopImpoFeats <- c(10, 20, 30, 40, 50)
+numTopImpoFeats <- c(2, 3, 4)
 # for (num in numTopImpoFeats) {
 #   topImpoFeats <- topImpoFeatViz$fullImpoFeatTab$Feature[1:num]
 #   # Train lasso logistic regression model
@@ -1310,8 +423,8 @@ numTopImpoFeats <- c(10, 20, 30, 40, 50)
 #                             cvFold = 5, cvMeasure = 'auc', used_lambda = 'lambda.min',
 #                             trainSet_ratio = 0.8, split_method = 'random split',
 #                             plot_ROC = F, save_model = T)
-#   saveRDS(lrResNonInfo, paste0('./data/Discovery/logisR/NonInfo_rmTop', num, '_lrResSOA_Smoking_Gender_',
-#                                'impuAdjProNormal_randSplit_100_5fold_auc_lmin_Krij.rds'))
+#   saveRDS(lrResNonInfo, paste0('./data/Discovery/logisR/noninfo/NonInfo_rmTop', num,
+#                                '_lrResSOA_SVsByProTissueInt_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds'))
 # }
 
 # Display performance of noninformative models
@@ -1329,8 +442,8 @@ ci <- calcCI(auc_roc, bootstrap = T)
 lowerAUC <- c(lowerAUC, ci[1])
 upperAUC <- c(upperAUC, ci[2])
 for (num in numTopImpoFeats) {
-  lrResNonInfo <- readRDS(paste0('./data/Discovery/logisR/NonInfo_rmTop', num, '_lrResSOA_Smoking_Gender_',
-                                 'impuAdjProNormal_randSplit_100_5fold_auc_lmin_Krij.rds'))
+  lrResNonInfo <- readRDS(paste0('./data/Discovery/logisR/noninfo/NonInfo_rmTop', num,
+                                 '_lrResSOA_SVsByProTissueInt_impuAdjProNormal_randSplit_100_5fold_auc_lmin_Klin.rds'))
   uselessModels <- which(lrResNonInfo$nNonZero == 0)
   if (length(uselessModels) != 0) {
     auc_roc <- lrResNonInfo$auc_roc[-uselessModels]
@@ -1359,38 +472,42 @@ ggplot(aucStatTab, aes(x=FeatSpace, y=MeanAUC)) +
 <font size='3'> Imputed data: </font>\
 **Heatmap where samples are ordered by linear regression scores**
 ```{r}
-coreFeatPlotsImpu <- vizCoreFeats(lrRes, sysTrainModels, impuAdjProNormal_Krij,
-                                  heatmap_numCoreFeats = 12, colFeatAnno = 'Genes',
-                                  scatter_twoCoreFeats = c('RXRB', 'KRT10'),
+coreFeatPlotsImpu <- vizCoreFeats(lrRes, sysTrainModels, impuAdjProNormal_Klin,
+                                  heatmap_numCoreFeats = 4, colFeatAnno = 'Gene',
+                                  scatter_twoCoreFeats = c('LILRB4', 'MORF4L2'),
                                   fontsize = 10, fontsize_col = 7, fontsize_row = 11,
                                   cellwidth = 6, cellheight = 18)
 coreFeatPlotsImpu$heatmap
+# ggsave('./output/Junyan/stabSelec_heatmap_proNormal_impu.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 **Scatterplot of two core features**
 ```{r}
 coreFeatPlotsImpu$scatterplot
+# ggsave('./output/Junyan/stabSelec_top2_proNormal_impu.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 <font size='3'> Original data: </font>\
 **Heatmap**
 ```{r}
-coreFeatPlots <- vizCoreFeats(lrRes, sysTrainModels, adjProNormal_Krij,
-                              heatmap_numCoreFeats = 12, colFeatAnno = 'Genes',
-                              scatter_twoCoreFeats = c('RXRB', 'KRT10'),
+coreFeatPlots <- vizCoreFeats(lrRes, sysTrainModels, adjProNormal_Klin,
+                              heatmap_numCoreFeats = 4, colFeatAnno = 'Gene',
+                              scatter_twoCoreFeats = c('LILRB4', 'MORF4L2'), #'IGHV2-26', 'MAP3K7'
                               fontsize = 10, fontsize_col = 7, fontsize_row = 11,
                               cellwidth = 6, cellheight = 18)
 coreFeatPlots$heatmap
+# ggsave('./output/Junyan/stabSelec_heatmap_proNormal_ori.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 **Scatterplot**
 ```{r}
 coreFeatPlots$scatterplot
+# ggsave('./output/Junyan/stabSelec_top2_proNormal_ori.png', device = 'png', dpi = 400, height = 8, width = 10)
 ```
 
 **Missingness and availability of core features**
 ```{r message=F}
-numTopImpoFeats <- 12
+numTopImpoFeats <- 4
 # Prepare top important feature list
 topImpoFeats <- topImpoFeatViz$fullImpoFeatTab$Feature[1:numTopImpoFeats] %>%
   stringr::str_remove(';.+')
@@ -1398,13 +515,11 @@ topImpoFeatAnnos <- topImpoFeatViz$fullImpoFeatTab$Annotation[1:numTopImpoFeats]
   stringr::str_remove(';.+')
 
 # Show data missingness
-proNormal_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Normal']
-featAnnoTab <- tibble::as_tibble(rowData(proTissue_Krij), rownames = 'Feature') %>%
-  dplyr::select(Feature, Genes) %>%
-  dplyr::rename(Gene = Genes) %>%
+proNormal_Klin <- proTissue_Klin[, colData(proTissue_Klin)$Condition %in% 'Normal']
+featAnnoTab <- tibble::as_tibble(rowData(proTissue_Klin), rownames = 'Feature') %>%
   dplyr::mutate(Feature = stringr::str_remove(Feature, ';.+'),
                 Gene = stringr::str_remove(Gene, ';.+'))
-featAvailTab <- summExp2df(proNormal_Krij, row_id = 'Feature', col_id = 'Sample') %>%
+featAvailTab <- summExp2df(proNormal_Klin, row_id = 'Feature', col_id = 'Sample') %>%
   dplyr::select(Feature, Value, Recurrence) %>%
   dplyr::mutate(Value = dplyr::case_when(!is.na(Value) ~ 'Observed',
                                          is.na(Value) ~ 'Missing'),
@@ -1440,14 +555,6 @@ ggplot(featAvailTab, aes(x=Gene, y=Proportion, fill=Value)) +
 
 # Show availability of top important features in other datasets
 # Prepare feature space of other datasets
-# New Klingmüller Preprocessed Combined dataset
-new_proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
-featSpace_new_Prepro_Klin <- rownames(new_proTissue_Klin) %>%
-  stringr::str_remove(';.+')
-# New Klingmüller Original Combined dataset
-proPhosTissue_MDevDis <- readRDS('./data/Discovery/AG_Klingmueller/COMP_2696.SMART_Lung_MethodDiscov_ProPhos.rds')
-featSpace_new_Ori_Klin <- rowData(proPhosTissue_MDevDis@ExperimentList$Proteome)$UniprotID %>%
-  stringr::str_remove(';.+')
 # Klingmüller Preprocessed Combined dataset
 old_proTissue_Combined_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
 featSpace_old_Prepro_Combined_Klin <- rownames(old_proTissue_Combined_Klin) %>%
@@ -1457,15 +564,28 @@ featSpace_old_Ori_Combined_Klin <- readr::read_tsv(paste0('./data/MethodDev/AG_K
                                                           '20230309_103228_SmartCare_TumorFree_Tumor_Yang001_Report.tsv')) %>%
   dplyr::pull(PG.ProteinGroups) %>%
   stringr::str_remove(';.+')
+# Krijgsveld Preprocessed Combined dataset
+proTissue_Combined_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+featSpace_Prepro_Combined_Krij <- rownames(proTissue_Combined_Krij) %>%
+  stringr::str_remove(';.+')
+# Krijgsveld Original Discovery dataset
+featSpace_Ori_Discovery_Krij <- readr::read_tsv(paste0('./data/Discovery/AG_Krijgsveld/',
+                                                       '20230815_MarcS_Discovery_Tissue.pg_matrix.tsv')) %>%
+  dplyr::pull(Protein.Group) %>%
+  stringr::str_remove(';.+')
+# Krijgsveld Original Method Development dataset
+featSpace_Ori_MethodDev_Krij <- readr::read_delim(paste0('./data/MethodDev/AG_Krijgsveld/',
+                                                         '20230726_Thorax_Method_Est_tissue.txt')) %>%
+  dplyr::pull(Protein.Group) %>%
+  stringr::str_remove(';.+')
 # Collect all feature spaces into a list
-featSpaceList <- list(Ori_New_Klin = featSpace_new_Ori_Klin,
-                      Prepro_New_Klin = featSpace_new_Prepro_Klin,
-                      Ori_Old_Klin = featSpace_old_Ori_Combined_Klin,
-                      Prepro_Old_Klin = featSpace_old_Prepro_Combined_Klin)
+featSpaceList <- list(Ori_Old_Klin = featSpace_old_Ori_Combined_Klin, Prepro_Old_Klin = featSpace_old_Prepro_Combined_Klin,
+                      Ori_MDev_Krij = featSpace_Ori_MethodDev_Krij, Ori_Dis_Krij = featSpace_Ori_Discovery_Krij,
+                      Prepro_Comb_Krij = featSpace_Prepro_Combined_Krij)
 # Store feature availability in a matrix
-featAvailMat <- matrix(nrow = 4, ncol = numTopImpoFeats,
-                       dimnames = list(c('Ori_New_Klin', 'Prepro_New_Klin',
-                                         'Ori_Old_Klin', 'Prepro_Old_Klin'), topImpoFeats))
+featAvailMat <- matrix(nrow = 5, ncol = numTopImpoFeats,
+                       dimnames = list(c('Ori_Old_Klin', 'Prepro_Old_Klin', 'Ori_MDev_Krij',
+                                         'Ori_Dis_Krij', 'Prepro_Comb_Krij'), topImpoFeats))
 for (i in seq_len(nrow(featAvailMat))) {
   for (j in seq_len(ncol(featAvailMat))) {
     if (colnames(featAvailMat)[j] %in% featSpaceList[[rownames(featAvailMat)[i]]]) {
@@ -1495,70 +615,11 @@ ggplot(featAvailMat, aes(x=Feature, y=Dataset, fill=Captured)) +
         plot.title = element_text(size = 28, face = 'bold', hjust = 0.5, vjust = 1.5))
 ```
 
-## RF
 
-<font size='5'> **Stability selection** </font>
 
-**Performance statistics of 1000 models**
-```{r}
-# Load imputed adjusted data
-impuAdjProNormal_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_impuAdjProNormalVsn_Smoking_Gender.rds')
-# Load SOA results for retrieving significant feature list for initial feature selection
-proNormalRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/combined_proNormalRes_Smoking_Gender.rds')
-
-# Train models iteratively
-# Prepare significant feature list
-sigFeatList <- proNormalRes_Krij$sig.feat.tab$Var1
-# rfRes <- iterRF(impuAdjProNormal_Krij, doImputation = F, doInitFeatSelection = T,
-#                 sigFeatList = sigFeatList, doFeatClustering = T, iter = 1000)
-# saveRDS(rfRes, './data/Discovery/rf/rfResSOA_Smoking_Gender_impuAdjProNormal_0.9r_randSplit_1000_Krij.rds')
-rfRes <- readRDS('./data/Discovery/rf/rfResSOA_Smoking_Gender_impuAdjProNormal_0.9r_randSplit_1000_Krij.rds')
-
-# Report summarized scores
-# Prepare predictions and ground truths
-pred <- rfRes$rfRes$y_pred
-truth <- rfRes$rfRes$y_truth
-auc_roc <- rfRes$rfRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-**Top important features with highest median ranks**
-```{r}
-# Visualize top important features
-# Prepare feature annotation table
-proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
-featAnno <- tibble::as_tibble(rowData(proTissue_Krij), rownames = 'Feature') %>%
-  dplyr::select(Feature, Genes) %>%
-  dplyr::rename(Gene = Genes)
-topImpoFeatViz <- vizTopImpoFeatsRF(rfRes, featAnno = featAnno, num_p1TopFeats = 30)
-topImpoFeatViz$rank + theme(axis.title = element_text(size = 28),
-                            axis.text = element_text(size = 16))
-```
-
-**Full feature importance table**
-```{r}
-DT::datatable(topImpoFeatViz$fullImpoFeatTab)
-```
-
-<font size='5'> **Systematic training and evaluation** </font>
-
-**Performance of models trained with different numbers of top important features**
-```{r}
-# Systematically train models with different numbers of top important features
-# sysTrainModels <- doSysTrainRF(rfRes, impuAdjProNormal_Krij, max_numTopFeats = 100)
-# saveRDS(sysTrainModels, './data/Discovery/rf/sysTrain_rfResSOA_Smoking_Gender_impuAdjProNormal_randSplit_100_Krij.rds')
-sysTrainModels <- readRDS('./data/Discovery/rf/sysTrain_rfResSOA_Smoking_Gender_impuAdjProNormal_randSplit_100_Krij.rds')
-
-# Visualize systematic training
-vizSysTrainModelPerf(sysTrainModels, numTopFeats = 40)
-```
-=> Top 13, resulting in model with AUC of 0.977 [0.92,1]\
-=> Top 23, resulting in model with AUC of 0.977 [0.91,1]
 
 # TTP (AG Krij.)
 Tumor Tissue DIA Proteomics from AG Krijgsveld
-
-## Lasso logistic regression
 
 <font size='5'> **Stability selection** </font>
 
@@ -1568,21 +629,22 @@ Tumor Tissue DIA Proteomics from AG Krijgsveld
 proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
 proTumor_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Tumor']
 # Load SOA results
-proTumorRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/combined_proTumorRes_SVs.rds')
-
+proTumorRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/combined_proTumorRes_SVsByProTissueInt.rds')
 # Prepare adjusted data
 adjProTumor_Krij <- proTumor_Krij
 assay(adjProTumor_Krij) <- proTumorRes_Krij$SOA.res$dataCorrect
 
+# Load imputed adjusted data
+impuAdjProTumor_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/impuData/combined_impuAdjProTumorVsn_SVsByProTissueInt.rds')
+
 # Train models iteratively
 # Prepare significant feature list
 sigFeatList <- proTumorRes_Krij$sig.feat.tab$Var1
-# lrRes <- iterLogisR(adjProTumor_Krij, doImputation = T, doInitFeatSelection = T, sigFeatList = sigFeatList,
+# lrRes <- iterLogisR(impuAdjProTumor_Krij, doImputation = F, doInitFeatSelection = T, sigFeatList = sigFeatList,
 #                     doFeatClustering = T, iter = 1000, cvFold = 5, cvMeasure = 'auc')
-# saveRDS(lrRes, './data/Discovery/logisR/lrResSOA_SVs_impuAdjProTumor_0.9r_randSplit_1000_5fold_auc_lmin_Krij.rds')
-# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/combined_impuAdjProTumorVsn_SVs.rds')
-lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_SVs_impuAdjProTumor_0.9r_randSplit_1000_5fold_auc_lmin_Krij.rds')
-impuAdjProTumor_Krij <- lrRes$impuSE
+# saveRDS(lrRes, './data/Discovery/logisR/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_1000_5fold_auc_lmin_Krij.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/impuData/combined_impuAdjProTumorVsn_SVsByProTissueInt.rds')
+lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_SVsByProTissueInt_impuAdjProTumor_0.9r_randSplit_1000_5fold_auc_lmin_Krij.rds')
 
 # Report summarized scores
 # Prepare predictions and ground truths where results from useless models are removed
@@ -1622,21 +684,20 @@ DT::datatable(topImpoFeatViz$fullImpoFeatTab)
 ```{r}
 # Systematically train models with different numbers of top important features
 # sysTrainModels <- doSysTrainLogisR(lrRes, impuAdjProTumor_Krij, max_numTopFeats = 50)
-# saveRDS(sysTrainModels, './data/Discovery/logisR/sysTrain_lrResSOA_SVs_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Krij.rds')
-sysTrainModels <- readRDS('./data/Discovery/logisR/sysTrain_lrResSOA_SVs_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Krij.rds')
+# saveRDS(sysTrainModels, './data/Discovery/logisR/sysTrain_lrResSOA_SVsByProTissueInt_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Krij.rds')
+sysTrainModels <- readRDS('./data/Discovery/logisR/sysTrain_lrResSOA_SVsByProTissueInt_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Krij.rds')
 
 # Visualize systematic training
 vizSysTrainModelPerf(sysTrainModels, numTopFeats = 30)
 ```
-=> Top 7 important features are selected, resulting in model with AUC of 0.994 [0.97,1].\
-=> Top 11 important features are selected, resulting in model with AUC of 0.995 [0.95,1].\
-=> Top 18 important features are selected, resulting in model with AUC of 0.995 [0.97,1].
+=> Top 8 important features are selected, resulting in model with AUC of 0.993 [0.95,1].\
+=> Top 14 important features are selected, resulting in model with AUC of 0.995 [0.95,1].
 
 **Noninformative models that demonstrate effects of top important features**
 ```{r}
 se <- impuAdjProTumor_Krij
 # Train models without top important features, aka noninformative models
-numTopImpoFeats <- c(10, 20, 30, 40, 50)
+numTopImpoFeats <- c(5, 10, 15, 20)
 # for (num in numTopImpoFeats) {
 #   topImpoFeats <- topImpoFeatViz$fullImpoFeatTab$Feature[1:num]
 #   # Train lasso logistic regression model
@@ -1647,8 +708,8 @@ numTopImpoFeats <- c(10, 20, 30, 40, 50)
 #                             cvFold = 5, cvMeasure = 'auc', used_lambda = 'lambda.min',
 #                             trainSet_ratio = 0.8, split_method = 'random split',
 #                             plot_ROC = F, save_model = T)
-#   saveRDS(lrResNonInfo, paste0('./data/Discovery/logisR/NonInfo_rmTop', num, '_lrResSOA_SVs_',
-#                                'impuAdjProTumor_randSplit_100_5fold_auc_lmin_Krij.rds'))
+#   saveRDS(lrResNonInfo, paste0('./data/Discovery/logisR/noninfo/NonInfo_rmTop', num,
+#                                '_lrResSOA_SVsByProTissueInt_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Krij.rds'))
 # }
 
 # Display performance of noninformative models
@@ -1666,8 +727,8 @@ ci <- calcCI(auc_roc, bootstrap = T)
 lowerAUC <- c(lowerAUC, ci[1])
 upperAUC <- c(upperAUC, ci[2])
 for (num in numTopImpoFeats) {
-  lrResNonInfo <- readRDS(paste0('./data/Discovery/logisR/NonInfo_rmTop', num, '_lrResSOA_SVs_',
-                                 'impuAdjProTumor_randSplit_100_5fold_auc_lmin_Krij.rds'))
+  lrResNonInfo <- readRDS(paste0('./data/Discovery/logisR/noninfo/NonInfo_rmTop', num,
+                                 '_lrResSOA_SVsByProTissueInt_impuAdjProTumor_randSplit_100_5fold_auc_lmin_Krij.rds'))
   uselessModels <- which(lrResNonInfo$nNonZero == 0)
   if (length(uselessModels) != 0) {
     auc_roc <- lrResNonInfo$auc_roc[-uselessModels]
@@ -1697,8 +758,8 @@ ggplot(aucStatTab, aes(x=FeatSpace, y=MeanAUC)) +
 **Heatmap where samples are ordered by linear regression scores**
 ```{r}
 coreFeatPlotsImpu <- vizCoreFeats(lrRes, sysTrainModels, impuAdjProTumor_Krij,
-                                  heatmap_numCoreFeats = 7, colFeatAnno = 'Genes',
-                                  scatter_twoCoreFeats = c('IGHV1-2', 'RETN'),
+                                  heatmap_numCoreFeats = 8, colFeatAnno = 'Genes',
+                                  scatter_twoCoreFeats = c('VSIG2', 'RETN'),
                                   fontsize = 10, fontsize_col = 7, fontsize_row = 11,
                                   cellwidth = 6, cellheight = 18)
 coreFeatPlotsImpu$heatmap
@@ -1713,8 +774,8 @@ coreFeatPlotsImpu$scatterplot
 **Heatmap**
 ```{r}
 coreFeatPlots <- vizCoreFeats(lrRes, sysTrainModels, adjProTumor_Krij,
-                              heatmap_numCoreFeats = 7, colFeatAnno = 'Genes',
-                              scatter_twoCoreFeats = c('IGHV1-2', 'RETN'),
+                              heatmap_numCoreFeats = 8, colFeatAnno = 'Genes',
+                              scatter_twoCoreFeats = c('RETN', 'CES1'),
                               fontsize = 10, fontsize_col = 7, fontsize_row = 11,
                               cellwidth = 6, cellheight = 18)
 coreFeatPlots$heatmap
@@ -1727,7 +788,7 @@ coreFeatPlots$scatterplot
 
 **Missingness and availability of core features**
 ```{r message=F}
-numTopImpoFeats <- 7
+numTopImpoFeats <- 8
 # Prepare top important feature list
 topImpoFeats <- topImpoFeatViz$fullImpoFeatTab$Feature[1:numTopImpoFeats] %>%
   stringr::str_remove(';.+')
@@ -1832,200 +893,213 @@ ggplot(featAvailMat, aes(x=Feature, y=Dataset, fill=Captured)) +
         plot.title = element_text(size = 28, face = 'bold', hjust = 0.5, vjust = 1.5))
 ```
 
-## RF
+# NTP (AG Krij.)
+Normal Tissue DIA Proteomics from AG Krijgsveld
 
 <font size='5'> **Stability selection** </font>
 
 **Performance statistics of 1000 models**
-```{r}
+```{r warning=T}
+# Load preprocessed data
+proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
+proNormal_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Normal']
+# Load SOA results
+proNormalRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/combined_proNormalRes_SVsByProTissueInt.rds')
+# Prepare adjusted data
+adjProNormal_Krij <- proNormal_Krij
+assay(adjProNormal_Krij) <- proNormalRes_Krij$SOA.res$dataCorrect
+
 # Load imputed adjusted data
-impuAdjProTumor_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_impuAdjProTumorVsn_SVs.rds')
-# Load SOA results for retrieving significant feature list for initial feature selection
-proTumorRes_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/soaRes/combined_proTumorRes_SVs.rds')
+impuAdjProNormal_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/impuData/combined_impuAdjProNormalVsn_SVsByProTissueInt.rds')
 
 # Train models iteratively
 # Prepare significant feature list
-sigFeatList <- proTumorRes_Krij$sig.feat.tab$Var1
-# rfRes <- iterRF(impuAdjProTumor_Krij, doImputation = F, doInitFeatSelection = T,
-#                 sigFeatList = sigFeatList, doFeatClustering = T, iter = 1000)
-# saveRDS(rfRes, './data/Discovery/rf/rfResSOA_SVs_impuAdjProTumor_0.9r_randSplit_1000_Krij.rds')
-rfRes <- readRDS('./data/Discovery/rf/rfResSOA_SVs_impuAdjProTumor_0.9r_randSplit_1000_Krij.rds')
+sigFeatList <- proNormalRes_Krij$sig.feat.tab$Var1
+# lrRes <- iterLogisR(impuAdjProNormal_Krij, doImputation = F, doInitFeatSelection = T, sigFeatList = sigFeatList,
+#                     doFeatClustering = T, iter = 1000, cvFold = 5, cvMeasure = 'auc')
+# saveRDS(lrRes, './data/Discovery/logisR/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_1000_5fold_auc_lmin_Krij.rds')
+# saveRDS(lrRes$impuSE, './data/Discovery/AG_Krijgsveld/impuData/combined_impuAdjProNormalVsn_SVsByProTissueInt.rds')
+lrRes <- readRDS('./data/Discovery/logisR/lrResSOA_SVsByProTissueInt_impuAdjProNormal_0.9r_randSplit_1000_5fold_auc_lmin_Krij.rds')
 
 # Report summarized scores
-# Prepare predictions and ground truths
-pred <- rfRes$rfRes$y_pred
-truth <- rfRes$rfRes$y_truth
-auc_roc <- rfRes$rfRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
+# Prepare predictions and ground truths where results from useless models are removed
+uselessModels <- which(lrRes$lrRes$nNonZero == 0)
+if (length(uselessModels) != 0) {
+  pred <- lrRes$lrRes$y_pred[-uselessModels]
+  truth <- lrRes$lrRes$y_truth[-uselessModels]
+  auc_roc <- lrRes$lrRes$auc_roc[-uselessModels]
+} else {
+  pred <- lrRes$lrRes$y_pred
+  truth <- lrRes$lrRes$y_truth
+  auc_roc <- lrRes$lrRes$auc_roc
+}
+suppressWarnings(summarizePredPower(pred, truth, auc_roc))
 ```
 
-**Top important features with highest median ranks**
+**Top important features that are most frequently selected**
 ```{r}
 # Visualize top important features
 # Prepare feature annotation table
-proTissue_Krij <- readRDS('./data/Discovery/AG_Krijgsveld/combined_proTissueVsnBC.rds')
 featAnno <- tibble::as_tibble(rowData(proTissue_Krij), rownames = 'Feature') %>%
   dplyr::select(Feature, Genes) %>%
   dplyr::rename(Gene = Genes)
-topImpoFeatViz <- vizTopImpoFeatsRF(rfRes, featAnno = featAnno, num_p1TopFeats = 30)
-topImpoFeatViz$rank + theme(axis.title = element_text(size = 28),
-                            axis.text = element_text(size = 16))
+# Prepare adjusted data
+proTissueSVA <- doSVA(proTissue_Krij, wantedVar = c('Condition', 'Recurrence', 'Condition:Recurrence'))
+adjProTissue <- proTissue_Krij
+assay(adjProTissue) <- proTissueSVA$correctDatMat
+
+topImpoFeatViz <- vizTopImpoFeatsLR(lrRes, featAnno = featAnno, num_p1TopFeats = 30,
+                                    fullData = adjProTissue, trainData_smpType = 'Normal', num_p2TopFeats = 1)
+topImpoFeatViz$pick
+topImpoFeatViz$abun
 ```
 
 **Full feature importance table**
 ```{r}
+# Display full feature importance table
 DT::datatable(topImpoFeatViz$fullImpoFeatTab)
 ```
 
-<font size='5'> **Systematic training and evaluation** </font>
+<font size='5'> **Investigation of core features** </font>
 
-**Performance of models trained with different numbers of top important features**
+**Missingness and availability of core features**
 ```{r}
-# Systematically train models with different numbers of top important features
-# sysTrainModels <- doSysTrainRF(rfRes, impuAdjProTumor_Krij, max_numTopFeats = 100)
-# saveRDS(sysTrainModels, './data/Discovery/rf/sysTrain_rfResSOA_SVs_impuAdjProTumor_randSplit_100_Krij.rds')
-sysTrainModels <- readRDS('./data/Discovery/rf/sysTrain_rfResSOA_SVs_impuAdjProTumor_randSplit_100_Krij.rds')
-
-# Visualize systematic training
-vizSysTrainModelPerf(sysTrainModels, numTopFeats = 30)
-```
-=> Top 3, resulting in model with AUC of 0.996 [0.97,1]\
-=> Top 5, resulting in model with AUC of 0.997 [0.97,1]\
-=> Top 9, resulting in model with AUC of 0.998 [0.98,1]
-
-
-
-
-# Unt. Lipid.
-Untargeted Lipidomics
-
-## RF
-
-```{r}
-# NTL
-# Load preprocessed data
-# Discovery
-# dis_lipTissue_Hopf <- readRDS('./data/Discovery/AG_Hopf/lipTissueVsn_WBC25.rds')
-# Method development
-mDev_lipTissue_Hopf <- readRDS('./data/MethodDev/AG_Hopf/lipTissueVsn.rds')
-lipTissue <- mDev_lipTissue_Hopf
-# Subset data
-lipNormal <- lipTissue[, colData(lipTissue)$Condition == 'Normal']
-# Remove features observed in less than 67% of samples
-rmFeats <- apply(assay(lipNormal), 1, function(featVec) {
-  obProp <- sum(!is.na(featVec)) / length(featVec)
-  obProp <= 0.67
-}) %>%
-  which()
-if (length(rmFeats) != 0) {
-  lipNormal <- lipNormal[-rmFeats,]
+oriFeat <- assay(adjProNormal_Krij)['O43731',]
+impuFeat <- assay(impuAdjProNormal_Krij)['O43731',]
+if (identical(names(oriFeat), names(impuFeat))) {
+  mat <- matrix(c(oriFeat, impuFeat), nrow = 2, byrow = T,
+                dimnames = list(c('KDELR3_Ori', 'KDELR3_Impu'), names(oriFeat)))
 }
-# Impute missing values using missForest
-dat <- t(assay(lipNormal))
-impuDat <- missForest(dat, maxiter = 10, verbose = T)$ximp %>%
-  t()
-assay(lipNormal) <- impuDat
-# saveRDS(lipNormal, './data/MethodDev/AG_Hopf/impuByMF//lipNormalVsnImpu.rds')
 
-# BPL
-# Load preprocessed data
-# Discovery
-# dis_lipBase_Hopf <- readRDS('./data/Discovery/AG_Hopf/lipBaseVsn_B1WBC25.rds')
-# Method development
-# Subset data
-mDev_lipPlasma_Hopf <- readRDS('./data/MethodDev/AG_Hopf/lipPlasmaVsn.rds')
-lipPlasma <- mDev_lipPlasma_Hopf
-lipBase <- lipPlasma[, colData(lipPlasma)$TimePoint == 'Baseline']
-# Remove features observed in less than 67% of samples
-rmFeats <- apply(assay(lipBase), 1, function(featVec) {
-  obProp <- sum(!is.na(featVec)) / length(featVec)
-  obProp <= 0.67
-}) %>%
-  which()
-if (length(rmFeats) != 0) {
-  lipBase <- lipBase[-rmFeats,]
+yPredLinkList <- lrRes$lrRes$y_pred_link
+yPredLinkTab <- data.frame(Sample = names(yPredLinkList[[1]]),
+                           Score = yPredLinkList[[1]],
+                           row.names = NULL)
+for (i in 2:length(yPredLinkList)) {
+  yPredLink <- yPredLinkList[[i]]
+  tmp_yPredLinkTab <- data.frame(Sample = names(yPredLinkList[[i]]),
+                                 Score = yPredLinkList[[i]],
+                                 row.names = NULL)
+  yPredLinkTab <- dplyr::bind_rows(yPredLinkTab, tmp_yPredLinkTab)
 }
-# Impute missing values using missForest
-dat <- t(assay(lipBase))
-impuDat <- missForest(dat, maxiter = 10, verbose = T)$ximp %>%
-  t()
-assay(lipBase) <- impuDat
-# saveRDS(lipBase, './data/MethodDev/AG_Hopf/impuByMF/lipBaseVsnImpu.rds')
+yPredLinkTab <- dplyr::group_by(yPredLinkTab, Sample) %>%
+  dplyr::summarise(Score = mean(Score)) %>%
+  dplyr::arrange(dplyr::desc(Score))
 
+smpAnnoTab <- tibble::as_tibble(colData(adjProNormal_Krij), rownames = 'Sample') %>%
+    dplyr::select(Sample, Recurrence) %>%
+    dplyr::left_join(yPredLinkTab, by = 'Sample') %>%
+    tibble::column_to_rownames('Sample')
 
-# Train RF
-# rfRes <- iterRF(lipBase)
-# saveRDS(rfRes, './data/Discovery/rf/untLip/rfResSig_mDev_untLipBase_randSplit_1000')
+mat <- mat[, yPredLinkTab$Sample]
+smpAnnoCols <- list(Recurrence = c(Yes = '#F8766D', No = '#00BFC4'))
+pheatmap(mat, scale = 'row', annotation_col = smpAnnoTab, annotation_colors = smpAnnoCols,
+         color = colorRampPalette(c('navy', 'white', 'red'))(100), cluster_rows = F, cluster_cols = F,
+         fontsize = 10, fontsize_col = 7, fontsize_row = 11, cellwidth = 6, cellheight = 18)
 ```
 
-### Dis. NTL
-**Average model performance (Uncorrelated significant features, iter = 1000)**
-```{r}
-# Load RF training results
-rfRes <- readRDS('./data/Discovery/rf/untLip/rfResSig_dis_untLipNormal_randSplit_1000')
+```{r message=F}
+numTopImpoFeats <- 1
+# Prepare top important feature list
+topImpoFeats <- topImpoFeatViz$fullImpoFeatTab$Feature[1:numTopImpoFeats] %>%
+  stringr::str_remove(';.+')
+topImpoFeatAnnos <- topImpoFeatViz$fullImpoFeatTab$Annotation[1:numTopImpoFeats] %>%
+  stringr::str_remove(';.+')
 
-# Report summarized scores
-trainedModels <- rfRes$rfRes$rfRes
-# Prepare predictions and ground truths
-pred <- as.list(rep(NA, length(trainedModels)))
-for (i in seq_len(length(trainedModels))) {
-  pred[[i]] <- trainedModels[[i]]$test$predicted
+# Show data missingness
+proNormal_Krij <- proTissue_Krij[, colData(proTissue_Krij)$Condition %in% 'Normal']
+featAnnoTab <- tibble::as_tibble(rowData(proTissue_Krij), rownames = 'Feature') %>%
+  dplyr::select(Feature, Genes) %>%
+  dplyr::rename(Gene = Genes) %>%
+  dplyr::mutate(Feature = stringr::str_remove(Feature, ';.+'),
+                Gene = stringr::str_remove(Gene, ';.+'))
+featAvailTab <- summExp2df(proNormal_Krij, row_id = 'Feature', col_id = 'Sample') %>%
+  dplyr::select(Feature, Value, Recurrence) %>%
+  dplyr::mutate(Value = dplyr::case_when(!is.na(Value) ~ 'Observed',
+                                         is.na(Value) ~ 'Missing'),
+                Feature = stringr::str_remove(Feature, ';.+'),
+                Recurrence = dplyr::case_when(Recurrence %in% 'Yes' ~ 'Recurrence',
+                                              Recurrence %in% 'No' ~ 'Non-Recurrence')) %>%
+  dplyr::filter(Feature %in% topImpoFeats) %>%
+  dplyr::group_by(Recurrence, Feature) %>%
+  dplyr::mutate(SmpNumber = length(Feature)) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(Recurrence, SmpNumber, Feature, Value) %>%
+  dplyr::summarise(Count = dplyr::n()) %>%
+  dplyr::ungroup() %>%
+  dplyr::left_join(featAnnoTab, by = 'Feature') %>%
+  dplyr::mutate(Gene = factor(Gene, levels = topImpoFeatAnnos),
+                Recurrence = factor(Recurrence, levels = c('Recurrence', 'Non-Recurrence')),
+                Value = factor(Value, levels = c('Missing', 'Observed')),
+                Proportion = Count/SmpNumber)
+
+ggplot(featAvailTab, aes(x=Gene, y=Proportion, fill=Value)) +
+  geom_col(position = 'stack') +
+  facet_wrap(vars(Recurrence), scales = 'free') +
+  scale_fill_manual(values = c(Missing = 'grey', Observed = 'black')) +
+  labs(title = 'Normal Tissue Proteomics') +
+  theme_bw() +
+  theme(axis.text.x = element_text(size = 18, face = 'bold'),
+        axis.text.y = element_text(size = 12, face = 'bold'),
+        axis.title = element_text(size = 20, face = 'bold'),
+        legend.title = element_blank(), legend.text = element_text(size = 18),
+        strip.text = element_text(size = 18, face = 'bold'),
+        plot.title = element_text(size = 22, face = 'bold', hjust = 0.5, vjust = 1.5))
+
+
+# Show availability of top important features in other datasets
+# Prepare feature space of other datasets
+# New Klingmüller Preprocessed Combined dataset
+new_proTissue_Klin <- readRDS('./data/Discovery/AG_Klingmueller/proTissueVsn.rds')
+featSpace_new_Prepro_Klin <- rownames(new_proTissue_Klin) %>%
+  stringr::str_remove(';.+')
+# New Klingmüller Original Combined dataset
+proPhosTissue_MDevDis <- readRDS('./data/Discovery/AG_Klingmueller/COMP_2696.SMART_Lung_MethodDiscov_ProPhos.rds')
+featSpace_new_Ori_Klin <- rowData(proPhosTissue_MDevDis@ExperimentList$Proteome)$UniprotID %>%
+  stringr::str_remove(';.+')
+# Klingmüller Preprocessed Combined dataset
+old_proTissue_Combined_Klin <- readRDS('./data/MethodDev/AG_Klingmueller/proTissueVsn.rds')
+featSpace_old_Prepro_Combined_Klin <- rownames(old_proTissue_Combined_Klin) %>%
+  stringr::str_remove(';.+')
+# Klingmüller Original Combined dataset
+featSpace_old_Ori_Combined_Klin <- readr::read_tsv(paste0('./data/MethodDev/AG_Klingmueller/',
+                                                          '20230309_103228_SmartCare_TumorFree_Tumor_Yang001_Report.tsv')) %>%
+  dplyr::pull(PG.ProteinGroups) %>%
+  stringr::str_remove(';.+')
+# Collect all feature spaces into a list
+featSpaceList <- list(Ori_New_Klin = featSpace_new_Ori_Klin,
+                      Prepro_New_Klin = featSpace_new_Prepro_Klin,
+                      Ori_Old_Klin = featSpace_old_Ori_Combined_Klin,
+                      Prepro_Old_Klin = featSpace_old_Prepro_Combined_Klin)
+# Store feature availability in a matrix
+featAvailMat <- matrix(nrow = 4, ncol = numTopImpoFeats,
+                       dimnames = list(c('Ori_New_Klin', 'Prepro_New_Klin',
+                                         'Ori_Old_Klin', 'Prepro_Old_Klin'), topImpoFeats))
+for (i in seq_len(nrow(featAvailMat))) {
+  for (j in seq_len(ncol(featAvailMat))) {
+    if (colnames(featAvailMat)[j] %in% featSpaceList[[rownames(featAvailMat)[i]]]) {
+      featAvailMat[i, j] <- 'Yes'
+    } else {
+      featAvailMat[i, j] <- 'No'
+    }
+  }
 }
-truth <- rfRes$rfRes$y_truth
-auc_roc <- rfRes$rfRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
+# Convert matrix to long data for visualization
+featAvailMat <- tibble::as_tibble(featAvailMat, rownames = 'Dataset') %>%
+  tidyr::pivot_longer(cols = -'Dataset', names_to = 'Feature', values_to = 'Captured') %>%
+  dplyr::mutate(Dataset = factor(Dataset, levels = rev(names(featSpaceList))),
+                Captured = factor(Captured, levels = c('Yes', 'No')),
+                Feature = plyr::mapvalues(Feature, from = topImpoFeats, to = topImpoFeatAnnos),
+                Feature = factor(Feature, levels = topImpoFeatAnnos))
 
-### Dis. BPL
-**Average model performance (Uncorrelated significant features, iter = 1000)**
-```{r}
-# Load RF training results
-rfRes <- readRDS('./data/Discovery/rf/untLip/rfResSig_dis_untLipBase_randSplit_1000')
-
-# Report summarized scores
-trainedModels <- rfRes$rfRes$rfRes
-# Prepare predictions and ground truths
-pred <- as.list(rep(NA, length(trainedModels)))
-for (i in seq_len(length(trainedModels))) {
-  pred[[i]] <- trainedModels[[i]]$test$predicted
-}
-truth <- rfRes$rfRes$y_truth
-auc_roc <- rfRes$rfRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-### MDev. NTL
-**Average model performance (Uncorrelated significant features, iter = 1000)**
-```{r}
-# Load RF training results
-rfRes <- readRDS('./data/Discovery/rf/untLip/rfResSig_mDev_untLipNormal_randSplit_1000')
-
-# Report summarized scores
-trainedModels <- rfRes$rfRes$rfRes
-# Prepare predictions and ground truths
-pred <- as.list(rep(NA, length(trainedModels)))
-for (i in seq_len(length(trainedModels))) {
-  pred[[i]] <- trainedModels[[i]]$test$predicted
-}
-truth <- rfRes$rfRes$y_truth
-auc_roc <- rfRes$rfRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
-```
-
-### MDev. BPL
-**Average model performance (Uncorrelated significant features, iter = 1000)**
-```{r}
-# Load RF training results
-rfRes <- readRDS('./data/Discovery/rf/untLip/rfResSig_mDev_untLipBase_randSplit_1000')
-
-# Report summarized scores
-trainedModels <- rfRes$rfRes$rfRes
-# Prepare predictions and ground truths
-pred <- as.list(rep(NA, length(trainedModels)))
-for (i in seq_len(length(trainedModels))) {
-  pred[[i]] <- trainedModels[[i]]$test$predicted
-}
-truth <- rfRes$rfRes$y_truth
-auc_roc <- rfRes$rfRes$auc_roc
-summarizePredPower(pred, truth, auc_roc)
+ggplot(featAvailMat, aes(x=Feature, y=Dataset, fill=Captured)) +
+  geom_tile() +
+  scale_fill_manual(values = c('black', 'grey80')) +
+  labs(title = 'Normal Tissue Proteomics') +
+  theme(axis.ticks = element_blank(), panel.grid = element_blank(), panel.background = element_blank(),
+        axis.text.x = element_text(size = 18, face = 'bold'),
+        axis.text.y = element_text(size = 18, face = 'bold'),
+        axis.title = element_text(size = 20, face = 'bold'),
+        legend.title = element_text(size = 20), legend.text = element_text(size = 18),
+        plot.title = element_text(size = 28, face = 'bold', hjust = 0.5, vjust = 1.5))
 ```
